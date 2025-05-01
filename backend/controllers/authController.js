@@ -76,7 +76,7 @@ const registrar = async (req, res) => {
     jwt.sign(
       payload, 
       process.env.JWT_SECRET, 
-      { expiresIn: process.env.JWT_EXPIRES_IN },
+      { expiresIn: '24h' },
       (error, token) => {
         if (error) throw error;
         res.json({ token });
@@ -92,32 +92,46 @@ const registrar = async (req, res) => {
 
 // Inicio de sesión
 const iniciarSesion = async (req, res) => {
+  console.log('Intento de inicio de sesión:', req.body);
+  
   // Verificar errores de validación
   const errores = validationResult(req);
   if (!errores.isEmpty()) {
+    console.log('Errores de validación:', errores.array());
     return res.status(400).json({ errores: errores.array() });
   }
 
   const { email, contrasena } = req.body;
+  
+  if (!email || !contrasena) {
+    console.log('Faltan campos requeridos:', { email: !!email, contrasena: !!contrasena });
+    return res.status(400).json({ mensaje: 'Email y contraseña son requeridos' });
+  }
 
   try {
+    console.log('Conectando a la base de datos...');
     const connection = await mysql.createConnection(dbConfig);
+    console.log('Conexión establecida');
     
     // Buscar usuario por email
+    console.log('Buscando usuario con email:', email);
     const [usuarios] = await connection.execute(
       'SELECT * FROM usuarios WHERE email = ?', 
       [email]
     );
     
     if (usuarios.length === 0) {
+      console.log('Usuario no encontrado');
       await connection.end();
       return res.status(400).json({ mensaje: 'Credenciales incorrectas' });
     }
     
     const usuario = usuarios[0];
+    console.log('Usuario encontrado:', { id: usuario.id_usuario, email: usuario.email });
     
     // Verificar si el usuario está bloqueado
     if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
+      console.log('Usuario bloqueado hasta:', usuario.bloqueado_hasta);
       await connection.end();
       return res.status(403).json({ 
         mensaje: `Cuenta bloqueada temporalmente. Intente nuevamente después de ${new Date(usuario.bloqueado_hasta).toLocaleString()}` 
@@ -125,7 +139,9 @@ const iniciarSesion = async (req, res) => {
     }
     
     // Verificar contraseña
+    console.log('Verificando contraseña...');
     const passwordValido = await bcrypt.compare(contrasena, usuario.contrasena);
+    console.log('Resultado de verificación de contraseña:', passwordValido);
     
     if (!passwordValido) {
       // Incrementar intentos fallidos
@@ -177,20 +193,25 @@ const iniciarSesion = async (req, res) => {
       }
     };
     
+    console.log('Generando token JWT...');
     jwt.sign(
       payload, 
       process.env.JWT_SECRET, 
-      { expiresIn: process.env.JWT_EXPIRES_IN },
+      { expiresIn: '24h' },
       (error, token) => {
-        if (error) throw error;
+        if (error) {
+          console.error('Error al generar token:', error);
+          throw error;
+        }
+        console.log('Token generado exitosamente');
         res.json({ token });
       }
     );
     
     await connection.end();
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: 'Error en el servidor' });
+    console.error('Error en iniciarSesion:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor', error: error.message });
   }
 };
 

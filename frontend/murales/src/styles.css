@@ -29,3 +29,29 @@ button {
   --border-radius: 8px;
   --transition: all 0.3s ease;
 }
+
+.custom-swal-popup {
+  background-color: rgba(50, 50, 50, 0.3); /* gris translúcido */
+  backdrop-filter: blur(10px); /* efecto blur */
+  border-radius: 14px;
+}
+
+.custom-swal-popup .swal2-title {
+  color: #ffffff !important; /* Título blanco */
+}
+
+.custom-swal-popup .swal2-html-container,
+.custom-swal-popup .swal2-content {
+  color: #ffffff !important; /* Subtítulo o texto */
+}
+
+/* Eliminar círculo oscuro detrás del ícono */
+.custom-swal-popup .swal2-icon {
+  background: transparent !important;
+}
+
+.custom-swal-popup .swal2-success-circular-line-left,
+.custom-swal-popup .swal2-success-circular-line-right,
+.custom-swal-popup .swal2-success-fix {
+  background: transparent !important;
+}
