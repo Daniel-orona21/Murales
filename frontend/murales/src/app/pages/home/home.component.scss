@@ -32,7 +32,7 @@
       min-width: 1px;
       transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
       overflow: hidden;
-      max-width: 300px;
+      max-width: 70vi;
       display: flex;
       align-items: center;
       
@@ -268,12 +268,17 @@
   max-width: none;
   margin: 0 auto;
   width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   position: relative;
   flex-direction: column;
-  flex: 1;
-  overflow: hidden;
+  overflow: auto; /* Allow scrolling within content area only */
+  
+  /* Contenedor de gestión de vistas */
+  > ng-template {
+    width: 100%;
+    height: 100%;
+  }
 
   .loading {
     display: flex;
@@ -1237,31 +1242,64 @@
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+// Contenedor que envuelve ambas vistas
+.main-content > ng-container:not(.loading) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
 .list-view {
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+  
   &.active {
     opacity: 1;
     transform: translateX(0);
+    position: relative;
   }
   
   &.inactive {
     opacity: 0;
     transform: translateX(-30px);
     position: absolute;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
   }
 }
 
 .detail-view {
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+  
   &.active {
     opacity: 1;
     transform: translateX(0);
+    position: relative;
   }
   
   &.inactive {
     opacity: 0;
     transform: translateX(30px);
     position: absolute;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
   }
+}
+
+.views-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
 }
 

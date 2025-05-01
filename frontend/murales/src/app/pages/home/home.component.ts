@@ -586,14 +586,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Si hay un mural seleccionado, usamos un ancho basado en la longitud del título
     if (this.selectedMuralId) {
       const title = this.getMuralTitle();
-      // Añadimos un margen de seguridad para evitar puntos suspensivos innecesarios
-      // Estimamos aproximadamente 16px por carácter + 20px de margen de seguridad + 30px para el botón de regreso
-      const estimatedWidth = Math.min(Math.max(title.length * 16 + 40, 80), 320);
-      return `${estimatedWidth}px`;
+      // Calculamos un ancho responsivo basado en la longitud del título
+      // y lo limitamos entre un mínimo de 8vw y un máximo de 30vw
+      const baseWidth = Math.min(Math.max(title.length * 1.4, 8), 30);
+      return `${baseWidth}vw`;
     }
     
-    // Si no hay mural seleccionado, usamos un ancho para "Mis murales"
-    return '150px';
+    // Si no hay mural seleccionado, usamos un ancho relativo para "Mis murales"
+    return '12vw';
   }
 
   // Método para manejar el clic en un mural

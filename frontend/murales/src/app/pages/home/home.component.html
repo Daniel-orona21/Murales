@@ -54,107 +54,102 @@
     </ng-container>
 
     <ng-template #content>
-      <!-- Vista de detalle de mural -->
-      <div class="view-container detail-view" [class.active]="selectedMuralId" [class.inactive]="!selectedMuralId">
-        <div class="mural-detail-view" *ngIf="selectedMuralId">
-          <div class="detail-header">
-            <button class="back-button" (click)="backToMuralesList()">
-              <i class="fas fa-arrow-left"></i> Volver
-            </button>
-            <h2>Detalles del Mural</h2>
+      <div class="views-wrapper">
+        <!-- Vista de detalle de mural -->
+        <div class="view-container detail-view" [class.active]="selectedMuralId" [class.inactive]="!selectedMuralId">
+          <div class="mural-detail-view" *ngIf="selectedMuralId">
+            <app-mural-detail [muralId]="selectedMuralId"></app-mural-detail>
           </div>
-          
-          <app-mural-detail [muralId]="selectedMuralId"></app-mural-detail>
         </div>
-      </div>
-      
-      <!-- Vista de lista de murales -->
-      <div class="view-container list-view" [class.active]="!selectedMuralId" [class.inactive]="selectedMuralId">
-        <ng-container *ngIf="murals.length === 0; else muralesList">
-          <div class="sin-murales">
-            <span class="material-symbols-outlined">dashboard</span>
-            <div class="sin-murales-text">
-              <h1>No tienes murales</h1>
-              <p>Crea tu primera mural para empezar a trabajar</p>
+        
+        <!-- Vista de lista de murales -->
+        <div class="view-container list-view" [class.active]="!selectedMuralId" [class.inactive]="selectedMuralId">
+          <ng-container *ngIf="murals.length === 0; else muralesList">
+            <div class="sin-murales">
+              <span class="material-symbols-outlined">dashboard</span>
+              <div class="sin-murales-text">
+                <h1>No tienes murales</h1>
+                <p>Crea tu primera mural para empezar a trabajar</p>
+              </div>
+              <button class="btn-primary" (click)="openCreateModal()">Crear mural</button>
             </div>
-            <button class="btn-primary" (click)="openCreateModal()">Crear mural</button>
-          </div>
-        </ng-container>
+          </ng-container>
 
-        <ng-template #muralesList>
-          <div class="murales-grid">
-            <div *ngFor="let mural of murals; let i = index" 
-                class="mural-card" 
-                [style.animation-delay]="(i * 0.1) + 's'"
-                (click)="onMuralClick(mural, $event)">
-              <div class="mural-header">
-                <h3>{{ mural.titulo }}</h3>
-                <div class="mural-menu" [class.active]="mural.showMenu">
-                  <button class="menu-trigger" (click)="toggleMenu($event, mural)">
-                    <i class="fas fa-ellipsis-v"></i>
-                  </button>
-                  <div class="menu-options" *ngIf="mural.showMenu">
-                    <!-- Solo para creador y administrador/editor -->
-                    <ng-container *ngIf="mural.rol_usuario !== 'lector'">
-                      <button class="menu-item" (click)="editMural(mural)">
-                        <i class="fas fa-edit"></i>
-                        Editar
-                      </button>
-                      
-                      <button class="menu-item" (click)="shareCode(mural)">
-                        <i class="fas fa-share-alt"></i>
-                        Código
-                      </button>
-                      
-                      <button class="menu-item delete" (click)="deleteMural(mural)">
-                        <i class="fas fa-trash-alt"></i>
-                        Eliminar
-                      </button>
-                    </ng-container>
+          <ng-template #muralesList>
+            <div class="murales-grid">
+              <div *ngFor="let mural of murals; let i = index" 
+                  class="mural-card" 
+                  [style.animation-delay]="(i * 0.1) + 's'"
+                  (click)="onMuralClick(mural, $event)">
+                <div class="mural-header">
+                  <h3>{{ mural.titulo }}</h3>
+                  <div class="mural-menu" [class.active]="mural.showMenu">
+                    <button class="menu-trigger" (click)="toggleMenu($event, mural)">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="menu-options" *ngIf="mural.showMenu">
+                      <!-- Solo para creador y administrador/editor -->
+                      <ng-container *ngIf="mural.rol_usuario !== 'lector'">
+                        <button class="menu-item" (click)="editMural(mural)">
+                          <i class="fas fa-edit"></i>
+                          Editar
+                        </button>
+                        
+                        <button class="menu-item" (click)="shareCode(mural)">
+                          <i class="fas fa-share-alt"></i>
+                          Código
+                        </button>
+                        
+                        <button class="menu-item delete" (click)="deleteMural(mural)">
+                          <i class="fas fa-trash-alt"></i>
+                          Eliminar
+                        </button>
+                      </ng-container>
 
-                    <!-- Solo para lectores (no creadores) -->
-                    <ng-container *ngIf="mural.rol_usuario === 'lector'">
-                      <button class="menu-item delete" (click)="abandonarMural(mural)">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Abandonar
-                      </button>
-                    </ng-container>
+                      <!-- Solo para lectores (no creadores) -->
+                      <ng-container *ngIf="mural.rol_usuario === 'lector'">
+                        <button class="menu-item delete" (click)="abandonarMural(mural)">
+                          <i class="fas fa-sign-out-alt"></i>
+                          Abandonar
+                        </button>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+                <p>{{ mural.descripcion }}</p>
+                <div class="mural-meta">
+                  <div class="meta-item">
+                    <i class="far fa-calendar"></i>
+                    <span>{{ mural.fecha_creacion | date:'dd MMM, yyyy' }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i [class]="mural.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
+                    <span>{{ mural.privacidad }}</span>
                   </div>
                 </div>
               </div>
-              <p>{{ mural.descripcion }}</p>
-              <div class="mural-meta">
-                <div class="meta-item">
-                  <i class="far fa-calendar"></i>
-                  <span>{{ mural.fecha_creacion | date:'dd MMM, yyyy' }}</span>
+              <div class="mural-card add-mural-card" 
+                  [style.animation-delay]="(murals.length * 0.1) + 's'">
+                <!-- Initial Content -->
+                <div class="add-mural-initial">
+                  <span class="material-symbols-outlined">add</span>
+                  <h3>Añadir nuevo mural</h3>
                 </div>
-                <div class="meta-item">
-                  <i [class]="mural.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
-                  <span>{{ mural.privacidad }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="mural-card add-mural-card" 
-                [style.animation-delay]="(murals.length * 0.1) + 's'">
-              <!-- Initial Content -->
-              <div class="add-mural-initial">
-                <span class="material-symbols-outlined">add</span>
-                <h3>Añadir nuevo mural</h3>
-              </div>
-              <!-- Hover Content -->
-              <div class="add-mural-hover">
-                <div class="add-option create" (click)="openCreateModal()">
-                  <span class="material-symbols-outlined icono-mas">add_notes</span>
-                  <span>Crear</span>
-                </div>
-                <div class="add-option join" (click)="openJoinModal()"> 
-                  <span class="material-symbols-outlined icono-mas">password</span>
-                  <span>Unirse</span>
+                <!-- Hover Content -->
+                <div class="add-mural-hover">
+                  <div class="add-option create" (click)="openCreateModal()">
+                    <span class="material-symbols-outlined icono-mas">add_notes</span>
+                    <span>Crear</span>
+                  </div>
+                  <div class="add-option join" (click)="openJoinModal()"> 
+                    <span class="material-symbols-outlined icono-mas">password</span>
+                    <span>Unirse</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </ng-template>
+          </ng-template>
+        </div>
       </div>
     </ng-template>
   </main>
