@@ -260,7 +260,7 @@ const muralController = {
         userName
       });
 
-      await pool.query(
+      const [creatorResult] = await pool.query(
         `INSERT INTO notificaciones 
          (id_emisor, id_receptor, id_mural, tipo, mensaje, estado_solicitud) 
          VALUES (?, ?, ?, 'solicitud_acceso', ?, 'pendiente')`,
@@ -271,6 +271,24 @@ const muralController = {
           `${userName} ha solicitado acceso al mural "${muralTitle}"`
         ]
       );
+      
+      // Obtener la notificación completa para emitir por WebSocket
+      const [creatorNotification] = await pool.query(
+        `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+         FROM notificaciones n
+         LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+         LEFT JOIN murales m ON n.id_mural = m.id_mural
+         WHERE n.id_notificacion = ?`,
+        [creatorResult.insertId]
+      );
+      
+      if (creatorNotification.length > 0) {
+        // Obtener el objeto io de Express
+        const io = req.app.get('io');
+        
+        // Emitir la notificación al creador
+        io.to(`user:${creatorId}`).emit('notification', creatorNotification[0]);
+      }
 
       // Get all admins for the mural (except the creator)
       const [admins] = await pool.query(
@@ -284,7 +302,7 @@ const muralController = {
       // Crear notificaciones para cada administrador
       if (admins && admins.length > 0) {
         for (const admin of admins) {
-          await pool.query(
+          const [adminResult] = await pool.query(
             `INSERT INTO notificaciones 
              (id_emisor, id_receptor, id_mural, tipo, mensaje, estado_solicitud) 
              VALUES (?, ?, ?, 'solicitud_acceso', ?, 'pendiente')`,
@@ -295,6 +313,24 @@ const muralController = {
               `${userName} ha solicitado acceso al mural "${muralTitle}"`
             ]
           );
+          
+          // Obtener la notificación completa para emitir por WebSocket
+          const [adminNotification] = await pool.query(
+            `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+             FROM notificaciones n
+             LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+             LEFT JOIN murales m ON n.id_mural = m.id_mural
+             WHERE n.id_notificacion = ?`,
+            [adminResult.insertId]
+          );
+          
+          if (adminNotification.length > 0) {
+            // Obtener el objeto io de Express
+            const io = req.app.get('io');
+            
+            // Emitir la notificación al administrador
+            io.to(`user:${admin.id_usuario}`).emit('notification', adminNotification[0]);
+          }
         }
       }
 

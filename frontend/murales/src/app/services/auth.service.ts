@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 
 interface RegisterData {
@@ -15,6 +15,8 @@ interface RegisterData {
 export class AuthService {
   private apiUrl = 'http://localhost:3000/api';
   private tokenKey = 'auth_token';
+  private authSubject = new BehaviorSubject<boolean>(this.isLoggedIn());
+  public isAuthenticated$ = this.authSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -28,6 +30,7 @@ export class AuthService {
         console.log('Respuesta del servidor:', response);
         if (response?.token) {
           localStorage.setItem(this.tokenKey, response.token);
+          this.authSubject.next(true);
         }
       }),
       catchError(this.handleError)
@@ -49,6 +52,7 @@ export class AuthService {
           console.log('Respuesta del servidor:', response);
           if (response?.token) {
             localStorage.setItem(this.tokenKey, response.token);
+            this.authSubject.next(true);
           }
         }),
         catchError(this.handleError)
@@ -57,6 +61,7 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
+    this.authSubject.next(false);
   }
 
   getToken(): string | null {

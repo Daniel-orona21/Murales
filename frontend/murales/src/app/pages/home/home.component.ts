@@ -1,10 +1,11 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MuralService, Mural, CreateMuralData } from '../../services/mural.service';
 import { NotificationService, Notification } from '../../services/notification.service';
 import { HttpClientModule } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 interface MuralWithMenu extends Mural {
@@ -18,7 +19,7 @@ interface MuralWithMenu extends Mural {
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule]
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
   loading = true;
   showCreateModal = false;
@@ -34,6 +35,10 @@ export class HomeComponent implements OnInit {
   showNotifications = false;
   unreadNotifications = 0;
   loadingNotifications = false;
+
+  // Suscripciones
+  private notificationsSubscription?: Subscription;
+  private muralAccessSubscription?: Subscription;
 
   constructor(
     public router: Router,
@@ -58,6 +63,29 @@ export class HomeComponent implements OnInit {
   ngOnInit() {
     this.loadMurals();
     this.loadNotifications();
+    
+    // Subscribe to real-time notifications
+    this.notificationsSubscription = this.notificationService.notifications$.subscribe(notifications => {
+      this.notifications = notifications;
+      this.updateUnreadCount();
+    });
+    
+    // Suscribirse a eventos de aprobación de acceso a murales
+    this.muralAccessSubscription = this.notificationService.muralAccessApproved$.subscribe(muralId => {
+      console.log('Access to mural approved, reloading murals...');
+      this.loadMurals();
+    });
+  }
+
+  ngOnDestroy() {
+    // Limpiar suscripciones
+    if (this.notificationsSubscription) {
+      this.notificationsSubscription.unsubscribe();
+    }
+    
+    if (this.muralAccessSubscription) {
+      this.muralAccessSubscription.unsubscribe();
+    }
   }
 
   loadMurals() {
@@ -373,16 +401,12 @@ export class HomeComponent implements OnInit {
   // Métodos actualizados para las notificaciones
   loadNotifications() {
     this.loadingNotifications = true;
-    console.log('Attempting to load notifications...');
     this.notificationService.getNotifications().subscribe({
-      next: (data) => {
-        console.log('Notifications loaded successfully:', data);
-        this.notifications = data;
-        this.updateUnreadCount();
+      next: (notifications) => {
         this.loadingNotifications = false;
       },
       error: (error) => {
-        console.error('Error al cargar notificaciones:', error);
+        console.error('Error loading notifications:', error);
         this.loadingNotifications = false;
       }
     });
@@ -400,9 +424,7 @@ export class HomeComponent implements OnInit {
   markAsRead(notification: Notification, event: Event) {
     event.stopPropagation();
     
-    // Remove from UI immediately to prevent double-clicks and race conditions
-    this.notifications = this.notifications.filter(n => n.id_notificacion !== notification.id_notificacion);
-    this.updateUnreadCount();
+    // No need to remove from UI immediately, the service will handle it via notifications$ subscription
     
     this.notificationService.markAsRead(notification.id_notificacion).subscribe({
       next: () => {
@@ -410,8 +432,6 @@ export class HomeComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al marcar/eliminar notificación:', error);
-        // No need to add the notification back to the UI - just log the error
-        // The UI remains consistent from the user's perspective
       }
     });
   }
@@ -434,9 +454,7 @@ export class HomeComponent implements OnInit {
   processAccessRequest(notification: Notification, approved: boolean, event: Event) {
     event.stopPropagation();
     
-    // Remove from UI immediately
-    this.notifications = this.notifications.filter(n => n.id_notificacion !== notification.id_notificacion);
-    this.updateUnreadCount();
+    // No need to remove from UI here, the service will handle it via notifications$ subscription
     
     this.notificationService.processAccessRequest(notification.id_notificacion, approved).subscribe({
       next: () => {
@@ -455,10 +473,6 @@ export class HomeComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al procesar solicitud de acceso:', error);
-        
-        // Add the notification back to the array since processing failed
-        this.notifications.push(notification);
-        this.updateUnreadCount();
         
         Swal.fire({
           title: 'Error',

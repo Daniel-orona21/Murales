@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, of, throwError } from 'rxjs';
+import { Observable, catchError, of, throwError, BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { switchMap } from 'rxjs/operators';
+import { io, Socket } from 'socket.io-client';
 
 export interface Notification {
   id_notificacion: number;
@@ -24,11 +25,128 @@ export interface Notification {
 })
 export class NotificationService {
   private apiUrl = environment.apiUrl;
+  private socket: Socket | null = null;
+  private notificationsSubject = new BehaviorSubject<Notification[]>([]);
+  public notifications$ = this.notificationsSubject.asObservable();
+  
+  // Subject para emitir eventos cuando se reciba una notificación de aprobación de acceso a un mural
+  private muralAccessApprovedSubject = new Subject<number>();
+  public muralAccessApproved$ = this.muralAccessApprovedSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
-  ) { }
+  ) {
+    this.initializeSocket();
+    
+    // Re-initialize socket when auth state changes
+    this.authService.isAuthenticated$.subscribe((isAuthenticated: boolean) => {
+      if (isAuthenticated) {
+        this.initializeSocket();
+      } else {
+        this.disconnectSocket();
+      }
+    });
+  }
+
+  // Initialize socket connection and authenticate
+  private initializeSocket() {
+    // Disconnect existing socket if any
+    this.disconnectSocket();
+    
+    const token = this.authService.getToken();
+    if (!token) return;
+    
+    // Connect to socket server
+    this.socket = io(environment.socketUrl);
+    
+    // Authenticate with the server using token
+    this.socket?.on('connect', () => {
+      console.log('Socket connected, authenticating...');
+      this.socket?.emit('authenticate', token);
+    });
+    
+    // Handle authentication response
+    this.socket?.on('authenticated', (response) => {
+      console.log('Socket authentication response:', response);
+      if (response.success) {
+        console.log('Socket authenticated successfully');
+        this.setupSocketListeners();
+      } else {
+        console.error('Socket authentication failed:', response.error);
+      }
+    });
+    
+    // Handle disconnection
+    this.socket?.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+    
+    // Handle connection errors
+    this.socket?.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+  }
+  
+  // Set up socket event listeners
+  private setupSocketListeners() {
+    if (!this.socket) return;
+    
+    // Listen for new notifications
+    this.socket.on('notification', (notification: Notification) => {
+      console.log('New notification received:', notification);
+      
+      // Update notifications list
+      const currentNotifications = this.notificationsSubject.getValue();
+      this.notificationsSubject.next([notification, ...currentNotifications]);
+      
+      // Emitir evento si es una notificación de aprobación de acceso a un mural
+      if (notification.tipo === 'invitacion' && notification.mensaje.includes('aprobada')) {
+        console.log('Access to mural approved. ID mural:', notification.id_mural);
+        this.muralAccessApprovedSubject.next(notification.id_mural);
+      }
+    });
+    
+    // Listen for notification updates (e.g., when someone else processes a request)
+    this.socket.on('notification_update', (data: {id: number, status: string}) => {
+      console.log('Notification update received:', data);
+      
+      // Update the status of the notification
+      const currentNotifications = this.notificationsSubject.getValue();
+      const updatedNotifications = currentNotifications.map(notification => {
+        if (notification.id_notificacion === data.id) {
+          return {
+            ...notification,
+            estado_solicitud: data.status as 'pendiente' | 'aprobada' | 'rechazada'
+          };
+        }
+        return notification;
+      });
+      
+      this.notificationsSubject.next(updatedNotifications);
+    });
+    
+    // Listen for notification deletion
+    this.socket.on('notification_delete', (notificationId: number) => {
+      console.log('Notification deletion received:', notificationId);
+      
+      // Remove the notification from the list
+      const currentNotifications = this.notificationsSubject.getValue();
+      const updatedNotifications = currentNotifications.filter(
+        notification => notification.id_notificacion !== notificationId
+      );
+      
+      this.notificationsSubject.next(updatedNotifications);
+    });
+  }
+  
+  // Disconnect socket
+  private disconnectSocket() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
 
   // Helper method to get headers with auth token
   private getHeaders(): HttpHeaders {
@@ -40,7 +158,27 @@ export class NotificationService {
   // Obtener todas las notificaciones del usuario actual
   getNotifications(): Observable<Notification[]> {
     const headers = this.getHeaders();
-    return this.http.get<Notification[]>(`${this.apiUrl}/notificaciones`, { headers });
+    return this.http.get<Notification[]>(`${this.apiUrl}/notificaciones`, { headers })
+      .pipe(
+        catchError(error => {
+          console.error('Error fetching notifications:', error);
+          return of([]);
+        }),
+        switchMap(notifications => {
+          // Update the subject with the fetched notifications
+          this.notificationsSubject.next(notifications);
+          
+          // Revisar si hay notificaciones de aprobación de mural
+          for (const notification of notifications) {
+            if (notification.tipo === 'invitacion' && notification.mensaje.includes('aprobada')) {
+              console.log('Found approval notification on initial load:', notification.id_mural);
+              this.muralAccessApprovedSubject.next(notification.id_mural);
+            }
+          }
+          
+          return of(notifications);
+        })
+      );
   }
 
   // Marcar una notificación como leída (simplemente eliminarla)
@@ -69,6 +207,16 @@ export class NotificationService {
           }
           // For other errors, rethrow them
           return throwError(() => error);
+        }),
+        switchMap(response => {
+          // Update local notification list - remove the processed notification
+          const currentNotifications = this.notificationsSubject.getValue();
+          const updatedNotifications = currentNotifications.filter(
+            notification => notification.id_notificacion !== notificationId
+          );
+          this.notificationsSubject.next(updatedNotifications);
+          
+          return of(response);
         })
       );
   }
@@ -93,6 +241,16 @@ export class NotificationService {
           }
           // For other errors, rethrow them
           return throwError(() => error);
+        }),
+        switchMap(response => {
+          // Update local notification list
+          const currentNotifications = this.notificationsSubject.getValue();
+          const updatedNotifications = currentNotifications.filter(
+            notification => notification.id_notificacion !== notificationId
+          );
+          this.notificationsSubject.next(updatedNotifications);
+          
+          return of(response);
         })
       );
   }

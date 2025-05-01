@@ -1,5 +1,50 @@
 const { pool } = require('../config/db');
 
+// Crear una nueva notificación
+exports.createNotification = async (req, res) => {
+  const { id_receptor, id_mural, tipo, mensaje } = req.body;
+  const id_emisor = req.user.id;
+  
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO notificaciones 
+       (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [id_emisor, id_receptor, id_mural, tipo, mensaje]
+    );
+    
+    const notificationId = result.insertId;
+    
+    // Obtener la notificación completa para emitir por WebSocket
+    const [notificaciones] = await pool.query(
+      `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+       FROM notificaciones n
+       LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+       LEFT JOIN murales m ON n.id_mural = m.id_mural
+       WHERE n.id_notificacion = ?`,
+      [notificationId]
+    );
+    
+    if (notificaciones.length > 0) {
+      const notification = notificaciones[0];
+      
+      // Obtener el objeto io de Express
+      const io = req.app.get('io');
+      
+      // Emitir la notificación al usuario receptor
+      io.to(`user:${id_receptor}`).emit('notification', notification);
+    }
+    
+    res.status(201).json({ 
+      message: 'Notificación creada correctamente',
+      id_notificacion: notificationId
+    });
+  } catch (error) {
+    console.error('Error al crear notificación:', error);
+    res.status(500).json({ error: 'Error al crear notificación' });
+  }
+};
+
 // Obtener todas las notificaciones del usuario actual
 exports.getNotifications = async (req, res) => {
   try {
@@ -64,6 +109,12 @@ exports.markAsRead = async (req, res) => {
       [notificationId]
     );
     
+    // Obtener el objeto io de Express
+    const io = req.app.get('io');
+    
+    // Emitir evento de notificación eliminada
+    io.to(`user:${userId}`).emit('notification_delete', notificationId);
+    
     console.log(`Successfully deleted notification ${notificationId}`);
     res.json({ message: 'Notificación marcada como leída y eliminada' });
   } catch (error) {
@@ -77,12 +128,29 @@ exports.markAllAsRead = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    await pool.query(
-      'UPDATE notificaciones SET leido = 1 WHERE id_receptor = ? AND leido = 0',
+    // Obtener IDs de todas las notificaciones no leídas para el usuario
+    const [notificaciones] = await pool.query(
+      'SELECT id_notificacion FROM notificaciones WHERE id_receptor = ? AND leido = 0',
       [userId]
     );
     
-    res.json({ message: 'Todas las notificaciones marcadas como leídas' });
+    // Eliminar todas las notificaciones no leídas
+    if (notificaciones.length > 0) {
+      await pool.query(
+        'DELETE FROM notificaciones WHERE id_receptor = ? AND leido = 0',
+        [userId]
+      );
+      
+      // Obtener el objeto io de Express
+      const io = req.app.get('io');
+      
+      // Emitir eventos de eliminación para cada notificación
+      for (const notificacion of notificaciones) {
+        io.to(`user:${userId}`).emit('notification_delete', notificacion.id_notificacion);
+      }
+    }
+    
+    res.json({ message: 'Todas las notificaciones marcadas como leídas y eliminadas' });
   } catch (error) {
     console.error('Error al marcar todas las notificaciones como leídas:', error);
     res.status(500).json({ error: 'Error al marcar todas las notificaciones como leídas' });
@@ -107,7 +175,7 @@ exports.processAccessRequest = async (req, res) => {
     
     // Obtener la información de la notificación
     const [notificacion] = await pool.query(
-      `SELECT n.*, m.id_creador 
+      `SELECT n.*, m.id_creador, m.titulo as titulo_mural
        FROM notificaciones n
        JOIN murales m ON n.id_mural = m.id_mural
        WHERE n.id_notificacion = ? AND n.tipo = 'solicitud_acceso'`,
@@ -168,6 +236,12 @@ exports.processAccessRequest = async (req, res) => {
       [notificationId]
     );
     
+    // Obtener el objeto io de Express
+    const io = req.app.get('io');
+    
+    // Emitir evento de notificación eliminada para todos los receptores
+    io.to(`user:${userId}`).emit('notification_delete', notificationId);
+    
     // Si se aprueba, añadir el rol de lector al usuario
     if (aprobada) {
       // Verificar si ya existe una asignación de rol para este usuario en este mural
@@ -183,8 +257,11 @@ exports.processAccessRequest = async (req, res) => {
         );
       }
       
+      // Usar el título del mural que ya obtenemos en la consulta inicial
+      const muralTitle = solicitud.titulo_mural || 'desconocido';
+      
       // Crear notificación para el solicitante
-      await pool.query(
+      const [result] = await pool.query(
         `INSERT INTO notificaciones 
          (id_emisor, id_receptor, id_mural, tipo, mensaje) 
          VALUES (?, ?, ?, 'invitacion', ?)`,
@@ -192,12 +269,30 @@ exports.processAccessRequest = async (req, res) => {
           userId,
           solicitud.id_emisor,
           solicitud.id_mural,
-          `Tu solicitud de acceso al mural ha sido aprobada. Ya puedes acceder a él.`
+          `Tu solicitud de acceso al mural "${muralTitle}" ha sido aprobada. Ya puedes acceder a él.`
         ]
       );
+      
+      // Obtener la notificación completa para emitir por WebSocket
+      const [nuevaNotificacion] = await pool.query(
+        `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+         FROM notificaciones n
+         LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+         LEFT JOIN murales m ON n.id_mural = m.id_mural
+         WHERE n.id_notificacion = ?`,
+        [result.insertId]
+      );
+      
+      if (nuevaNotificacion.length > 0) {
+        // Emitir la nueva notificación al solicitante
+        io.to(`user:${solicitud.id_emisor}`).emit('notification', nuevaNotificacion[0]);
+      }
     } else {
+      // Usar el título del mural que ya obtenemos en la consulta inicial
+      const muralTitle = solicitud.titulo_mural || 'desconocido';
+      
       // Crear notificación para el solicitante informando que fue rechazado
-      await pool.query(
+      const [result] = await pool.query(
         `INSERT INTO notificaciones 
          (id_emisor, id_receptor, id_mural, tipo, mensaje) 
          VALUES (?, ?, ?, 'invitacion', ?)`,
@@ -205,9 +300,24 @@ exports.processAccessRequest = async (req, res) => {
           userId,
           solicitud.id_emisor,
           solicitud.id_mural,
-          `Tu solicitud de acceso al mural ha sido rechazada.`
+          `Tu solicitud de acceso al mural "${muralTitle}" ha sido rechazada.`
         ]
       );
+      
+      // Obtener la notificación completa para emitir por WebSocket
+      const [nuevaNotificacion] = await pool.query(
+        `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+         FROM notificaciones n
+         LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+         LEFT JOIN murales m ON n.id_mural = m.id_mural
+         WHERE n.id_notificacion = ?`,
+        [result.insertId]
+      );
+      
+      if (nuevaNotificacion.length > 0) {
+        // Emitir la nueva notificación al solicitante
+        io.to(`user:${solicitud.id_emisor}`).emit('notification', nuevaNotificacion[0]);
+      }
     }
     
     await pool.query('COMMIT');
@@ -248,29 +358,27 @@ exports.deleteNotification = async (req, res) => {
       );
       
       if (anyNotification.length === 0) {
-        // Notification doesn't exist, which is fine - it's already gone
-        console.log(`Notification ${notificationId} already deleted`);
-        return res.json({ 
-          success: true,
-          message: 'Notification already deleted or doesn\'t exist' 
-        });
+        console.log(`Notification ${notificationId} doesn't exist at all`);
+        return res.json({ message: 'Notificación ya eliminada' });
       }
       
-      // Notification exists but doesn't belong to this user
       return res.status(404).json({ error: 'Notificación no encontrada' });
     }
     
-    // Proceed with deletion
-    const result = await pool.query(
+    // Eliminar la notificación
+    await pool.query(
       'DELETE FROM notificaciones WHERE id_notificacion = ?',
       [notificationId]
     );
     
+    // Obtener el objeto io de Express
+    const io = req.app.get('io');
+    
+    // Emitir evento de notificación eliminada
+    io.to(`user:${userId}`).emit('notification_delete', notificationId);
+    
     console.log(`Successfully deleted notification ${notificationId}`);
-    res.json({
-      success: true,
-      message: 'Notificación eliminada correctamente'
-    });
+    res.json({ message: 'Notificación eliminada' });
   } catch (error) {
     console.error('Error al eliminar notificación:', error);
     res.status(500).json({ error: 'Error al eliminar notificación' });

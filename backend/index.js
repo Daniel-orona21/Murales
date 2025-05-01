@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const socketIo = require('socket.io');
 require('dotenv').config();
 
 // Importar la configuración de base de datos
@@ -11,6 +13,20 @@ const { apiLimiter } = require('./middleware/rateLimit');
 
 // Crear la aplicación Express
 const app = express();
+
+// Crear el servidor HTTP
+const server = http.createServer(app);
+
+// Configurar Socket.IO con CORS habilitado
+const io = socketIo(server, {
+  cors: {
+    origin: '*', // En producción, restringe esto a tu dominio frontend
+    methods: ['GET', 'POST']
+  }
+});
+
+// Guardar socket.io en la app para usarlo en los controladores
+app.set('io', io);
 
 // Configurar CORS
 app.use(cors());
@@ -28,6 +44,39 @@ app.use('/api/notificaciones', require('./routes/notificaciones'));
 // Conectar a la base de datos
 conectarDB();
 
+// Configurar Socket.IO
+io.on('connection', (socket) => {
+  console.log('Nuevo cliente conectado:', socket.id);
+  
+  // Autenticar al usuario usando el token del socket
+  socket.on('authenticate', (token) => {
+    try {
+      // Aquí deberías verificar el token y obtener el ID del usuario
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.usuario.id;
+      
+      console.log('Usuario autenticado en socket:', userId);
+      
+      // Guardar el userId en el objeto del socket
+      socket.userId = userId;
+      
+      // Unir al usuario a una sala personalizada para sus notificaciones
+      socket.join(`user:${userId}`);
+      
+      // Enviar confirmación al cliente
+      socket.emit('authenticated', { success: true });
+    } catch (error) {
+      console.error('Error al autenticar socket:', error);
+      socket.emit('authenticated', { success: false, error: 'Invalid token' });
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+  });
+});
+
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API de Murales funcionando correctamente' });
@@ -44,4 +93,4 @@ app.use((err, req, res, next) => {
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+server.listen(PORT, () => console.log(`Servidor en puerto ${PORT} con WebSockets activos`));
