@@ -309,7 +309,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       `,
       icon: 'info',
       confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-      confirmButtonText: 'Solicitar acceso',
+      confirmButtonText: 'Unirse',
       showCancelButton: true,
       cancelButtonText: 'Cancelar',
       customClass: {
@@ -360,11 +360,34 @@ export class HomeComponent implements OnInit, OnDestroy {
         return new Promise((resolve) => {
           this.notificationService.createAccessRequest(code).subscribe({
             next: (response) => {
-              console.log('Solicitud de acceso enviada:', response);
+              console.log('Respuesta de acceso a mural:', response);
               resolve(response);
             },
             error: (error) => {
               console.error('Error al solicitar acceso:', error);
+              
+              // Si hay un error 500, es posible que el usuario ya haya sido agregado al mural
+              // pero falló la notificación. Cargaremos los murales de todos modos.
+              if (error.status === 500) {
+                // Intentar cargar los murales de todos modos
+                this.loadMurals();
+                
+                Swal.fire({
+                  title: 'Acceso Posible',
+                  text: 'Hubo un problema en el servidor, pero es posible que hayas sido agregado al mural. Verifica tu lista de murales.',
+                  icon: 'warning',
+                  confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                  confirmButtonText: 'Entendido',
+                  customClass: {
+                    popup: 'custom-swal-popup',
+                    confirmButton: 'custom-confirm-button'
+                  }
+                });
+                
+                resolve(false);
+                return;
+              }
+              
               if (error.status === 404) {
                 Swal.showValidationMessage('Código de acceso inválido. El mural no existe.');
               } else if (error.status === 409) {
@@ -379,17 +402,38 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        Swal.fire({
-          title: '¡Solicitud Enviada!',
-          text: 'Tu solicitud de acceso ha sido enviada. Recibirás una notificación cuando sea aprobada.',
-          icon: 'success',
-          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Entendido',
-          customClass: {
-            popup: 'custom-swal-popup', 
-            confirmButton: 'custom-confirm-button'
-          }
-        });
+        const response = result.value;
+        const accesoDirecto = response.acceso_inmediato;
+        
+        if (accesoDirecto) {
+          // Si el mural es público, el usuario ya tiene acceso
+          this.loadMurals(); // Cargar murales para mostrar el nuevo mural
+          
+          Swal.fire({
+            title: '¡Te has unido!',
+            text: `Te has unido exitosamente al mural "${response.mensaje.split('"')[1]}". Ya puedes acceder a él.`,
+            icon: 'success',
+            confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+            confirmButtonText: 'Entendido',
+            customClass: {
+              popup: 'custom-swal-popup', 
+              confirmButton: 'custom-confirm-button'
+            }
+          });
+        } else {
+          // Si el mural es privado, se envía una solicitud de acceso
+          Swal.fire({
+            title: '¡Solicitud Enviada!',
+            text: 'Tu solicitud de acceso ha sido enviada. Recibirás una notificación cuando sea aprobada.',
+            icon: 'info',
+            confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+            confirmButtonText: 'Entendido',
+            customClass: {
+              popup: 'custom-swal-popup', 
+              confirmButton: 'custom-confirm-button'
+            }
+          });
+        }
       }
     });
   }
@@ -446,6 +490,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       case 'invitacion': return 'fas fa-envelope';
       case 'actualizacion': return 'fas fa-bell';
       case 'comentario': return 'fas fa-comment';
+      case 'informativa': return 'fas fa-info-circle';
       default: return 'fas fa-bell';
     }
   }

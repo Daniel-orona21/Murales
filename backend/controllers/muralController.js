@@ -200,9 +200,9 @@ const muralController = {
         return res.status(400).json({ error: 'El código de acceso es requerido' });
       }
 
-      // Verificar si el mural existe
+      // Verificar si el mural existe y obtener su privacidad
       const [mural] = await db.query(
-        'SELECT id_mural, titulo, id_creador FROM murales WHERE codigo_acceso = ?',
+        'SELECT id_mural, titulo, id_creador, privacidad FROM murales WHERE codigo_acceso = ?',
         [codigo]
       );
 
@@ -215,6 +215,7 @@ const muralController = {
       const muralId = mural[0].id_mural;
       const muralTitle = mural[0].titulo;
       const creatorId = mural[0].id_creador;
+      const esPrivado = mural[0].privacidad === 'privado';
 
       // Verificar si el usuario ya está asociado al mural
       const [existingRole] = await db.query(
@@ -228,17 +229,6 @@ const muralController = {
         return res.status(409).json({ error: 'Ya te encuentras asociado a este mural' });
       }
 
-      // Verificar si ya existe una solicitud pendiente
-      const [existingRequest] = await db.query(
-        `SELECT id_notificacion FROM notificaciones 
-         WHERE id_emisor = ? AND id_mural = ? AND tipo = 'solicitud_acceso' AND estado_solicitud = 'pendiente'`,
-        [userId, muralId]
-      );
-
-      if (existingRequest && existingRequest.length > 0) {
-        return res.status(409).json({ error: 'Ya has enviado una solicitud de acceso a este mural' });
-      }
-
       // Obtener nombre del usuario que solicita acceso
       const [userData] = await db.query(
         'SELECT nombre FROM usuarios WHERE id_usuario = ?',
@@ -250,6 +240,108 @@ const muralController = {
       }
 
       const userName = userData[0].nombre;
+
+      // Si el mural es público, dar acceso inmediato
+      if (!esPrivado) {
+        console.log(`Mural público: acceso inmediato para ${userName} al mural ${muralTitle}`);
+        
+        // Agregar al usuario con rol de lector
+        await db.query(
+          'INSERT INTO roles_mural (id_usuario, id_mural, rol, fecha_asignacion) VALUES (?, ?, "lector", NOW())',
+          [userId, muralId]
+        );
+        
+        // Crear notificación informativa para el creador
+        const [creatorResult] = await pool.query(
+          `INSERT INTO notificaciones 
+           (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+           VALUES (?, ?, ?, 'otro', ?)`,
+          [
+            userId,
+            creatorId,
+            muralId,
+            `${userName} se ha unido al mural "${muralTitle}"`
+          ]
+        );
+        
+        // Obtener la notificación completa para emitir por WebSocket
+        const [creatorNotification] = await pool.query(
+          `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+           FROM notificaciones n
+           LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+           LEFT JOIN murales m ON n.id_mural = m.id_mural
+           WHERE n.id_notificacion = ?`,
+          [creatorResult.insertId]
+        );
+        
+        if (creatorNotification.length > 0) {
+          // Obtener el objeto io de Express
+          const io = req.app.get('io');
+          
+          // Emitir la notificación al creador
+          io.to(`user:${creatorId}`).emit('notification', creatorNotification[0]);
+        }
+        
+        // Notificar a todos los administradores (excepto el creador)
+        const [admins] = await pool.query(
+          `SELECT id_usuario FROM roles_mural 
+           WHERE id_mural = ? AND rol = 'administrador' AND id_usuario != ?`,
+          [muralId, creatorId]
+        );
+        
+        if (admins && admins.length > 0) {
+          for (const admin of admins) {
+            const [adminResult] = await pool.query(
+              `INSERT INTO notificaciones 
+               (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+               VALUES (?, ?, ?, 'otro', ?)`,
+              [
+                userId,
+                admin.id_usuario,
+                muralId,
+                `${userName} se ha unido al mural "${muralTitle}"`
+              ]
+            );
+            
+            // Obtener la notificación completa para emitir por WebSocket
+            const [adminNotification] = await pool.query(
+              `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+               FROM notificaciones n
+               LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+               LEFT JOIN murales m ON n.id_mural = m.id_mural
+               WHERE n.id_notificacion = ?`,
+              [adminResult.insertId]
+            );
+            
+            if (adminNotification.length > 0) {
+              // Obtener el objeto io de Express
+              const io = req.app.get('io');
+              
+              // Emitir la notificación al administrador
+              io.to(`user:${admin.id_usuario}`).emit('notification', adminNotification[0]);
+            }
+          }
+        }
+        
+        return res.status(200).json({
+          mensaje: `Te has unido al mural "${muralTitle}" exitosamente`,
+          id_mural: muralId,
+          acceso_inmediato: true
+        });
+      }
+      
+      // Si llegamos aquí, el mural es privado y requiere aprobación
+      
+      // Verificar si ya existe una solicitud pendiente
+      const [existingRequest] = await db.query(
+        `SELECT id_notificacion FROM notificaciones 
+         WHERE id_emisor = ? AND id_mural = ? AND tipo = 'solicitud_acceso' AND estado_solicitud = 'pendiente'`,
+        [userId, muralId]
+      );
+
+      if (existingRequest && existingRequest.length > 0) {
+        return res.status(409).json({ error: 'Ya has enviado una solicitud de acceso a este mural' });
+      }
 
       // Create notification for the creator of the mural
       console.log('Creating notification for creator:', {
@@ -336,7 +428,8 @@ const muralController = {
 
       res.status(200).json({
         mensaje: 'Solicitud de acceso enviada exitosamente',
-        id_mural: muralId
+        id_mural: muralId,
+        acceso_inmediato: false
       });
     } catch (error) {
       console.error('Error al solicitar acceso al mural:', error);

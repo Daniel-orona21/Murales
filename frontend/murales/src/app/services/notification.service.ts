@@ -11,7 +11,7 @@ export interface Notification {
   id_emisor: number;
   id_receptor: number;
   id_mural: number;
-  tipo: 'solicitud_acceso' | 'invitacion' | 'actualizacion' | 'comentario' | 'otro';
+  tipo: 'solicitud_acceso' | 'invitacion' | 'actualizacion' | 'comentario' | 'informativa' | 'otro';
   mensaje: string;
   leido: boolean;
   estado_solicitud: 'pendiente' | 'aprobada' | 'rechazada' | null;
