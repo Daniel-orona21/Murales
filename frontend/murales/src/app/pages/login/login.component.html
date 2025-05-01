@@ -1,0 +1,139 @@
+<div class="login-container">
+  <div class="login-content">
+    <div class="brand-section">
+      <h1>Mis murales</h1>
+      <p class="subtitle">Colabora y crea</p>
+    </div>
+    
+    <div class="card-container">
+      <!-- Login Card -->
+      <div class="card" [class.hidden]="showRegister">
+        <div class="form-header">
+          <h2>Bienvenido de nuevo</h2>
+          <p>Continua creando!</p>
+        </div>
+        
+        <div class="contenedor">
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-envelope"></i>
+              <input type="email" [(ngModel)]="email" placeholder="Email address" class="form-control">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input [type]="showPassword ? 'text' : 'password'" 
+                    [(ngModel)]="password" 
+                    placeholder="Password" 
+                    class="form-control"
+                    data-lpignore="true"
+                    autocomplete="new-password">
+              <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" (click)="togglePassword()"></i>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="onLogin()" class="login-button">
+          <span>Comenzar</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+
+        <div class="additional-options">
+          <a (click)="toggleCards()" class="forgot-password">Registrarme</a>
+          <a href="#" class="forgot-password">Olvidé mi contraseña</a>
+        </div>
+
+        <div class="social-login">
+          <p>O continua con</p>
+          <div class="social-buttons">
+            <button class="social-btn github">
+              <i class="fab fa-github"></i>
+            </button>
+            <button class="social-btn google">
+              <i class="fab fa-google"></i>
+            </button>
+            <button class="social-btn microsoft">
+              <i class="fab fa-microsoft"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Card -->
+      <div class="card" [class.hidden]="!showRegister">
+        <div class="form-header">
+          <h2>Crear cuenta</h2>
+          <p>Únete a nuestra comunidad!</p>
+        </div>
+        
+        <div class="contenedor">
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-user"></i>
+              <input type="text" [(ngModel)]="registerName" placeholder="Nombre completo" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-envelope"></i>
+              <input type="email" [(ngModel)]="registerEmail" placeholder="Email address" class="form-control">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input [type]="showRegisterPassword ? 'text' : 'password'" 
+                    [(ngModel)]="registerPassword" 
+                    placeholder="Password" 
+                    class="form-control"
+                    data-lpignore="true"
+                    autocomplete="new-password">
+              <i class="fas" [class.fa-eye]="!showRegisterPassword" [class.fa-eye-slash]="showRegisterPassword" (click)="toggleRegisterPassword()"></i>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input [type]="showRegisterConfirmPassword ? 'text' : 'password'" 
+                    [(ngModel)]="registerConfirmPassword" 
+                    placeholder="Confirmar password" 
+                    class="form-control"
+                    data-lpignore="true"
+                    autocomplete="new-password">
+              <i class="fas" [class.fa-eye]="!showRegisterConfirmPassword" [class.fa-eye-slash]="showRegisterConfirmPassword" (click)="toggleRegisterConfirmPassword()"></i>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="onRegister()" class="login-button">
+          <span>Registrarse</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+
+        <div class="additional-options">
+          <a (click)="toggleCards()" class="forgot-password">Ya tengo cuenta</a>
+        </div>
+
+        <div class="social-login">
+          <p>O registrate con</p>
+          <div class="social-buttons">
+            <button class="social-btn github">
+              <i class="fab fa-github"></i>
+            </button>
+            <button class="social-btn google">
+              <i class="fab fa-google"></i>
+            </button>
+            <button class="social-btn microsoft">
+              <i class="fab fa-microsoft"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
