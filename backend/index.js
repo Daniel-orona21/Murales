@@ -1,31 +1,45 @@
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
+// Importar la configuración de base de datos
+const { conectarDB } = require('./config/db');
+
+// Importar middleware de limitación de tasa
+const { apiLimiter } = require('./middleware/rateLimit');
+
+// Crear la aplicación Express
 const app = express();
+
+// Configurar middlewares globales
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME
-});
+// Aplicar limitador de tasa a todas las solicitudes de la API
+app.use('/api', apiLimiter);
 
-db.connect(err => {
-  if (err) return console.error('Error al conectar:', err);
-  console.log('Conectado a MySQL');
-});
+// Rutas
+app.use('/api/auth', require('./routes/authRoutes'));
+
+// Conectar a la base de datos
+conectarDB();
 
 // Ruta de prueba
-app.get('/api/usuarios', (req, res) => {
-  db.query('SELECT * FROM usuarios', (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
+app.get('/', (req, res) => {
+  res.json({ mensaje: 'API de Murales funcionando correctamente' });
+});
+
+// Manejador de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    mensaje: 'Error en el servidor',
+    error: process.env.NODE_ENV === 'production' ? {} : err
   });
 });
 
+// Iniciar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));

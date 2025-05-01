@@ -1,0 +1,384 @@
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
+const mysql = require('mysql2/promise');
+const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
+
+// Configuración de la conexión a la base de datos
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
+};
+
+// Configurar el transporte de correo electrónico
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Registro de usuarios
+const registrar = async (req, res) => {
+  // Verificar errores de validación
+  const errores = validationResult(req);
+  if (!errores.isEmpty()) {
+    return res.status(400).json({ errores: errores.array() });
+  }
+
+  const { nombre, email, contrasena } = req.body;
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Verificar si el email ya está registrado
+    const [usuarios] = await connection.execute(
+      'SELECT * FROM usuarios WHERE email = ?', 
+      [email]
+    );
+    
+    if (usuarios.length > 0) {
+      await connection.end();
+      return res.status(400).json({ mensaje: 'El usuario ya existe' });
+    }
+    
+    // Hashear la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(contrasena, salt);
+    
+    // Crear nuevo usuario
+    const fechaActual = new Date();
+    await connection.execute(
+      'INSERT INTO usuarios (nombre, email, contrasena, fecha_registro, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [nombre, email, hashedPassword, fechaActual, fechaActual, fechaActual]
+    );
+    
+    // Obtener el ID del usuario recién insertado
+    const [resultado] = await connection.execute(
+      'SELECT id_usuario FROM usuarios WHERE email = ?', 
+      [email]
+    );
+    
+    // Crear y devolver token JWT
+    const payload = {
+      usuario: {
+        id: resultado[0].id_usuario,
+        nombre: nombre,
+        email: email
+      }
+    };
+    
+    jwt.sign(
+      payload, 
+      process.env.JWT_SECRET, 
+      { expiresIn: process.env.JWT_EXPIRES_IN },
+      (error, token) => {
+        if (error) throw error;
+        res.json({ token });
+      }
+    );
+    
+    await connection.end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Inicio de sesión
+const iniciarSesion = async (req, res) => {
+  // Verificar errores de validación
+  const errores = validationResult(req);
+  if (!errores.isEmpty()) {
+    return res.status(400).json({ errores: errores.array() });
+  }
+
+  const { email, contrasena } = req.body;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Buscar usuario por email
+    const [usuarios] = await connection.execute(
+      'SELECT * FROM usuarios WHERE email = ?', 
+      [email]
+    );
+    
+    if (usuarios.length === 0) {
+      await connection.end();
+      return res.status(400).json({ mensaje: 'Credenciales incorrectas' });
+    }
+    
+    const usuario = usuarios[0];
+    
+    // Verificar si el usuario está bloqueado
+    if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
+      await connection.end();
+      return res.status(403).json({ 
+        mensaje: `Cuenta bloqueada temporalmente. Intente nuevamente después de ${new Date(usuario.bloqueado_hasta).toLocaleString()}` 
+      });
+    }
+    
+    // Verificar contraseña
+    const passwordValido = await bcrypt.compare(contrasena, usuario.contrasena);
+    
+    if (!passwordValido) {
+      // Incrementar intentos fallidos
+      const nuevoIntentos = usuario.intentos_fallidos + 1;
+      
+      // Si hay más de 5 intentos fallidos, bloquear la cuenta por 30 minutos
+      if (nuevoIntentos >= 5) {
+        const tiempoBloqueo = new Date();
+        tiempoBloqueo.setMinutes(tiempoBloqueo.getMinutes() + 30);
+        
+        await connection.execute(
+          'UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id_usuario = ?', 
+          [0, tiempoBloqueo, usuario.id_usuario]
+        );
+        
+        await connection.end();
+        return res.status(403).json({ 
+          mensaje: `Demasiados intentos fallidos. Cuenta bloqueada hasta ${tiempoBloqueo.toLocaleString()}` 
+        });
+      }
+      
+      // Actualizar intentos fallidos
+      await connection.execute(
+        'UPDATE usuarios SET intentos_fallidos = ? WHERE id_usuario = ?', 
+        [nuevoIntentos, usuario.id_usuario]
+      );
+      
+      await connection.end();
+      return res.status(400).json({ 
+        mensaje: 'Credenciales incorrectas',
+        intentosFallidos: nuevoIntentos,
+        intentosRestantes: 5 - nuevoIntentos
+      });
+    }
+    
+    // Reset de intentos fallidos y actualización de último acceso
+    const fechaActual = new Date();
+    await connection.execute(
+      'UPDATE usuarios SET intentos_fallidos = 0, ultimo_acceso = ?, bloqueado_hasta = NULL WHERE id_usuario = ?', 
+      [fechaActual, usuario.id_usuario]
+    );
+    
+    // Crear y devolver token JWT
+    const payload = {
+      usuario: {
+        id: usuario.id_usuario,
+        nombre: usuario.nombre,
+        email: usuario.email
+      }
+    };
+    
+    jwt.sign(
+      payload, 
+      process.env.JWT_SECRET, 
+      { expiresIn: process.env.JWT_EXPIRES_IN },
+      (error, token) => {
+        if (error) throw error;
+        res.json({ token });
+      }
+    );
+    
+    await connection.end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Obtener usuario actual con el token
+const obtenerUsuario = async (req, res) => {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Obtener usuario desde la base de datos (excluyendo la contraseña)
+    const [usuarios] = await connection.execute(
+      'SELECT id_usuario, nombre, email, avatar_url, fecha_registro, ultimo_acceso FROM usuarios WHERE id_usuario = ?', 
+      [req.usuario.id]
+    );
+    
+    if (usuarios.length === 0) {
+      await connection.end();
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    
+    res.json(usuarios[0]);
+    await connection.end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Solicitar restablecimiento de contraseña
+const solicitarResetPassword = async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ mensaje: 'Por favor, proporcione un correo electrónico' });
+  }
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Verificar si el email existe
+    const [usuarios] = await connection.execute(
+      'SELECT * FROM usuarios WHERE email = ?', 
+      [email]
+    );
+    
+    if (usuarios.length === 0) {
+      // Por seguridad, no informamos al usuario que el email no existe
+      await connection.end();
+      return res.status(200).json({ mensaje: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' });
+    }
+    
+    // Generar token único
+    const token = uuidv4();
+    
+    // Establecer expiración (1 hora)
+    const expiracion = new Date();
+    expiracion.setHours(expiracion.getHours() + 1);
+    
+    // Guardar token en la base de datos
+    await connection.execute(
+      'UPDATE usuarios SET token_recuperacion = ?, expiracion_token_recuperacion = ? WHERE id_usuario = ?', 
+      [token, expiracion, usuarios[0].id_usuario]
+    );
+    
+    // Enviar correo con enlace de recuperación
+    const resetUrl = `${process.env.BASE_URL}/reset-password/${token}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Murales - Recuperación de Contraseña',
+      html: `
+        <h1>Recuperación de Contraseña</h1>
+        <p>Has solicitado restablecer tu contraseña.</p>
+        <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+        <a href="${resetUrl}" target="_blank">Restablecer contraseña</a>
+        <p>Este enlace expirará en 1 hora.</p>
+        <p>Si no solicitaste este cambio, puedes ignorar este mensaje.</p>
+      `
+    };
+    
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error al enviar correo:', error);
+      } else {
+        console.log('Correo enviado:', info.response);
+      }
+    });
+    
+    await connection.end();
+    return res.status(200).json({ mensaje: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Verificar token de restablecimiento
+const verificarTokenReset = async (req, res) => {
+  const { token } = req.params;
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Buscar usuario con el token
+    const [usuarios] = await connection.execute(
+      'SELECT * FROM usuarios WHERE token_recuperacion = ?', 
+      [token]
+    );
+    
+    if (usuarios.length === 0) {
+      await connection.end();
+      return res.status(400).json({ valido: false, mensaje: 'Token de restablecimiento inválido' });
+    }
+    
+    const usuario = usuarios[0];
+    
+    // Verificar si el token ha expirado
+    if (!usuario.expiracion_token_recuperacion || new Date(usuario.expiracion_token_recuperacion) < new Date()) {
+      await connection.end();
+      return res.status(400).json({ valido: false, mensaje: 'El token de restablecimiento ha expirado' });
+    }
+    
+    await connection.end();
+    res.json({ valido: true, mensaje: 'Token válido' });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Restablecer contraseña
+const restablecerPassword = async (req, res) => {
+  const { token } = req.params;
+  const { contrasena } = req.body;
+  
+  if (!contrasena) {
+    return res.status(400).json({ mensaje: 'Por favor, proporcione una nueva contraseña' });
+  }
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Buscar usuario con el token
+    const [usuarios] = await connection.execute(
+      'SELECT * FROM usuarios WHERE token_recuperacion = ?', 
+      [token]
+    );
+    
+    if (usuarios.length === 0) {
+      await connection.end();
+      return res.status(400).json({ mensaje: 'Token de restablecimiento inválido' });
+    }
+    
+    const usuario = usuarios[0];
+    
+    // Verificar si el token ha expirado
+    if (!usuario.expiracion_token_recuperacion || new Date(usuario.expiracion_token_recuperacion) < new Date()) {
+      await connection.end();
+      return res.status(400).json({ mensaje: 'El token de restablecimiento ha expirado' });
+    }
+    
+    // Hashear la nueva contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(contrasena, salt);
+    
+    // Actualizar contraseña y limpiar token
+    const fechaActual = new Date();
+    await connection.execute(
+      'UPDATE usuarios SET contrasena = ?, token_recuperacion = NULL, expiracion_token_recuperacion = NULL, updated_at = ? WHERE id_usuario = ?', 
+      [hashedPassword, fechaActual, usuario.id_usuario]
+    );
+    
+    await connection.end();
+    res.json({ mensaje: 'Contraseña restablecida correctamente' });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+module.exports = {
+  registrar,
+  iniciarSesion,
+  obtenerUsuario,
+  solicitarResetPassword,
+  verificarTokenReset,
+  restablecerPassword
+}; 
