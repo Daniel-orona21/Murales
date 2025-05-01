@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 import { HttpClientModule } from '@angular/common/http';
@@ -11,26 +11,103 @@ import { HttpClientModule } from '@angular/common/http';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule]
+  imports: [CommonModule, ReactiveFormsModule, HttpClientModule]
 })
 export class LoginComponent {
-  email: string = '';
-  password: string = '';
+  loginForm: FormGroup;
+  registerForm: FormGroup;
   showPassword: boolean = false;
   showRegister: boolean = false;
-  
-  // Register form properties
-  registerName: string = '';
-  registerEmail: string = '';
-  registerPassword: string = '';
-  registerConfirmPassword: string = '';
   showRegisterPassword: boolean = false;
   showRegisterConfirmPassword: boolean = false;
 
   constructor(
     private router: Router,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private fb: FormBuilder
+  ) {
+    // Redirigir si el usuario ya está autenticado
+    if (this.authService.isLoggedIn()) {
+      this.router.navigate(['/home']);
+    }
+
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+
+    this.registerForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [
+        Validators.required,
+        Validators.minLength(8),
+        this.passwordStrengthValidator()
+      ]],
+      confirmPassword: ['', [Validators.required]]
+    }, {
+      validators: this.passwordMatchValidator
+    });
+
+    // Validación en tiempo real para el formulario de registro
+    this.registerForm.get('password')?.valueChanges.subscribe(() => {
+      this.registerForm.get('password')?.updateValueAndValidity();
+      if (this.registerForm.get('confirmPassword')?.value) {
+        this.registerForm.get('confirmPassword')?.updateValueAndValidity();
+      }
+    });
+
+    this.registerForm.get('confirmPassword')?.valueChanges.subscribe(() => {
+      if (this.registerForm.get('password')?.value) {
+        this.registerForm.get('confirmPassword')?.updateValueAndValidity();
+      }
+    });
+
+    // Validación en tiempo real para el formulario de login
+    this.loginForm.get('email')?.valueChanges.subscribe(() => {
+      this.loginForm.get('email')?.markAsTouched();
+    });
+
+    this.loginForm.get('password')?.valueChanges.subscribe(() => {
+      this.loginForm.get('password')?.markAsTouched();
+    });
+  }
+
+  // Validador personalizado para la fortaleza de la contraseña
+  private passwordStrengthValidator() {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      if (!value) return null;
+
+      const hasUpperCase = /[A-Z]/.test(value);
+      const hasLowerCase = /[a-z]/.test(value);
+      const hasNumeric = /[0-9]/.test(value);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+
+      const errors: ValidationErrors = {};
+      
+      if (!hasUpperCase) errors['noUpperCase'] = true;
+      if (!hasLowerCase) errors['noLowerCase'] = true;
+      if (!hasNumeric) errors['noNumeric'] = true;
+      if (!hasSpecialChar) errors['noSpecialChar'] = true;
+
+      return Object.keys(errors).length ? errors : null;
+    };
+  }
+
+  // Validador personalizado para confirmar contraseña
+  private passwordMatchValidator(g: FormGroup) {
+    const password = g.get('password');
+    const confirmPassword = g.get('confirmPassword');
+    if (password && confirmPassword && password.value !== confirmPassword.value) {
+      confirmPassword.setErrors({ 'passwordMismatch': true });
+    } else if (confirmPassword) {
+      const errors = { ...confirmPassword.errors };
+      delete errors['passwordMismatch'];
+      confirmPassword.setErrors(Object.keys(errors).length ? errors : null);
+    }
+    return null;
+  }
 
   togglePassword() {
     this.showPassword = !this.showPassword;
@@ -46,15 +123,42 @@ export class LoginComponent {
 
   toggleCards() {
     this.showRegister = !this.showRegister;
+    if (this.showRegister) {
+      // Al ir a registro, siempre resetear el form de login
+      this.loginForm.reset();
+      Object.keys(this.loginForm.controls).forEach(key => {
+        const control = this.loginForm.get(key);
+        control?.setErrors(null);
+        control?.markAsUntouched();
+        control?.markAsPristine();
+      });
+    } else {
+      // Al volver a login, solo resetear si no venimos de un registro exitoso
+      if (!this.loginForm.get('email')?.value) {
+        this.registerForm.reset();
+        Object.keys(this.registerForm.controls).forEach(key => {
+          const control = this.registerForm.get(key);
+          control?.setErrors(null);
+          control?.markAsUntouched();
+          control?.markAsPristine();
+        });
+      }
+    }
   }
 
   onLogin() {
-    if (!this.email || !this.password) {
-      this.showError('Por favor, completa todos los campos');
+    if (this.loginForm.invalid) {
+      Object.keys(this.loginForm.controls).forEach(key => {
+        const control = this.loginForm.get(key);
+        if (control?.invalid) {
+          control.markAsTouched();
+        }
+      });
       return;
     }
 
-    this.authService.login(this.email, this.password).subscribe({
+    const { email, password } = this.loginForm.value;
+    this.authService.login(email, password).subscribe({
       next: (response) => {
         Swal.fire({
           title: '¡Bienvenido!',
@@ -78,34 +182,31 @@ export class LoginComponent {
   }
 
   onRegister() {
-    if (!this.registerName || !this.registerEmail || !this.registerPassword || !this.registerConfirmPassword) {
-      this.showError('Por favor, completa todos los campos');
+    if (this.registerForm.invalid) {
+      Object.keys(this.registerForm.controls).forEach(key => {
+        const control = this.registerForm.get(key);
+        if (control?.invalid) {
+          control.markAsTouched();
+        }
+      });
       return;
     }
 
-    if (this.registerPassword !== this.registerConfirmPassword) {
-      this.showError('Las contraseñas no coinciden');
-      return;
-    }
-
-    if (this.registerPassword.length < 6) {
-      this.showError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
-    if (!this.isValidEmail(this.registerEmail)) {
-      this.showError('Por favor, ingresa un email válido');
-      return;
-    }
-
+    const { name, email, password } = this.registerForm.value;
     const userData = {
-      nombre: this.registerName,
-      email: this.registerEmail,
-      contrasena: this.registerPassword
+      nombre: name,
+      email: email,
+      contrasena: password
     };
 
     this.authService.register(userData).subscribe({
       next: () => {
+        // Guardar los datos para el login
+        this.loginForm.patchValue({
+          email: email,
+          password: password
+        });
+
         Swal.fire({
           title: '¡Registro exitoso!',
           text: 'Por favor, inicia sesión',
@@ -118,11 +219,6 @@ export class LoginComponent {
           }
         }).then(() => {
           this.toggleCards();
-          // Limpiar los campos después del registro exitoso
-          this.registerName = '';
-          this.registerEmail = '';
-          this.registerPassword = '';
-          this.registerConfirmPassword = '';
         });
       },
       error: (error) => {
@@ -132,9 +228,58 @@ export class LoginComponent {
     });
   }
 
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-    return emailRegex.test(email);
+  // Getters para facilitar el acceso a los controles del formulario en el template
+  get loginEmail() { return this.loginForm.get('email'); }
+  get loginPassword() { return this.loginForm.get('password'); }
+  get registerName() { return this.registerForm.get('name'); }
+  get registerEmail() { return this.registerForm.get('email'); }
+  get registerPassword() { return this.registerForm.get('password'); }
+  get registerConfirmPassword() { return this.registerForm.get('confirmPassword'); }
+
+  // Métodos para manejar la prioridad de errores
+  getPasswordError() {
+    const errors = this.registerPassword?.errors;
+    if (!errors) return '';
+    
+    if (errors['required']) return 'La contraseña es requerida';
+    if (errors['minlength']) return 'La contraseña debe tener al menos 8 caracteres';
+    if (errors['noUpperCase']) return 'Debe contener al menos una mayúscula';
+    if (errors['noLowerCase']) return 'Debe contener al menos una minúscula';
+    if (errors['noNumeric']) return 'Debe contener al menos un número';
+    if (errors['noSpecialChar']) return 'Debe contener al menos un carácter especial (!#$%^&*)';
+    
+    return '';
+  }
+
+  getEmailError(isLogin: boolean = false) {
+    const control = isLogin ? this.loginEmail : this.registerEmail;
+    const errors = control?.errors;
+    if (!errors) return '';
+    
+    if (errors['required']) return 'El email es requerido';
+    if (errors['email']) return 'Ingresa un email válido';
+    
+    return '';
+  }
+
+  getNameError() {
+    const errors = this.registerName?.errors;
+    if (!errors) return '';
+    
+    if (errors['required']) return 'El nombre es requerido';
+    if (errors['minlength']) return 'El nombre debe tener al menos 3 caracteres';
+    
+    return '';
+  }
+
+  getConfirmPasswordError() {
+    const errors = this.registerConfirmPassword?.errors;
+    if (!errors) return '';
+    
+    if (errors['required']) return 'La confirmación de contraseña es requerida';
+    if (errors['passwordMismatch']) return 'Las contraseñas no coinciden';
+    
+    return '';
   }
 
   private showError(message: string) {
@@ -147,13 +292,6 @@ export class LoginComponent {
       customClass: {
         popup: 'custom-swal-popup',
         confirmButton: 'custom-confirm-button'
-      }
-    });
-  
-    setTimeout(() => {
-      const btn = Swal.getConfirmButton();
-      if (btn) {
-        btn.style.color = '#ffffff'; 
       }
     });
   }
