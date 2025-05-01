@@ -587,8 +587,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.selectedMuralId) {
       const title = this.getMuralTitle();
       // Añadimos un margen de seguridad para evitar puntos suspensivos innecesarios
-      // Estimamos aproximadamente 16px por carácter + 20px de margen de seguridad
-      const estimatedWidth = Math.min(Math.max(title.length * 16 + 10, 50), 300);
+      // Estimamos aproximadamente 16px por carácter + 20px de margen de seguridad + 30px para el botón de regreso
+      const estimatedWidth = Math.min(Math.max(title.length * 16 + 40, 80), 320);
       return `${estimatedWidth}px`;
     }
     

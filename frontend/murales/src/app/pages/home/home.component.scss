@@ -33,6 +33,8 @@
       transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
       overflow: hidden;
       max-width: 300px;
+      display: flex;
+      align-items: center;
       
       .title {
         font-size: 1.5rem;
@@ -50,6 +52,42 @@
         max-width: 100%;
       }
       
+      .back-arrow-btn {
+        position: absolute;
+        top: 5px;
+        left: 0px;
+        background: transparent;
+        border-radius: 8px;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 0;
+        height: 27px;
+        width: 27px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(-35px);
+        transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.4s ease-out, background 0.3s ease-out;
+        z-index: 2;
+        
+        &.slide-up {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        
+        .material-symbols-outlined {
+          font-size: 25px;
+          font-weight: 500;
+        }
+        
+        &:hover {
+          color: rgba(255, 255, 255, 1);
+          background: rgba(255, 255, 255, 0.179);
+        }
+      }
+      
       .primary-title {
         transform: translateY(0);
         opacity: 1;
@@ -63,6 +101,8 @@
       .mural-title {
         transform: translateY(-35px);
         opacity: 0;
+        margin-left: 10px;
+        padding-left: 28px; /* Add space for the back button */
         
         &.slide-up {
           transform: translateY(0);

@@ -9,6 +9,13 @@
             Mis murales
           </h1>
           
+          <!-- Botón de flecha para volver -->
+          <button class="back-arrow-btn" 
+                  [class.slide-up]="selectedMuralId"
+                  (click)="backToMuralesList()">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          
           <!-- Título del mural seleccionado con tooltip -->
           <h1 class="title mural-title" 
               [class.slide-up]="selectedMuralId"
