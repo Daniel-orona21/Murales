@@ -197,9 +197,9 @@
       
       <ng-container *ngIf="!loadingNotifications && notifications && notifications.length > 0; else noNotifications">
         <div class="notification-item" *ngFor="let notification of notifications" [class.unread]="!notification.leido">
-          <div class="notification-icon">
+          <!-- <div class="notification-icon">
             <i [class]="getNotificationIcon(notification.tipo)"></i>
-          </div>
+          </div> -->
           <div class="notification-info">
             <p class="notification-text">{{ notification.mensaje }}</p>
             <span class="notification-time">{{ notification.fecha_creacion | date:'dd MMM, HH:mm' }}</span>
