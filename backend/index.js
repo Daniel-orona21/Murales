@@ -22,6 +22,7 @@ app.use('/api', apiLimiter);
 
 // Rutas
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/murales', require('./routes/murales'));
 
 // Conectar a la base de datos
 conectarDB();
@@ -41,5 +42,5 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar el servidor
-const PORT = process.env.PORT || 9876;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));

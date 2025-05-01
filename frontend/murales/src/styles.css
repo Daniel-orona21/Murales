@@ -55,3 +55,41 @@ button {
 .custom-swal-popup .swal2-success-fix {
   background: transparent !important;
 }
+
+/* Custom button styles (assuming a standard dark theme button) */
+.custom-swal-popup .swal2-confirm.custom-confirm-button,
+.custom-swal-popup .swal2-cancel.custom-cancel-button,
+.custom-swal-popup .swal2-deny.custom-deny-button {
+  border-radius: 8px !important;
+  padding: 0.7rem 1.5rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important; 
+  background: rgba(0, 0, 0, 0.2) !important; /* Darker semi-transparent background */
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.custom-swal-popup .swal2-confirm.custom-confirm-button:hover,
+.custom-swal-popup .swal2-cancel.custom-cancel-button:hover,
+.custom-swal-popup .swal2-deny.custom-deny-button:hover {
+  background: rgba(255, 255, 255, 0.1) !important; /* Lighter on hover */
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Style for specific confirm button if needed (e.g., primary action) */
+.custom-swal-popup .swal2-confirm.custom-confirm-button {
+  /* Add slight distinction if desired, maybe less transparency? */
+  /* background: rgba(255, 255, 255, 0.15) !important; */ 
+}
+
+/* Custom validation message style */
+.custom-swal-popup .swal2-validation-message {
+  background: rgba(0, 0, 0, 0.1) !important; /* Match dark theme */
+  color: #ffdddd !important; /* Lighter red for readability */
+  border: 1px solid rgba(255, 100, 100, 0.3) !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 1rem !important;
+  margin-top: 0.5rem !important;
+}
