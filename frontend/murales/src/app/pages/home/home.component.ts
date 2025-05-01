@@ -141,6 +141,58 @@ export class HomeComponent implements OnInit {
     }
   }
 
+  abandonarMural(mural: MuralWithMenu) {
+    Swal.fire({
+      title: '¿Abandonar mural?',
+      text: `¿Estás seguro de que deseas abandonar el mural "${mural.titulo}"? Ya no tendrás acceso a este mural a menos que te inviten nuevamente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, abandonar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.muralService.abandonarMural(mural.id_mural).subscribe({
+          next: (response) => {
+            console.log('Mural abandonado:', mural.id_mural);
+            Swal.fire({
+              title: '¡Completado!',
+              text: 'Has abandonado el mural exitosamente.',
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Continuar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+            this.loadMurals();
+          },
+          error: (error) => {
+            console.error('Error al abandonar mural:', error);
+            Swal.fire({
+              title: 'Error',
+              text: error.error?.error || 'No se pudo abandonar el mural. Intenta de nuevo.',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
   openCreateModal(muralToEdit?: MuralWithMenu) {
     if (muralToEdit) {
       this.editingMuralId = muralToEdit.id_mural;
@@ -249,38 +301,54 @@ export class HomeComponent implements OnInit {
             if (['ArrowLeft', 'ArrowRight', 'Backspace', 'Delete', 'Tab'].includes(e.key)) {
               return; 
             }
-            if (!/^[0-9]$/.test(e.key)) {
-               e.preventDefault();
-            }
           });
-
-           input.addEventListener('focus', () => input.select());
         });
       },
       preConfirm: () => {
         const inputs = Array.from(Swal.getHtmlContainer()?.querySelectorAll('.code-input') || []) as HTMLInputElement[];
         const code = inputs.map(input => input.value).join('');
-        if (code.length !== 4) {
-          Swal.showValidationMessage(`Por favor ingresa los 4 dígitos del código`);
+        
+        console.log('Código ingresado:', code);
+        
+        if (code.length !== 4 || !/^\d{4}$/.test(code)) {
+          Swal.showValidationMessage('Ingresa un código de 4 dígitos válido');
           return false;
         }
-        return code;
+        
+        return new Promise((resolve) => {
+          this.muralService.joinMuralWithCode(code).subscribe({
+            next: (response) => {
+              console.log('Respuesta exitosa:', response);
+              resolve(response);
+            },
+            error: (error) => {
+              console.error('Error al unirse:', error);
+              if (error.status === 404) {
+                Swal.showValidationMessage('Código de acceso inválido. El mural no existe.');
+              } else if (error.status === 409) {
+                Swal.showValidationMessage('Ya estás asociado a este mural.');
+              } else {
+                Swal.showValidationMessage('Error al unirse al mural. Intenta nuevamente.');
+              }
+              resolve(false);
+            }
+          });
+        });
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        const code = result.value as string;
-        console.log('Attempting to join with code:', code);
-        // TODO: Call service to join mural with the code
-        // Example: this.muralService.joinMural(code).subscribe(...);
         Swal.fire({
-          title: 'Próximamente', 
-          text: `Funcionalidad para unirse con código ${code} no implementada.`,
-          icon: 'info',
-          confirmButtonText: 'OK',
-          customClass: { // Apply custom classes
+          title: '¡Éxito!',
+          text: 'Te has unido al mural exitosamente.',
+          icon: 'success',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Continuar',
+          customClass: {
             popup: 'custom-swal-popup', 
             confirmButton: 'custom-confirm-button'
           }
+        }).then(() => {
+          this.loadMurals();
         });
       }
     });

@@ -57,18 +57,31 @@
                   <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <div class="menu-options" *ngIf="mural.showMenu">
-                  <button class="menu-item" (click)="editMural(mural)">
-                    <i class="fas fa-edit"></i>
-                    Editar
-                  </button>
-                  <button class="menu-item" (click)="shareCode(mural)">
-                    <i class="fas fa-share-alt"></i>
-                    Código
-                  </button>
-                  <button class="menu-item delete" (click)="deleteMural(mural)">
-                    <i class="fas fa-trash-alt"></i>
-                    Eliminar
-                  </button>
+                  <!-- Solo para creador y administrador/editor -->
+                  <ng-container *ngIf="mural.rol_usuario !== 'lector'">
+                    <button class="menu-item" (click)="editMural(mural)">
+                      <i class="fas fa-edit"></i>
+                      Editar
+                    </button>
+                    
+                    <button class="menu-item" (click)="shareCode(mural)">
+                      <i class="fas fa-share-alt"></i>
+                      Código
+                    </button>
+                    
+                    <button class="menu-item delete" (click)="deleteMural(mural)">
+                      <i class="fas fa-trash-alt"></i>
+                      Eliminar
+                    </button>
+                  </ng-container>
+
+                  <!-- Solo para lectores (no creadores) -->
+                  <ng-container *ngIf="mural.rol_usuario === 'lector'">
+                    <button class="menu-item delete" (click)="abandonarMural(mural)">
+                      <i class="fas fa-sign-out-alt"></i>
+                      Abandonar
+                    </button>
+                  </ng-container>
                 </div>
               </div>
             </div>

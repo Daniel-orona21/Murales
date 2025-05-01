@@ -11,12 +11,18 @@ export interface Mural {
   privacidad: string;
   fecha_creacion: string;
   codigo_acceso?: string;
+  rol_usuario?: string;
 }
 
 export interface CreateMuralData {
   titulo: string;
   descripcion: string;
   privacidad: string;
+}
+
+export interface JoinMuralResponse {
+  mensaje: string;
+  id_mural: number;
 }
 
 @Injectable({
@@ -32,9 +38,8 @@ export class MuralService {
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
-    return new HttpHeaders({
-      'x-auth-token': token || ''
-    });
+    console.log('Auth token presente:', !!token);
+    return new HttpHeaders().set('x-auth-token', token || '');
   }
 
   getMuralesByUsuario(): Observable<Mural[]> {
@@ -59,5 +64,17 @@ export class MuralService {
   deleteMural(id: number): Observable<any> {
     const headers = this.getHeaders();
     return this.http.delete(`${this.apiUrl}/${id}`, { headers });
+  }
+  
+  joinMuralWithCode(code: string): Observable<JoinMuralResponse> {
+    const headers = this.getHeaders();
+    console.log('Código de acceso:', code);
+    // Asegurarnos de que la URL sea correcta
+    return this.http.post<JoinMuralResponse>(`${environment.apiUrl}/murales/join`, { codigo_acceso: code }, { headers });
+  }
+  
+  abandonarMural(id: number): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.delete(`${this.apiUrl}/${id}/abandonar`, { headers });
   }
 } 
