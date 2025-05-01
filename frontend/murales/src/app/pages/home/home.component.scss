@@ -212,7 +212,7 @@
   }
 
   .mural-card {
-    background: linear-gradient(145deg, rgba(40, 40, 40, 0.95), rgba(25, 25, 25, 0.95));
+    background: rgba(12, 12, 12, 0.672);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 1.5rem;
@@ -235,7 +235,7 @@
       justify-content: center;
       flex-direction: column;
       cursor: pointer;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border: 2px dashed rgba(99, 99, 99, 0.291);
       background: linear-gradient(145deg, rgba(40, 40, 40, 0.5), rgba(25, 25, 25, 0.5));
       min-height: 180px; // Adjust as needed to match other cards
       opacity: 0;
@@ -263,8 +263,8 @@
         text-align: center;
         color: rgba(255, 255, 255, 0.7);
 
-        i {
-          font-size: 3rem;
+        span {
+          font-size: 5rem;
           margin-bottom: 1rem;
         }
         h3 {
@@ -316,7 +316,7 @@
       }
 
       &:hover {
-        border-color: rgba(255, 255, 255, 0.5);
+        border-color: rgba(128, 128, 128, 0.5);
         background: linear-gradient(145deg, rgba(45, 45, 45, 0.7), rgba(30, 30, 30, 0.7));
         transform: translateY(-3px);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
