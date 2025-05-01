@@ -1,0 +1,29 @@
+<div class="mural-detail-container">
+  <div class="mural-content">
+    <!-- Contenido principal del mural -->
+    <div class="mural-info">
+      <h1>{{ mural?.titulo }}</h1>
+      <p class="description">{{ mural?.descripcion }}</p>
+      
+      <div class="mural-metadata">
+        <div class="metadata-item">
+          <i class="far fa-calendar"></i>
+          <span>Creado: {{ mural?.fecha_creacion | date:'dd MMM, yyyy' }}</span>
+        </div>
+        <div class="metadata-item">
+          <i [class]="mural?.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
+          <span>{{ mural?.privacidad === 'privado' ? 'Privado' : 'Público' }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Área de trabajo del mural -->
+    <div class="mural-workspace">
+      <div class="placeholder-content">
+        <span class="material-symbols-outlined">dashboard</span>
+        <h2>Contenido del mural</h2>
+        <p>Mural ID: {{muralId}}</p>
+      </div>
+    </div>
+  </div>
+</div>

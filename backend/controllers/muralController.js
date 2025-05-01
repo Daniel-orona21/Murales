@@ -244,8 +244,8 @@ const muralController = {
       // Si el mural es público, dar acceso inmediato
       if (!esPrivado) {
         console.log(`Mural público: acceso inmediato para ${userName} al mural ${muralTitle}`);
-        
-        // Agregar al usuario con rol de lector
+
+      // Agregar al usuario con rol de lector
         await db.query(
           'INSERT INTO roles_mural (id_usuario, id_mural, rol, fecha_asignacion) VALUES (?, ?, "lector", NOW())',
           [userId, muralId]

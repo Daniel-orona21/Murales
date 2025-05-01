@@ -7,6 +7,7 @@ import { NotificationService, Notification } from '../../services/notification.s
 import { HttpClientModule } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
+import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -17,7 +18,7 @@ interface MuralWithMenu extends Mural {
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule]
+  imports: [CommonModule, FormsModule, HttpClientModule, MuralDetailComponent]
 })
 export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
@@ -29,6 +30,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     privacidad: 'publico'
   };
   editingMuralId: number | null = null;
+  selectedMuralId: number | null = null;
+  selectedMuralTitle: string = '';
   
   // Propiedades para las notificaciones
   notifications: Notification[] = [];
@@ -172,17 +175,44 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   deleteMural(mural: MuralWithMenu) {
-    if (confirm('¿Estás seguro de que deseas eliminar este mural?')) {
-      this.muralService.deleteMural(mural.id_mural).subscribe({
-        next: () => {
-          console.log('Mural eliminado:', mural.id_mural);
-          this.loadMurals();
-        },
-        error: (error) => {
-          console.error('Error al eliminar mural:', error);
-        }
-      });
-    }
+    Swal.fire({
+      title: '¿Eliminar mural?',
+      text: `¿Estás seguro de que deseas eliminar el mural "${mural.titulo}"? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.muralService.deleteMural(mural.id_mural).subscribe({
+          next: () => {
+            console.log('Mural eliminado:', mural.id_mural);
+            this.loadMurals();
+          },
+          error: (error) => {
+            console.error('Error al eliminar mural:', error);
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo eliminar el mural. Intenta de nuevo más tarde.',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      }
+    });
   }
 
   abandonarMural(mural: MuralWithMenu) {
@@ -532,5 +562,57 @@ export class HomeComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  // Método para obtener el título del mural seleccionado
+  getMuralTitle(): string {
+    if (!this.selectedMuralId) return '';
+    
+    const mural = this.murals.find(m => m.id_mural === this.selectedMuralId);
+    return mural ? mural.titulo : 'Mural';
+  }
+
+  // Método para determinar si el título necesita ser truncado
+  isTitleTruncated(): boolean {
+    if (!this.selectedMuralId) return false;
+    
+    const title = this.getMuralTitle();
+    // Si el título es más largo que 18 caracteres, consideramos que necesitará truncado
+    return title.length > 18;
+  }
+
+  // Método para calcular el ancho del contenedor del título
+  getTitleWidth(): string {
+    // Si hay un mural seleccionado, usamos un ancho basado en la longitud del título
+    if (this.selectedMuralId) {
+      const title = this.getMuralTitle();
+      // Añadimos un margen de seguridad para evitar puntos suspensivos innecesarios
+      // Estimamos aproximadamente 16px por carácter + 20px de margen de seguridad
+      const estimatedWidth = Math.min(Math.max(title.length * 16 + 10, 50), 300);
+      return `${estimatedWidth}px`;
+    }
+    
+    // Si no hay mural seleccionado, usamos un ancho para "Mis murales"
+    return '150px';
+  }
+
+  // Método para manejar el clic en un mural
+  onMuralClick(mural: MuralWithMenu, event: Event): void {
+    // Evitar navegación si se hizo clic en menú o sus opciones
+    if (
+      (event.target as HTMLElement).closest('.menu-trigger') || 
+      (event.target as HTMLElement).closest('.menu-options')
+    ) {
+      return;
+    }
+    
+    // Cambiar directamente al mural seleccionado
+    this.selectedMuralId = mural.id_mural;
+  }
+  
+  // Método para volver a la lista de murales
+  backToMuralesList(): void {
+    // Volver a la lista directamente
+    this.selectedMuralId = null;
   }
 } 
