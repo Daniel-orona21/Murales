@@ -23,6 +23,7 @@ app.use('/api', apiLimiter);
 // Rutas
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/murales', require('./routes/murales'));
+app.use('/api/notificaciones', require('./routes/notificaciones'));
 
 // Conectar a la base de datos
 conectarDB();

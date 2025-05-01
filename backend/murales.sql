@@ -166,6 +166,25 @@ CREATE TABLE `roles_mural` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `notificaciones`
+--
+
+CREATE TABLE `notificaciones` (
+  `id_notificacion` bigint(20) UNSIGNED NOT NULL,
+  `id_emisor` int(11) DEFAULT NULL,
+  `id_receptor` int(11) DEFAULT NULL,
+  `id_mural` int(11) DEFAULT NULL,
+  `tipo` varchar(20) NOT NULL CHECK (`tipo` in ('solicitud_acceso','invitacion','actualizacion','comentario','otro')),
+  `mensaje` text NOT NULL,
+  `leido` tinyint(1) DEFAULT 0,
+  `estado_solicitud` varchar(20) DEFAULT NULL CHECK (`estado_solicitud` in ('pendiente','aprobada','rechazada')),
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `usuarios`
 --
 
@@ -253,6 +272,14 @@ ALTER TABLE `roles_mural`
   ADD UNIQUE KEY `id_usuario` (`id_usuario`,`id_mural`);
 
 --
+-- Indices de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD PRIMARY KEY (`id_notificacion`),
+  ADD KEY `idx_notificaciones_receptor` (`id_receptor`),
+  ADD KEY `idx_notificaciones_mural` (`id_mural`);
+
+--
 -- Indices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -318,6 +345,12 @@ ALTER TABLE `reuniones`
 --
 ALTER TABLE `roles_mural`
   MODIFY `id_rol` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  MODIFY `id_notificacion` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`

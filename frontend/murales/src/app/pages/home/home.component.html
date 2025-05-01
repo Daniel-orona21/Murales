@@ -17,6 +17,10 @@
         <input type="text" placeholder="Search...">
       </div>
       <div class="user-actions">
+        <button class="icon-button notification-btn" (click)="toggleNotifications($event)">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge" *ngIf="unreadNotifications > 0">{{unreadNotifications}}</span>
+        </button>
         <button class="icon-button">
           <i class="fas fa-user"></i>
         </button>
@@ -172,6 +176,64 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Notifications Side Panel -->
+  <div class="notifications-overlay" [class.active]="showNotifications" (click)="closeNotifications()"></div>
+  <div class="notifications-panel" [class.active]="showNotifications">
+    <div class="notifications-header">
+      <h2>Notificaciones</h2>
+      <button class="close-button" (click)="closeNotifications()">&times;</button>
+    </div>
+    
+    <div class="notifications-content">
+      <ng-container *ngIf="loadingNotifications">
+        <div class="loading-notifications">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Cargando notificaciones...</p>
+        </div>
+      </ng-container>
+      
+      <ng-container *ngIf="!loadingNotifications && notifications && notifications.length > 0; else noNotifications">
+        <div class="notification-item" *ngFor="let notification of notifications" [class.unread]="!notification.leido">
+          <div class="notification-icon">
+            <i [class]="getNotificationIcon(notification.tipo)"></i>
+          </div>
+          <div class="notification-info">
+            <p class="notification-text">{{ notification.mensaje }}</p>
+            <span class="notification-time">{{ notification.fecha_creacion | date:'dd MMM, HH:mm' }}</span>
+            
+            <!-- Botones de aprobación/rechazo para solicitudes de acceso pendientes -->
+            <div class="notification-actions" *ngIf="notification.tipo === 'solicitud_acceso' && notification.estado_solicitud === 'pendiente'">
+              <button class="action-btn approve" (click)="processAccessRequest(notification, true, $event)" title="Aprobar">
+                <i class="fas fa-check"></i> Aprobar
+              </button>
+              <button class="action-btn reject" (click)="processAccessRequest(notification, false, $event)" title="Rechazar">
+                <i class="fas fa-times"></i> Rechazar
+              </button>
+            </div>
+            
+            <!-- Estado de la solicitud si ya fue procesada -->
+            <div class="request-status" *ngIf="notification.tipo === 'solicitud_acceso' && notification.estado_solicitud !== 'pendiente'">
+              <span class="status" [class.approved]="notification.estado_solicitud === 'aprobada'" [class.rejected]="notification.estado_solicitud === 'rechazada'">
+                <i [class]="notification.estado_solicitud === 'aprobada' ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                {{ notification.estado_solicitud === 'aprobada' ? 'Aprobada' : 'Rechazada' }}
+              </span>
+            </div>
+          </div>
+          <button class="mark-read-btn" *ngIf="!notification.leido" (click)="markAsRead(notification, $event)">
+            <i class="fas fa-check"></i>
+          </button>
+        </div>
+      </ng-container>
+      
+      <ng-template #noNotifications>
+        <div class="no-notifications">
+          <i class="fas fa-bell-slash"></i>
+          <p>No tienes notificaciones nuevas</p>
+        </div>
+      </ng-template>
     </div>
   </div>
 </div> 

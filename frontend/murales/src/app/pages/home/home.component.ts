@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MuralService, Mural, CreateMuralData } from '../../services/mural.service';
+import { NotificationService, Notification } from '../../services/notification.service';
 import { HttpClientModule } from '@angular/common/http';
 import Swal from 'sweetalert2';
 
@@ -27,21 +28,36 @@ export class HomeComponent implements OnInit {
     privacidad: 'publico'
   };
   editingMuralId: number | null = null;
+  
+  // Propiedades para las notificaciones
+  notifications: Notification[] = [];
+  showNotifications = false;
+  unreadNotifications = 0;
+  loadingNotifications = false;
 
   constructor(
     public router: Router,
-    private muralService: MuralService
+    private muralService: MuralService,
+    private notificationService: NotificationService
   ) {}
 
   @HostListener('document:click', ['$event'])
-  closeMenus(event: MouseEvent) {
+  closeMenusAndNotifications(event: MouseEvent) {
+    // Close menus
     if (!(event.target as HTMLElement).closest('.mural-menu')) {
       this.murals.forEach(mural => mural.showMenu = false);
+    }
+    
+    // Close notifications panel
+    if (!(event.target as HTMLElement).closest('.notifications-panel') && 
+        !(event.target as HTMLElement).closest('.notification-btn')) {
+      this.showNotifications = false;
     }
   }
 
   ngOnInit() {
     this.loadMurals();
+    this.loadNotifications();
   }
 
   loadMurals() {
@@ -265,7 +281,7 @@ export class HomeComponent implements OnInit {
       `,
       icon: 'info',
       confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-      confirmButtonText: 'Unirse',
+      confirmButtonText: 'Solicitar acceso',
       showCancelButton: true,
       cancelButtonText: 'Cancelar',
       customClass: {
@@ -308,27 +324,25 @@ export class HomeComponent implements OnInit {
         const inputs = Array.from(Swal.getHtmlContainer()?.querySelectorAll('.code-input') || []) as HTMLInputElement[];
         const code = inputs.map(input => input.value).join('');
         
-        console.log('Código ingresado:', code);
-        
         if (code.length !== 4 || !/^\d{4}$/.test(code)) {
           Swal.showValidationMessage('Ingresa un código de 4 dígitos válido');
           return false;
         }
         
         return new Promise((resolve) => {
-          this.muralService.joinMuralWithCode(code).subscribe({
+          this.notificationService.createAccessRequest(code).subscribe({
             next: (response) => {
-              console.log('Respuesta exitosa:', response);
+              console.log('Solicitud de acceso enviada:', response);
               resolve(response);
             },
             error: (error) => {
-              console.error('Error al unirse:', error);
+              console.error('Error al solicitar acceso:', error);
               if (error.status === 404) {
                 Swal.showValidationMessage('Código de acceso inválido. El mural no existe.');
               } else if (error.status === 409) {
-                Swal.showValidationMessage('Ya estás asociado a este mural.');
+                Swal.showValidationMessage('Ya has solicitado acceso a este mural o ya eres miembro.');
               } else {
-                Swal.showValidationMessage('Error al unirse al mural. Intenta nuevamente.');
+                Swal.showValidationMessage('Error al solicitar acceso al mural. Intenta nuevamente.');
               }
               resolve(false);
             }
@@ -338,17 +352,15 @@ export class HomeComponent implements OnInit {
     }).then((result) => {
       if (result.isConfirmed && result.value) {
         Swal.fire({
-          title: '¡Éxito!',
-          text: 'Te has unido al mural exitosamente.',
+          title: '¡Solicitud Enviada!',
+          text: 'Tu solicitud de acceso ha sido enviada. Recibirás una notificación cuando sea aprobada.',
           icon: 'success',
           confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Continuar',
+          confirmButtonText: 'Entendido',
           customClass: {
             popup: 'custom-swal-popup', 
             confirmButton: 'custom-confirm-button'
           }
-        }).then(() => {
-          this.loadMurals();
         });
       }
     });
@@ -356,5 +368,110 @@ export class HomeComponent implements OnInit {
 
   onLogout() {
     this.router.navigate(['/login']);
+  }
+
+  // Métodos actualizados para las notificaciones
+  loadNotifications() {
+    this.loadingNotifications = true;
+    console.log('Attempting to load notifications...');
+    this.notificationService.getNotifications().subscribe({
+      next: (data) => {
+        console.log('Notifications loaded successfully:', data);
+        this.notifications = data;
+        this.updateUnreadCount();
+        this.loadingNotifications = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar notificaciones:', error);
+        this.loadingNotifications = false;
+      }
+    });
+  }
+  
+  toggleNotifications(event: Event) {
+    event.stopPropagation();
+    this.showNotifications = !this.showNotifications;
+  }
+  
+  closeNotifications() {
+    this.showNotifications = false;
+  }
+  
+  markAsRead(notification: Notification, event: Event) {
+    event.stopPropagation();
+    
+    // Remove from UI immediately to prevent double-clicks and race conditions
+    this.notifications = this.notifications.filter(n => n.id_notificacion !== notification.id_notificacion);
+    this.updateUnreadCount();
+    
+    this.notificationService.markAsRead(notification.id_notificacion).subscribe({
+      next: () => {
+        console.log('Notification successfully marked as read and deleted');
+      },
+      error: (error) => {
+        console.error('Error al marcar/eliminar notificación:', error);
+        // No need to add the notification back to the UI - just log the error
+        // The UI remains consistent from the user's perspective
+      }
+    });
+  }
+  
+  updateUnreadCount() {
+    this.unreadNotifications = this.notifications.filter(n => !n.leido).length;
+  }
+  
+  getNotificationIcon(tipo: string): string {
+    switch (tipo) {
+      case 'solicitud_acceso': return 'fas fa-user-plus';
+      case 'invitacion': return 'fas fa-envelope';
+      case 'actualizacion': return 'fas fa-bell';
+      case 'comentario': return 'fas fa-comment';
+      default: return 'fas fa-bell';
+    }
+  }
+  
+  // Método para procesar solicitudes de acceso
+  processAccessRequest(notification: Notification, approved: boolean, event: Event) {
+    event.stopPropagation();
+    
+    // Remove from UI immediately
+    this.notifications = this.notifications.filter(n => n.id_notificacion !== notification.id_notificacion);
+    this.updateUnreadCount();
+    
+    this.notificationService.processAccessRequest(notification.id_notificacion, approved).subscribe({
+      next: () => {
+        // Show success message without waiting for the backend
+        Swal.fire({
+          title: approved ? 'Acceso Aprobado' : 'Acceso Rechazado',
+          text: approved ? 'El usuario ahora tiene acceso al mural.' : 'Se ha rechazado la solicitud de acceso.',
+          icon: approved ? 'success' : 'info',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Entendido',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error al procesar solicitud de acceso:', error);
+        
+        // Add the notification back to the array since processing failed
+        this.notifications.push(notification);
+        this.updateUnreadCount();
+        
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo procesar la solicitud. Intenta de nuevo más tarde.',
+          icon: 'error',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Aceptar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
+      }
+    });
   }
 } 

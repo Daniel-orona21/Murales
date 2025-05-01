@@ -16,7 +16,7 @@ router.put('/:id', verificarToken, muralController.updateMural);
 router.delete('/:id', verificarToken, muralController.deleteMural);
 
 // Join mural with access code
-router.post('/join', verificarToken, muralController.joinMuralWithCode);
+router.post('/solicitar-acceso', verificarToken, muralController.joinMuralWithCode);
 
 // Abandon mural by ID
 router.delete('/:id/abandonar', verificarToken, muralController.abandonarMural);
