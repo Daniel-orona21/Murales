@@ -174,4 +174,29 @@ export class MuralService {
       { headers }
     );
   }
+
+  // Like methods
+  getBulkLikesData(publicacionIds: number[]): Observable<{counts: {[key: number]: number}, userLikes: {[key: number]: boolean}}> {
+    const headers = this.getHeaders();
+    return this.http.post<{counts: {[key: number]: number}, userLikes: {[key: number]: boolean}}>(
+      `${environment.apiUrl}/likes/bulk`,
+      { publicacionIds },
+      { headers }
+    );
+  }
+
+  toggleLike(publicacionId: number): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.post(`${environment.apiUrl}/likes/toggle/${publicacionId}`, {}, { headers });
+  }
+
+  getLikesCount(publicacionId: number): Observable<{count: number}> {
+    const headers = this.getHeaders();
+    return this.http.get<{count: number}>(`${environment.apiUrl}/likes/count/${publicacionId}`, { headers });
+  }
+
+  checkUserLike(publicacionId: number): Observable<{liked: boolean}> {
+    const headers = this.getHeaders();
+    return this.http.get<{liked: boolean}>(`${environment.apiUrl}/likes/check/${publicacionId}`, { headers });
+  }
 } 

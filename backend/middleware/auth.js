@@ -5,17 +5,26 @@ const verificarToken = (req, res, next) => {
   const token = req.header('x-auth-token');
   
   if (!token) {
-    return res.status(401).json({ mensaje: 'Acceso denegado. Token no proporcionado' });
+    console.log('No token provided');
+    return res.status(401).json({ error: 'No hay token, autorización denegada' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decodificado:', decoded); // Debug log
-    req.user = decoded.usuario; // Accedemos a decoded.usuario que es donde está la información
+    console.log('Token decodificado:', decoded);
+    
+    // Asegurarnos de que el usuario tenga el formato correcto
+    req.user = {
+      id: decoded.usuario.id,
+      nombre: decoded.usuario.nombre,
+      email: decoded.usuario.email
+    };
+    
+    console.log('Usuario del token:', req.user);
     next();
   } catch (error) {
     console.error('Error al verificar token:', error);
-    res.status(401).json({ mensaje: 'Token no válido' });
+    res.status(401).json({ error: 'Token no válido' });
   }
 };
 

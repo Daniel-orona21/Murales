@@ -47,6 +47,12 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   private masonry: Masonry | null = null;
   private resizeTimeout: any;
   
+  likesCount: { [key: number]: number } = {};
+  userLikes: { [key: number]: boolean } = {};
+  
+  // Add loading state for likes
+  likesLoading: { [key: number]: boolean } = {};
+  
   constructor(private muralService: MuralService) {}
 
   ngOnInit(): void {
@@ -106,10 +112,38 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.isLoadingImages = true;
     this.resetImageLoading();
     
+    // Reset likes state
+    this.likesCount = {};
+    this.userLikes = {};
+    
     this.muralService.getPublicacionesByMural(this.muralId).subscribe({
       next: (publicaciones) => {
         this.publicaciones = publicaciones;
         this.cargando = false;
+        
+        // Get all likes data in a single request
+        const publicacionIds = publicaciones.map(p => p.id_publicacion);
+        this.muralService.getBulkLikesData(publicacionIds).subscribe({
+          next: (response) => {
+            // Set likes count
+            Object.entries(response.counts).forEach(([id, count]) => {
+              this.likesCount[Number(id)] = count;
+            });
+            
+            // Set user likes
+            Object.entries(response.userLikes).forEach(([id, liked]) => {
+              this.userLikes[Number(id)] = liked;
+            });
+            
+            console.log('Likes data loaded:', { counts: this.likesCount, userLikes: this.userLikes });
+          },
+          error: (error) => {
+            console.error('Error al cargar datos de likes:', error);
+            // Reset likes state on error
+            this.likesCount = {};
+            this.userLikes = {};
+          }
+        });
         
         // Count total images and videos that need to load
         this.countTotalMediaItems();
@@ -485,6 +519,50 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.masonry.layout();
         }
       }, 1000);
+    }
+  }
+
+  toggleLike(publicacionId: number): void {
+    // Prevent multiple requests while processing
+    if (this.likesLoading[publicacionId]) return;
+    
+    this.likesLoading[publicacionId] = true;
+    
+    // Si ya tiene like, lo quitamos
+    if (this.userLikes[publicacionId]) {
+      this.muralService.toggleLike(publicacionId).subscribe({
+        next: (response) => {
+          this.userLikes[publicacionId] = false;
+          this.likesCount[publicacionId] = Math.max(0, (this.likesCount[publicacionId] || 0) - 1);
+          this.likesLoading[publicacionId] = false;
+          console.log('Like removido:', publicacionId);
+        },
+        error: (error) => {
+          console.error('Error al quitar like:', error);
+          this.likesLoading[publicacionId] = false;
+        }
+      });
+    } 
+    // Si no tiene like, lo agregamos
+    else {
+      this.muralService.toggleLike(publicacionId).subscribe({
+        next: (response) => {
+          this.userLikes[publicacionId] = true;
+          this.likesCount[publicacionId] = (this.likesCount[publicacionId] || 0) + 1;
+          this.likesLoading[publicacionId] = false;
+          console.log('Like agregado:', publicacionId);
+        },
+        error: (error) => {
+          console.error('Error al dar like:', error);
+          // Si el error es porque ya tiene like, actualizamos el estado
+          if (error.status === 400) {
+            this.userLikes[publicacionId] = true;
+            // Recargamos los datos de likes para asegurar consistencia
+            this.cargarPublicaciones();
+          }
+          this.likesLoading[publicacionId] = false;
+        }
+      });
     }
   }
 }

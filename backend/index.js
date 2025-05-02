@@ -44,6 +44,7 @@ app.use('/api', apiLimiter);
 // Rutas
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/murales', require('./routes/murales'));
+app.use('/api/likes', require('./routes/likes'));
 app.use('/api/notificaciones', require('./routes/notificaciones'));
 app.use('/api/uploads', require('./routes/uploads'));
 

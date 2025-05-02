@@ -33,6 +33,18 @@
       <div class="publicacion-item" *ngFor="let publicacion of publicaciones">
         <div class="publicacion-header">
           <h3>{{ publicacion.titulo }}</h3>
+          <div class="like-container">
+            <label class="container">
+              <input type="checkbox" 
+                     [checked]="userLikes[publicacion.id_publicacion]"
+                     [disabled]="likesLoading[publicacion.id_publicacion]"
+                     (change)="toggleLike(publicacion.id_publicacion)">
+              <svg id="Layer_1" version="1.0" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M16.4,4C14.6,4,13,4.9,12,6.3C11,4.9,9.4,4,7.6,4C4.5,4,2,6.5,2,9.6C2,14,12,22,12,22s10-8,10-12.4C22,6.5,19.5,4,16.4,4z"></path></svg>
+            </label>
+            <span class="likes-count" *ngIf="likesCount[publicacion.id_publicacion] > 0">
+              {{ likesCount[publicacion.id_publicacion] }}
+            </span>
+          </div>
           <!-- <div class="publicacion-author">
             <span class="author-avatar" *ngIf="publicacion.avatar_url">
               <img [src]="publicacion.avatar_url" alt="Avatar">
