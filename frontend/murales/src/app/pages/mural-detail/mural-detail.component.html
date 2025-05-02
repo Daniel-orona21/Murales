@@ -107,12 +107,17 @@
               <div *ngIf="contenido.tipo_contenido === 'archivo'" class="contenido-archivo">
                 <ng-container *ngIf="isPDF(contenido.url_contenido ?? ''); else normalFile">
                   <div class="pdf-preview-container">
-                    <iframe
-                      [src]="getSafeUrl(contenido.url_contenido ?? '')"
-                      class="pdf-preview"
-                      type="application/pdf"
-                      loading="lazy">
-                    </iframe>
+                    <ng-container *ngIf="!cargando && !isLoadingImages; else pdfPlaceholder">
+                      <iframe
+                        [src]="getSafeUrl(contenido.url_contenido ?? '')"
+                        class="pdf-preview"
+                        type="application/pdf"
+                        loading="lazy">
+                      </iframe>
+                    </ng-container>
+                    <ng-template #pdfPlaceholder>
+                      <div class="pdf-placeholder"></div>
+                    </ng-template>
                   </div>
                 </ng-container>
                 <ng-template #normalFile>
