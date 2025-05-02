@@ -1,5 +1,113 @@
 <div class="mural-detail-container">
-  <button class="agregar-elemento">
-    <span class="material-symbols-outlined">add</span>
-  </button>
+  <div class="modal-sidebar" [class.show]="showModal">
+    <div class="modal-header">
+      <h2>Agregar elemento</h2>
+      <button class="close-button" (click)="toggleModal()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="form-group">
+        <label for="titulo">Título</label>
+        <input type="text" id="titulo" [(ngModel)]="nuevoElemento.titulo" placeholder="Añade un título">
+      </div>
+      
+      <div class="form-group">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" [(ngModel)]="nuevoElemento.descripcion" rows="3" placeholder="Añade una descripción"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Contenido</label>
+        
+        <div class="content-type-selector">
+          <button 
+            class="content-type-button" 
+            [class.active]="contentType === 'archivo'"
+            (click)="setContentType('archivo')">
+            <span class="material-symbols-outlined">upload_file</span>
+            <span>Archivo</span>
+          </button>
+          <button 
+            class="content-type-button" 
+            [class.active]="contentType === 'link'"
+            (click)="setContentType('link')">
+            <span class="material-symbols-outlined">link</span>
+            <span>Enlace</span>
+          </button>
+        </div>
+        
+        <!-- Sección de Archivo -->
+        <div class="file-upload-container" 
+             *ngIf="contentType === 'archivo'"
+             [class.drag-over]="isDragging"
+             (dragover)="onDragOver($event)" 
+             (dragleave)="onDragLeave($event)" 
+             (drop)="onDrop($event)">
+          
+          <div class="upload-area" *ngIf="!nuevoElemento.archivo">
+            <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+            <p>Arrastra un archivo aquí o</p>
+            <label class="upload-button">
+              Seleccionar archivo
+              <input type="file" (change)="onFileSelected($event)" hidden>
+            </label>
+          </div>
+          
+          <div class="file-preview" *ngIf="nuevoElemento.archivo">
+            <div class="file-info">
+              <span class="material-symbols-outlined file-icon">description</span>
+              <div class="file-details">
+                <p class="file-name">{{ nuevoElemento.archivo.name }}</p>
+                <p class="file-size">{{ formatFileSize(nuevoElemento.archivo.size) }}</p>
+              </div>
+            </div>
+            <button class="remove-file" (click)="removeFile()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Sección de Link -->
+        <div class="link-container" *ngIf="contentType === 'link'">
+          <div class="form-group">
+            <label for="link-url">URL del enlace</label>
+            <input 
+              type="url" 
+              id="link-url" 
+              [(ngModel)]="nuevoElemento.link" 
+              placeholder="https://ejemplo.com"
+              pattern="https?://.+"
+              title="Incluye http:// o https://">
+          </div>
+          
+          <div class="link-preview" *ngIf="nuevoElemento.link">
+            <div class="link-info">
+              <span class="material-symbols-outlined link-icon">link</span>
+              <div class="link-details">
+                <p class="link-url">{{ nuevoElemento.link }}</p>
+              </div>
+            </div>
+            <button class="remove-link" (click)="removeLink()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button class="cancel-button" (click)="toggleModal()">Cancelar</button>
+        <button class="save-button" (click)="guardarElemento()" [disabled]="!formValid">Guardar</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" *ngIf="showModal" (click)="toggleModal()"></div>
+  <div class="button-container">
+    <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
+      <span class="material-symbols-outlined">add</span>
+    </button>
+    <div class="tooltip" [class.show]="showTooltip">
+      Agregar contenido
+    </div>
+  </div>
 </div>
