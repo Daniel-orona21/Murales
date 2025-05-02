@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { tap, catchError, switchMap } from 'rxjs/operators';
 
 interface RegisterData {
   nombre: string;
@@ -15,19 +15,43 @@ interface RegisterData {
 export class AuthService {
   private apiUrl = 'http://localhost:3000/api';
   private tokenKey = 'auth_token';
-  private authSubject = new BehaviorSubject<boolean>(this.isLoggedIn());
+  private authSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.authSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  
+  constructor(private http: HttpClient) {
+    // Verificar el token al iniciar el servicio
+    this.checkToken();
+  }
+
+  private checkToken(): void {
+    const token = this.getToken();
+    if (token) {
+      // En lugar de hacer una petición HTTP, verificamos si el token existe
+      // y tiene un formato válido (esto es una verificación básica)
+      try {
+        // Verificar que el token tenga el formato correcto (JWT)
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          this.authSubject.next(true);
+        } else {
+          this.logout();
+        }
+      } catch (error) {
+        console.error('Error al verificar token:', error);
+        this.logout();
+      }
+    } else {
+      this.authSubject.next(false);
+    }
+  }
 
   login(email: string, password: string): Observable<any> {
-    console.log('Enviando petición de login:', { email, contrasena: password });
     return this.http.post(`${this.apiUrl}/auth/login`, { 
       email, 
       contrasena: password
     }).pipe(
       tap((response: any) => {
-        console.log('Respuesta del servidor:', response);
         if (response?.token) {
           localStorage.setItem(this.tokenKey, response.token);
           this.authSubject.next(true);
@@ -38,8 +62,6 @@ export class AuthService {
   }
 
   register(userData: RegisterData): Observable<any> {
-    console.log('Enviando petición de registro:', userData);
-    // Asegurarnos de que los campos coincidan con lo que espera el backend
     const registerData = {
       nombre: userData.nombre,
       email: userData.email,
@@ -49,7 +71,6 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/registro`, registerData)
       .pipe(
         tap((response: any) => {
-          console.log('Respuesta del servidor:', response);
           if (response?.token) {
             localStorage.setItem(this.tokenKey, response.token);
             this.authSubject.next(true);
@@ -69,7 +90,7 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return this.authSubject.value;
   }
 
   private handleError(error: HttpErrorResponse) {
@@ -78,16 +99,13 @@ export class AuthService {
     let errorMessage = 'Ha ocurrido un error';
     
     if (error.error instanceof ErrorEvent) {
-      // Error del lado del cliente
       errorMessage = error.error.message || 'Error en la conexión';
     } else {
-      // Error del lado del servidor
       if (typeof error.error === 'string') {
         errorMessage = error.error;
       } else if (error.error?.mensaje) {
         errorMessage = error.error.mensaje;
       } else if (error.error?.errores && error.error.errores.length > 0) {
-        // Manejar errores de validación del backend
         errorMessage = error.error.errores.map((e: any) => e.msg).join(', ');
       } else if (error.message) {
         errorMessage = error.message;

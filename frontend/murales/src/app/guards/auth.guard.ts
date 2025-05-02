@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate, Router, ActivatedRouteSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { Observable } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -11,12 +13,31 @@ export class AuthGuard implements CanActivate {
     private router: Router
   ) {}
 
-  canActivate(): boolean {
-    if (this.authService.isLoggedIn()) {
-      return true;
+  canActivate(route: ActivatedRouteSnapshot): Observable<boolean> | boolean {
+    // Si es la ruta de login, manejar de manera especial
+    if (route.routeConfig?.path === 'login') {
+      return this.authService.isAuthenticated$.pipe(
+        take(1),
+        map(isAuthenticated => {
+          if (isAuthenticated) {
+            this.router.navigate(['/home']);
+            return false;
+          }
+          return true;
+        })
+      );
     }
 
-    this.router.navigate(['/login']);
-    return false;
+    // Para otras rutas, verificar autenticación
+    return this.authService.isAuthenticated$.pipe(
+      take(1),
+      map(isAuthenticated => {
+        if (!isAuthenticated) {
+          this.router.navigate(['/login']);
+          return false;
+        }
+        return true;
+      })
+    );
   }
 } 
