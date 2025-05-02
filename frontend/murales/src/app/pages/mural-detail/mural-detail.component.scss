@@ -38,40 +38,62 @@
 
 // Estilos para las publicaciones
 .publicaciones-container {
-  width: 100%;
-  padding: 20px;
+  padding: 16px;
 }
 
 .publicaciones-grid {
-  column-count: 5;
-  column-gap: 18px;
-  padding: 10px;
+  width: 100%;
+  margin: 0 auto;
   opacity: 0;
-  animation: gridFadeIn 0.6s ease-out forwards;
-  animation-delay: 0.1s;
-  visibility: hidden;
+  transition: opacity 0.3s ease-in-out;
+  position: relative;
   
   &.loaded {
-    visibility: visible;
+    opacity: 1;
   }
 }
 
-@keyframes gridFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* Elementos para Masonry */
+.grid-sizer,
+.publicacion-item {
+  width: calc(20% - 16px); /* 5 columnas */
+}
+
+.gutter-sizer {
+  width: 16px;
+}
+
+@media (max-width: 1400px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(25% - 16px); /* 4 columnas */
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+}
+
+@media (max-width: 1200px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(33.333% - 16px); /* 3 columnas */
+  }
+}
+
+@media (max-width: 900px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(50% - 16px); /* 2 columnas */
+  }
+}
+
+@media (max-width: 576px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(100% - 16px); /* 1 columna */
   }
 }
 
 .publicacion-item {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-  background-color: #000000;
+  position: absolute; /* Importante para el layout de Masonry */
+  background: #1a1a1a;
   border-radius: 12px;
   border: 1px solid #333;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -81,7 +103,8 @@
   break-inside: avoid;
   
   &:hover {
-    border-color: #555;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -89,8 +112,8 @@
   padding: 5px 5px 0px 10px;
   
   h3 {
-    margin: 0 0 0px;
-    font-size: 18px;
+    margin: 0;
+    font-size: 16px;
     color: white;
   }
   
@@ -120,22 +143,14 @@
 }
 
 .publicacion-content {
-  padding: 0px;
   color: #ccc;
   
-  .publicacion-descripcion {
-    margin: 0 0 0px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-wrap: break-word;
+  .contenido-item {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    position: relative;
   }
-}
-
-.contenido-item {
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  overflow: hidden;
 }
 
 /* Estilos uniformes para todos los tipos de contenido */
@@ -151,41 +166,37 @@
 /* Estilos para imágenes */
 .contenido-imagen {
   width: 100%;
-  border-radius: 6px;
   overflow: hidden;
-  text-align: center;
+  line-height: 0;
+  background: #000;
   
   img.imagen-preview {
-    width: auto;
+    width: 100%;
     height: auto;
-    max-width: 100%;
-    max-height: 350px;
-    object-fit: contain;
-    display: inline-block;
-    border-radius: 6px;
-    vertical-align: top;
-    margin-bottom: 0;
+    display: block;
+    object-fit: cover;
   }
 }
 
 /* Estilo específico para videos */
 .contenido-video {
   width: 100%;
-  border-radius: 6px;
   overflow: hidden;
-  background-color: transparent;
-  position: relative;
-  padding: 10px;
+  line-height: 0;
+  background: #000;
   
-  /* Asegurar que el video no rompa el flujo del grid */
   video.video-preview {
     width: 100%;
     height: auto;
-    max-height: 350px;
     display: block;
-    border-radius: 6px;
-    background-color: transparent;
+    background: #000;
   }
+}
+
+.contenido-enlace,
+.contenido-archivo {
+  padding: 12px;
+  line-height: 1.4;
 }
 
 .contenido-enlace {
@@ -798,36 +809,6 @@
   &.show {
     opacity: 1;
     transform: translateX(0);
-  }
-}
-
-/* Responsive columns */
-@media (max-width: 1400px) {
-  .publicaciones-grid {
-    columns: 4 200px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .publicaciones-grid {
-    column-count: 3;
-  }
-}
-
-@media (max-width: 900px) {
-  .publicaciones-grid {
-    column-count: 2;
-  }
-  
-  .contenido-imagen img.imagen-preview,
-  .contenido-video video.video-preview {
-    max-height: 300px;
-  }
-}
-
-@media (max-width: 576px) {
-  .publicaciones-grid {
-    column-count: 1;
   }
 }
 

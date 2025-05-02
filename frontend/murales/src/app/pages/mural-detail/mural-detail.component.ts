@@ -1,7 +1,8 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion } from '../../services/mural.service';
+import Masonry from 'masonry-layout';
 
 interface Mural {
   id: number;
@@ -28,7 +29,7 @@ type ContentType = 'archivo' | 'link';
   standalone: true,
   imports: [CommonModule, FormsModule]
 })
-export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
+export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
   mural: Mural | null = null;
   showModal = false;
@@ -51,6 +52,10 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
     link: ''
   };
   
+  @ViewChild('masonryGrid') masonryGrid!: ElementRef;
+  private masonry: Masonry | null = null;
+  private resizeTimeout: any;
+  
   constructor(private muralService: MuralService) {}
 
   ngOnInit(): void {
@@ -67,6 +72,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
         this.isLoadingImages = false;
       }
     }, 1000);
+
+    // Initialize Masonry
+    this.initMasonry();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -152,13 +160,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
     console.log(`Loaded ${this.loadedImages} of ${this.totalImages} images/videos`);
     
     if (this.loadedImages >= this.totalImages) {
-      // Pequeño retraso para asegurar que todo se ha renderizado
       setTimeout(() => {
         this.isLoadingImages = false;
         
-        // Intentar forzar la carga de miniaturas de videos después de un breve momento
+        // Reinitialize Masonry after all images are loaded
+        this.initMasonry();
+        
+        // Layout again after a brief moment to ensure everything is in place
         setTimeout(() => {
-          this.tryToLoadVideoThumbnails();
+          if (this.masonry?.layout) {
+            this.masonry.layout();
+          }
         }, 500);
       }, 300);
     }
@@ -357,16 +369,80 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
   onVideoLoaded(event: Event): void {
     const video = event.target as HTMLVideoElement;
     
-    // Intenta establecer el currentTime para obtener un fotograma como miniatura
+    // Asegurar que el video tenga un poster/thumbnail
     try {
       if (video.readyState >= 2) {
-        video.currentTime = 0.1;
+        // Crear un canvas para capturar el thumbnail
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          // Dibujar el frame actual del video
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          // Guardar como poster
+          const thumbnail = canvas.toDataURL('image/jpeg');
+          video.poster = thumbnail;
+        }
+        
+        // Establecer el tiempo al inicio
+        video.currentTime = 0;
       }
     } catch (e) {
-      console.warn('Error al establecer currentTime en video:', e);
+      console.warn('Error al generar thumbnail del video:', e);
     }
     
-    // Contabiliza la carga del video
+    // Contabilizar la carga
     this.onImageLoaded();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    // Debounce resize events
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    this.resizeTimeout = setTimeout(() => {
+      if (this.masonry?.layout) {
+        this.masonry.layout();
+      }
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    if (this.masonry?.destroy) {
+      this.masonry.destroy();
+    }
+  }
+
+  initMasonry(): void {
+    if (this.masonryGrid) {
+      if (this.masonry?.destroy) {
+        this.masonry.destroy();
+      }
+      
+      this.masonry = new Masonry(this.masonryGrid.nativeElement, {
+        itemSelector: '.publicacion-item',
+        columnWidth: '.grid-sizer',
+        gutter: '.gutter-sizer',
+        percentPosition: true,
+        transitionDuration: '0.2s',
+        initLayout: true,
+        fitWidth: false,
+        stagger: 30,
+        resize: true
+      });
+
+      // Forzar relayout después de un momento para asegurar que todo esté en su lugar
+      setTimeout(() => {
+        if (this.masonry?.layout) {
+          this.masonry.layout();
+        }
+      }, 1000);
+    }
   }
 }
