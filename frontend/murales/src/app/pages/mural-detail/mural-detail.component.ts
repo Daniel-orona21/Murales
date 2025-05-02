@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
@@ -10,16 +10,18 @@ interface NuevoElemento {
   descripcion: string;
   archivo: File | null;
   link: string;
+  nota: string;
 }
 
-type ContentType = 'archivo' | 'link';
+type ContentType = 'archivo' | 'link' | 'nota';
 
 @Component({
   selector: 'app-mural-detail',
   templateUrl: './mural-detail.component.html',
   styleUrls: ['./mural-detail.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
@@ -32,6 +34,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   error: string | null = null;
   publicaciones: Publicacion[] = [];
   
+  // Cache for YouTube embed URLs
+  private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
+  
   // Tracking image loading
   totalImages = 0;
   loadedImages = 0;
@@ -41,7 +46,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     titulo: '',
     descripcion: '',
     archivo: null,
-    link: ''
+    link: '',
+    nota: ''
   };
   
   @ViewChild('masonryGrid') masonryGrid!: ElementRef;
@@ -54,7 +60,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   // Add loading state for likes
   likesLoading: { [key: number]: boolean } = {};
   
-  constructor(private muralService: MuralService, private sanitizer: DomSanitizer) {}
+  constructor(
+    private muralService: MuralService, 
+    private sanitizer: DomSanitizer,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     if (this.muralId) {
@@ -121,6 +131,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       next: (publicaciones) => {
         this.publicaciones = publicaciones;
         this.cargando = false;
+        this.cdr.markForCheck();
         
         // Get all likes data in a single request
         const publicacionIds = publicaciones.map(p => p.id_publicacion);
@@ -137,12 +148,14 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             });
             
             console.log('Likes data loaded:', { counts: this.likesCount, userLikes: this.userLikes });
+            this.cdr.markForCheck();
           },
           error: (error) => {
             console.error('Error al cargar datos de likes:', error);
             // Reset likes state on error
             this.likesCount = {};
             this.userLikes = {};
+            this.cdr.markForCheck();
           }
         });
         
@@ -152,6 +165,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         // If no media items, hide loader
         if (this.totalImages === 0) {
           this.isLoadingImages = false;
+          this.cdr.markForCheck();
         }
       },
       error: (error) => {
@@ -159,6 +173,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.error = 'No se pudieron cargar las publicaciones';
         this.cargando = false;
         this.isLoadingImages = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -193,6 +208,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.loadedImages >= this.totalImages) {
       setTimeout(() => {
         this.isLoadingImages = false;
+        this.cdr.markForCheck();
         
         // Reinitialize Masonry after all images are loaded
         this.initMasonry();
@@ -250,7 +266,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       titulo: '',
       descripcion: '',
       archivo: null,
-      link: ''
+      link: '',
+      nota: ''
     };
     this.isDragging = false;
     this.contentType = 'archivo';
@@ -311,10 +328,14 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       return this.nuevoElemento.titulo.trim() !== '' && 
              this.nuevoElemento.descripcion.trim() !== '' && 
              this.nuevoElemento.archivo !== null;
-    } else {
+    } else if (this.contentType === 'link') {
       return this.nuevoElemento.titulo.trim() !== '' && 
              this.nuevoElemento.descripcion.trim() !== '' && 
              this.nuevoElemento.link.trim() !== '';
+    } else {
+      return this.nuevoElemento.titulo.trim() !== '' && 
+             this.nuevoElemento.descripcion.trim() !== '' && 
+             this.nuevoElemento.nota.trim() !== '';
     }
   }
   
@@ -350,7 +371,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
               this.cargando = false;
             }
           });
-        } 
+        }
         else if (this.contentType === 'link' && this.nuevoElemento.link) {
           const contenidoData: CreateContenidoData = {
             tipo_contenido: 'enlace',
@@ -367,6 +388,26 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             error: (error) => {
               console.error('Error al agregar contenido:', error);
               this.error = 'No se pudo agregar el contenido';
+              this.cargando = false;
+            }
+          });
+        }
+        else if (this.contentType === 'nota' && this.nuevoElemento.nota) {
+          const contenidoData: CreateContenidoData = {
+            tipo_contenido: 'texto',
+            texto: this.nuevoElemento.nota
+          };
+          
+          this.muralService.addContenido(publicacion.id_publicacion, contenidoData).subscribe({
+            next: (contenido) => {
+              console.log('Nota agregada:', contenido);
+              this.toggleModal();
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error) => {
+              console.error('Error al agregar nota:', error);
+              this.error = 'No se pudo agregar la nota';
               this.cargando = false;
             }
           });
@@ -528,6 +569,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.likesLoading[publicacionId]) return;
     
     this.likesLoading[publicacionId] = true;
+    this.cdr.markForCheck();
     
     // Si ya tiene like, lo quitamos
     if (this.userLikes[publicacionId]) {
@@ -536,11 +578,13 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.userLikes[publicacionId] = false;
           this.likesCount[publicacionId] = Math.max(0, (this.likesCount[publicacionId] || 0) - 1);
           this.likesLoading[publicacionId] = false;
+          this.cdr.markForCheck();
           console.log('Like removido:', publicacionId);
         },
         error: (error) => {
           console.error('Error al quitar like:', error);
           this.likesLoading[publicacionId] = false;
+          this.cdr.markForCheck();
         }
       });
     } 
@@ -551,6 +595,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.userLikes[publicacionId] = true;
           this.likesCount[publicacionId] = (this.likesCount[publicacionId] || 0) + 1;
           this.likesLoading[publicacionId] = false;
+          this.cdr.markForCheck();
           console.log('Like agregado:', publicacionId);
         },
         error: (error) => {
@@ -562,6 +607,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.cargarPublicaciones();
           }
           this.likesLoading[publicacionId] = false;
+          this.cdr.markForCheck();
         }
       });
     }
@@ -575,6 +621,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   // Devuelve la URL segura para el iframe de YouTube
   getSafeYouTubeEmbedUrl(url: string): SafeResourceUrl {
+    // Check if we have a cached version
+    if (this.youtubeEmbedCache[url]) {
+      return this.youtubeEmbedCache[url];
+    }
+
     let videoId = '';
     // Extraer el ID del video de diferentes formatos de YouTube
     const regExp =
@@ -584,6 +635,10 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       videoId = match[1];
     }
     const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+    
+    // Cache the result
+    this.youtubeEmbedCache[url] = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+    
+    return this.youtubeEmbedCache[url];
   }
 }

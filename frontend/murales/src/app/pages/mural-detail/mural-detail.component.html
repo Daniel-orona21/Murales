@@ -90,6 +90,7 @@
                       [src]="getSafeYouTubeEmbedUrl(contenido.url_contenido ?? '')"
                       frameborder="0"
                       allowfullscreen
+                      loading="lazy"
                       style="width: 100%; aspect-ratio: 16/9; min-height: none; border-radius: 8px; background: #000;">
                     </iframe>
                   </div>
@@ -113,6 +114,11 @@
                     </p>
                   </a>
                 </div>
+              </div>
+
+              <!-- Contenido tipo texto -->
+              <div *ngIf="contenido.tipo_contenido === 'texto'" class="contenido-texto">
+                <p class="texto-contenido">{{ contenido.texto }}</p>
               </div>
             </div>
           </div>
@@ -152,6 +158,13 @@
         <div class="content-type-selector">
           <button 
             class="content-type-button" 
+            [class.active]="contentType === 'nota'"
+            (click)="setContentType('nota')">
+            <span class="material-symbols-outlined">note</span>
+            <span>Nota</span>
+          </button>
+          <button 
+            class="content-type-button" 
             [class.active]="contentType === 'archivo'"
             (click)="setContentType('archivo')">
             <span class="material-symbols-outlined">upload_file</span>
@@ -164,6 +177,19 @@
             <span class="material-symbols-outlined">link</span>
             <span>Enlace</span>
           </button>
+        </div>
+        
+        <!-- Sección de Nota -->
+        <div class="note-container" *ngIf="contentType === 'nota'">
+          <div class="form-group">
+            <label for="note-content">Contenido de la nota</label>
+            <textarea 
+              id="note-content" 
+              [(ngModel)]="nuevoElemento.nota" 
+              rows="6" 
+              placeholder="Escribe tu nota aquí..."
+              class="note-textarea"></textarea>
+          </div>
         </div>
         
         <!-- Sección de Archivo -->

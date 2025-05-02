@@ -266,6 +266,23 @@
   }
 }
 
+// Text content styles
+.contenido-texto {
+  padding: 0px 12px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  margin: 8px 0;
+  
+  .texto-contenido {
+    margin: 0;
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
 .publicacion-footer {
   padding: 12px 16px;
   border-top: 1px solid #333;
@@ -643,6 +660,38 @@
   
   .form-group {
     width: 100%;
+  }
+}
+
+// Note container styles
+.note-container {
+  width: 100%;
+  
+  .form-group {
+    width: 100%;
+  }
+  
+  .note-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border-radius: 12px;
+    background-color: #131313;
+    border: 1px solid #333;
+    color: white;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: #ffffffad;
+    }
+    
+    &::placeholder {
+      color: #555;
+    }
   }
 }
 
