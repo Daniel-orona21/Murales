@@ -62,6 +62,7 @@
                        controlsList="nodownload" 
                        disablePictureInPicture
                        playsinline
+                       crossorigin="anonymous"
                        (loadedmetadata)="onVideoLoaded($event)"
                        (error)="onImageLoaded()">
                   <source [src]="contenido.url_contenido" type="video/mp4">
