@@ -266,6 +266,43 @@
   }
 }
 
+// PDF Preview styles
+.pdf-preview-container {
+  width: 100%;
+  aspect-ratio: 1 / 1.414; // Relación de una página A4
+  max-height: 650px; // Ajusta según tu preferencia
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: auto;
+  margin: 0px;
+
+  .pdf-preview {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #222;
+    display: block;
+  }
+
+  // Scrollbar oscuro y delgado para Webkit (Chrome, Edge, Safari)
+  &::-webkit-scrollbar {
+    width: 7px;
+    background: #181818;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #181818;
+    border-radius: 6px;
+  }
+
+  // Scrollbar para Firefox
+  scrollbar-width: thin;
+  scrollbar-color: #444 #181818;
+}
+
 // Text content styles
 .contenido-texto {
   padding: 0px 12px;

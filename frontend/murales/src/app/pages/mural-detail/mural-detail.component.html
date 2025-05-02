@@ -105,15 +105,27 @@
               
               <!-- Contenido tipo archivo -->
               <div *ngIf="contenido.tipo_contenido === 'archivo'" class="contenido-archivo">
-                <span class="material-symbols-outlined">description</span>
-                <div class="archivo-info">
-                  <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer" class="archivo-link">
-                    <p class="archivo-nombre">{{ contenido.nombre_archivo }}</p>
-                    <p class="archivo-tamano" *ngIf="contenido.tamano_archivo">
-                      {{ formatFileSize(contenido.tamano_archivo) }}
-                    </p>
-                  </a>
-                </div>
+                <ng-container *ngIf="isPDF(contenido.url_contenido ?? ''); else normalFile">
+                  <div class="pdf-preview-container">
+                    <iframe
+                      [src]="getSafeUrl(contenido.url_contenido ?? '')"
+                      class="pdf-preview"
+                      type="application/pdf"
+                      loading="lazy">
+                    </iframe>
+                  </div>
+                </ng-container>
+                <ng-template #normalFile>
+                  <span class="material-symbols-outlined">description</span>
+                  <div class="archivo-info">
+                    <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer" class="archivo-link">
+                      <p class="archivo-nombre">{{ contenido.nombre_archivo }}</p>
+                      <p class="archivo-tamano" *ngIf="contenido.tamano_archivo">
+                        {{ formatFileSize(contenido.tamano_archivo) }}
+                      </p>
+                    </a>
+                  </div>
+                </ng-template>
               </div>
 
               <!-- Contenido tipo texto -->

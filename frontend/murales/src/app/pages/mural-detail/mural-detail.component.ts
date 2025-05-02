@@ -293,7 +293,20 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.isDragging = false;
     
     if (event.dataTransfer?.files.length) {
-      this.nuevoElemento.archivo = event.dataTransfer.files[0];
+      const file = event.dataTransfer.files[0];
+      // Verificar si el archivo es un PDF
+      if (file.type === 'application/pdf') {
+        this.nuevoElemento.archivo = file;
+      } else {
+        // Verificar otros tipos de archivo permitidos
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+        if (allowedTypes.includes(file.type)) {
+          this.nuevoElemento.archivo = file;
+        } else {
+          this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
+          this.cdr.markForCheck();
+        }
+      }
     }
   }
   
@@ -301,7 +314,20 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     const input = event.target as HTMLInputElement;
     
     if (input.files?.length) {
-      this.nuevoElemento.archivo = input.files[0];
+      const file = input.files[0];
+      // Verificar si el archivo es un PDF
+      if (file.type === 'application/pdf') {
+        this.nuevoElemento.archivo = file;
+      } else {
+        // Verificar otros tipos de archivo permitidos
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+        if (allowedTypes.includes(file.type)) {
+          this.nuevoElemento.archivo = file;
+        } else {
+          this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
+          this.cdr.markForCheck();
+        }
+      }
     }
   }
   
@@ -435,6 +461,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   isVideo(url: string): boolean {
     if (!url) return false;
     return /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
+  }
+
+  // Método para determinar si un archivo es un PDF
+  isPDF(url: string): boolean {
+    if (!url) return false;
+    return /\.pdf$/i.test(url);
+  }
+
+  // Método para obtener una URL segura para cualquier tipo de contenido
+  getSafeUrl(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   // Método específico para la carga de videos
