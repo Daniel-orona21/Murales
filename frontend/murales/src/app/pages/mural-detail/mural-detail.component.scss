@@ -71,7 +71,7 @@
   position: relative;
   display: inline-block;
   width: 100%;
-  background-color: #131313;
+  background-color: #000000;
   border-radius: 12px;
   border: 1px solid #333;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -86,11 +86,10 @@
 }
 
 .publicacion-header {
-  padding: 16px;
-  border-bottom: 1px solid #333;
+  padding: 5px 5px 0px 10px;
   
   h3 {
-    margin: 0 0 10px;
+    margin: 0 0 0px;
     font-size: 18px;
     color: white;
   }
@@ -121,11 +120,11 @@
 }
 
 .publicacion-content {
-  padding: 16px;
+  padding: 0px;
   color: #ccc;
   
   .publicacion-descripcion {
-    margin: 0 0 16px;
+    margin: 0 0 0px;
     font-size: 14px;
     line-height: 1.5;
     word-wrap: break-word;
@@ -133,10 +132,9 @@
 }
 
 .contenido-item {
-  margin-top: 12px;
-  padding: 10px;
-  background-color: #1a1a1a;
-  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -147,6 +145,7 @@
   width: 100%;
   border-radius: 6px;
   overflow: hidden;
+  padding: 10px;
 }
 
 /* Estilos para imágenes */
@@ -164,6 +163,8 @@
     object-fit: contain;
     display: inline-block;
     border-radius: 6px;
+    vertical-align: top;
+    margin-bottom: 0;
   }
 }
 
@@ -174,6 +175,7 @@
   overflow: hidden;
   background-color: transparent;
   position: relative;
+  padding: 10px;
   
   /* Asegurar que el video no rompa el flujo del grid */
   video.video-preview {
