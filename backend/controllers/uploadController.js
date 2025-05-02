@@ -92,7 +92,7 @@ const uploadController = {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
-          error: 'El archivo es demasiado grande. El tamaño máximo permitido es 10MB.' 
+          error: 'El archivo es demasiado grande. El tamaño máximo permitido es 50MB.' 
         });
       }
       return res.status(400).json({ error: err.message });

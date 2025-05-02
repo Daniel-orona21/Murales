@@ -13,7 +13,7 @@
     <div class="global-loading-text">Cargando publicaciones...</div>
   </div>
 
-  <!-- Mostrar publicaciones existentes -->
+  <!-- Publicaciones container -->
   <div class="publicaciones-container">
     <div *ngIf="cargando" class="cargando-container">
       <div class="spinner"></div>
@@ -30,69 +30,79 @@
       <p>¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
     </div>
     
-    <div class="publicaciones-grid">
-      <div *ngFor="let publicacion of publicaciones" 
-           class="publicacion-item">
-        <div class="publicacion-header">
-          <h3>{{ publicacion.titulo }}</h3>
-          <div class="publicacion-author">
-            <span class="author-avatar" *ngIf="publicacion.avatar_url">
-              <img [src]="publicacion.avatar_url" alt="Avatar">
-            </span>
-            <span class="author-name">{{ publicacion.nombre_usuario || 'Usuario' }}</span>
+    <!-- Grid layout for publications -->
+    <div class="publicaciones-grid" [class.loaded]="!isLoadingImages">
+      <ng-container *ngFor="let publicacion of publicaciones">
+        <div class="publicacion-item">
+          <div class="publicacion-header">
+            <h3>{{ publicacion.titulo }}</h3>
+            <div class="publicacion-author">
+              <span class="author-avatar" *ngIf="publicacion.avatar_url">
+                <img [src]="publicacion.avatar_url" alt="Avatar">
+              </span>
+              <span class="author-name">{{ publicacion.nombre_usuario || 'Usuario' }}</span>
+            </div>
           </div>
-        </div>
-        
-        <div class="publicacion-content">
-          <p class="publicacion-descripcion">{{ publicacion.descripcion }}</p>
           
-          <div *ngIf="publicacion.contenido && publicacion.contenido.length > 0">
-            <div *ngFor="let contenido of publicacion.contenido" class="contenido-item">
-              <!-- Contenido tipo imagen -->
-              <div *ngIf="contenido.tipo_contenido === 'imagen'" class="contenido-imagen">
-                <img [src]="contenido.url_contenido" 
-                     [alt]="contenido.nombre_archivo || 'Imagen'" 
-                     class="imagen-preview"
-                     (load)="onImageLoaded()"
-                     (error)="onImageLoaded()">
-              </div>
-              
-              <!-- Contenido tipo video -->
-              <div *ngIf="contenido.tipo_contenido === 'video'" class="contenido-video">
-                <video controls class="video-preview" (loadeddata)="onImageLoaded()" (error)="onImageLoaded()">
-                  <source [src]="contenido.url_contenido" type="video/mp4">
-                  Tu navegador no soporta la reproducción de video.
-                </video>
-              </div>
-              
-              <!-- Contenido tipo enlace -->
-              <div *ngIf="contenido.tipo_contenido === 'enlace'" class="contenido-enlace">
-                <span class="material-symbols-outlined">link</span>
-                <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer">
-                  {{ contenido.url_contenido }}
-                </a>
-              </div>
-              
-              <!-- Contenido tipo archivo -->
-              <div *ngIf="contenido.tipo_contenido === 'archivo'" class="contenido-archivo">
-                <span class="material-symbols-outlined">description</span>
-                <div class="archivo-info">
-                  <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer" class="archivo-link">
-                    <p class="archivo-nombre">{{ contenido.nombre_archivo }}</p>
-                    <p class="archivo-tamano" *ngIf="contenido.tamano_archivo">
-                      {{ formatFileSize(contenido.tamano_archivo) }}
-                    </p>
+          <div class="publicacion-content">
+            <p class="publicacion-descripcion">{{ publicacion.descripcion }}</p>
+            
+            <div *ngIf="publicacion.contenido && publicacion.contenido.length > 0">
+              <div *ngFor="let contenido of publicacion.contenido" class="contenido-item">
+                <!-- Contenido tipo imagen -->
+                <div *ngIf="contenido.tipo_contenido === 'imagen'" class="contenido-imagen">
+                  <img [src]="contenido.url_contenido" 
+                       [alt]="contenido.nombre_archivo || 'Imagen'" 
+                       class="imagen-preview"
+                       (load)="onImageLoaded()"
+                       (error)="onImageLoaded()">
+                </div>
+                
+                <!-- Contenido tipo video -->
+                <div *ngIf="contenido.tipo_contenido === 'video'" class="contenido-video">
+                  <video controls 
+                         class="video-preview" 
+                         preload="auto"
+                         poster
+                         controlsList="nodownload" 
+                         disablePictureInPicture
+                         playsinline
+                         (loadedmetadata)="onVideoLoaded($event)"
+                         (error)="onImageLoaded()">
+                    <source [src]="contenido.url_contenido" type="video/mp4">
+                    Tu navegador no soporta la reproducción de video.
+                  </video>
+                </div>
+                
+                <!-- Contenido tipo enlace -->
+                <div *ngIf="contenido.tipo_contenido === 'enlace'" class="contenido-enlace">
+                  <span class="material-symbols-outlined">link</span>
+                  <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer">
+                    {{ contenido.url_contenido }}
                   </a>
+                </div>
+                
+                <!-- Contenido tipo archivo -->
+                <div *ngIf="contenido.tipo_contenido === 'archivo'" class="contenido-archivo">
+                  <span class="material-symbols-outlined">description</span>
+                  <div class="archivo-info">
+                    <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer" class="archivo-link">
+                      <p class="archivo-nombre">{{ contenido.nombre_archivo }}</p>
+                      <p class="archivo-tamano" *ngIf="contenido.tamano_archivo">
+                        {{ formatFileSize(contenido.tamano_archivo) }}
+                      </p>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          
+          <div class="publicacion-footer">
+            <span class="publicacion-fecha">{{ publicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
         </div>
-        
-        <div class="publicacion-footer">
-          <span class="publicacion-fecha">{{ publicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
-        </div>
-      </div>
+      </ng-container>
     </div>
   </div>
 

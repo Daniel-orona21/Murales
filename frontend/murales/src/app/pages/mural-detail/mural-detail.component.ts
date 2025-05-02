@@ -138,14 +138,59 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
     });
     
     console.log(`Total images/videos to load: ${this.totalImages}`);
+    
+    // Si no hay elementos multimedia, ocultar el loader después de un breve retraso
+    if (this.totalImages === 0) {
+      setTimeout(() => {
+        this.isLoadingImages = false;
+      }, 500);
+    }
   }
   
   onImageLoaded(): void {
     this.loadedImages++;
-    console.log(`Loaded ${this.loadedImages} of ${this.totalImages} images`);
+    console.log(`Loaded ${this.loadedImages} of ${this.totalImages} images/videos`);
     
     if (this.loadedImages >= this.totalImages) {
-      this.isLoadingImages = false;
+      // Pequeño retraso para asegurar que todo se ha renderizado
+      setTimeout(() => {
+        this.isLoadingImages = false;
+        
+        // Intentar forzar la carga de miniaturas de videos después de un breve momento
+        setTimeout(() => {
+          this.tryToLoadVideoThumbnails();
+        }, 500);
+      }, 300);
+    }
+  }
+  
+  // Intenta forzar la carga de miniaturas de videos
+  tryToLoadVideoThumbnails(): void {
+    // Buscar todos los videos en el DOM
+    const videoElements = document.querySelectorAll('video.video-preview');
+    
+    if (videoElements.length > 0) {
+      console.log('Attempting to load video thumbnails for', videoElements.length, 'videos');
+      
+      // Para cada video, intentar obtener un fotograma
+      videoElements.forEach((element) => {
+        const videoElement = element as HTMLVideoElement;
+        
+        // Intentar cargar los metadatos si aún no están cargados
+        if (videoElement.readyState === 0) {
+          videoElement.load();
+        }
+        
+        // Intentar ir a un momento específico para mostrar un fotograma
+        // Esto puede ayudar a mostrar un marco del video como miniatura
+        try {
+          if (videoElement.readyState >= 2) {
+            videoElement.currentTime = 0.1;
+          }
+        } catch (e) {
+          console.warn('Error al establecer currentTime en video:', e);
+        }
+      });
     }
   }
   
@@ -306,5 +351,22 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
   isVideo(url: string): boolean {
     if (!url) return false;
     return /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
+  }
+
+  // Método específico para la carga de videos
+  onVideoLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    
+    // Intenta establecer el currentTime para obtener un fotograma como miniatura
+    try {
+      if (video.readyState >= 2) {
+        video.currentTime = 0.1;
+      }
+    } catch (e) {
+      console.warn('Error al establecer currentTime en video:', e);
+    }
+    
+    // Contabiliza la carga del video
+    this.onImageLoaded();
   }
 }
