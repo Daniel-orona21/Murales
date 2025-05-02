@@ -902,3 +902,15 @@
   fill: #E3474F;
 }
 
+.youtube-embed-container {
+  width: 100%;
+  padding: 0px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  overflow: hidden;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

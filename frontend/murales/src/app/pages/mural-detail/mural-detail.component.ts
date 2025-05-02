@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
 import Masonry from 'masonry-layout';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 interface NuevoElemento {
   titulo: string;
@@ -53,7 +54,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   // Add loading state for likes
   likesLoading: { [key: number]: boolean } = {};
   
-  constructor(private muralService: MuralService) {}
+  constructor(private muralService: MuralService, private sanitizer: DomSanitizer) {}
 
   ngOnInit(): void {
     if (this.muralId) {
@@ -564,5 +565,25 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         }
       });
     }
+  }
+
+  // Devuelve true si el enlace es de YouTube
+  isYouTubeLink(url: string): boolean {
+    if (!url) return false;
+    return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//.test(url);
+  }
+
+  // Devuelve la URL segura para el iframe de YouTube
+  getSafeYouTubeEmbedUrl(url: string): SafeResourceUrl {
+    let videoId = '';
+    // Extraer el ID del video de diferentes formatos de YouTube
+    const regExp =
+      /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[1].length === 11) {
+      videoId = match[1];
+    }
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
   }
 }

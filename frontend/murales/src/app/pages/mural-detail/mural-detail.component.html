@@ -84,10 +84,22 @@
               
               <!-- Contenido tipo enlace -->
               <div *ngIf="contenido.tipo_contenido === 'enlace'" class="contenido-enlace">
-                <span class="material-symbols-outlined">link</span>
-                <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer">
-                  {{ contenido.url_contenido }}
-                </a>
+                <ng-container *ngIf="isYouTubeLink(contenido.url_contenido ?? ''); else normalLink">
+                  <div class="youtube-embed-container">
+                    <iframe
+                      [src]="getSafeYouTubeEmbedUrl(contenido.url_contenido ?? '')"
+                      frameborder="0"
+                      allowfullscreen
+                      style="width: 100%; aspect-ratio: 16/9; min-height: none; border-radius: 8px; background: #000;">
+                    </iframe>
+                  </div>
+                </ng-container>
+                <ng-template #normalLink>
+                  <span class="material-symbols-outlined">link</span>
+                  <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer">
+                    {{ contenido.url_contenido }}
+                  </a>
+                </ng-template>
               </div>
               
               <!-- Contenido tipo archivo -->
