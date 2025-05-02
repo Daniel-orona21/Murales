@@ -210,7 +210,7 @@
     </div>
   </div>
   <div class="modal-overlay" *ngIf="showModal" (click)="toggleModal()"></div>
-  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;">
+  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;" *ngIf="mural?.rol_usuario === 'administrador'">
     <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
       <span class="material-symbols-outlined">add</span>
     </button>

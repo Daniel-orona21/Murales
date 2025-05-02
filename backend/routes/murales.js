@@ -6,6 +6,9 @@ const { verificarToken } = require('../middleware/auth');
 // Get user's murals
 router.get('/usuario', verificarToken, muralController.getMuralesByUsuario);
 
+// Get single mural by ID
+router.get('/:id', verificarToken, muralController.getMuralById);
+
 // Create new mural
 router.post('/', verificarToken, muralController.createMural);
 

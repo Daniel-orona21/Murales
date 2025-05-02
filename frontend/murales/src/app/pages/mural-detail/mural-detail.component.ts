@@ -1,17 +1,8 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion } from '../../services/mural.service';
+import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
 import Masonry from 'masonry-layout';
-
-interface Mural {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  privacidad: string;
-  fecha_creacion: Date;
-  rol_usuario?: string;
-}
 
 interface NuevoElemento {
   titulo: string;
@@ -95,15 +86,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   loadMural(): void {
-    // En un escenario real, aquí cargarías los datos del mural desde el servicio
-    // Por ahora, usamos datos de prueba
-    this.mural = {
-      id: this.muralId || 0,
-      titulo: 'Mural de ejemplo',
-      descripcion: 'Esta es una descripción de prueba para el mural de detalle.',
-      privacidad: 'privado',
-      fecha_creacion: new Date()
-    };
+    if (!this.muralId) return;
+    
+    this.muralService.getMuralById(this.muralId).subscribe({
+      next: (mural) => {
+        this.mural = mural;
+      },
+      error: (error) => {
+        console.error('Error al cargar el mural:', error);
+        this.error = 'No se pudo cargar el mural';
+      }
+    });
   }
   
   cargarPublicaciones(): void {

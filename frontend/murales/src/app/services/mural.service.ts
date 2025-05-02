@@ -102,6 +102,13 @@ export class MuralService {
     });
   }
 
+  getMuralById(id: number): Observable<Mural> {
+    const headers = this.getHeaders();
+    return this.http.get<Mural>(`${this.apiUrl}/${id}`, {
+      headers: headers
+    });
+  }
+
   createMural(muralData: CreateMuralData): Observable<any> {
     const headers = this.getHeaders();
     return this.http.post(`${this.apiUrl}`, muralData, {

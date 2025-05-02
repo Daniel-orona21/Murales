@@ -43,13 +43,17 @@ const muralController = {
       const userId = req.user.id;
 
       const query = `
-        SELECT m.* 
+        SELECT m.*, 
+               CASE 
+                 WHEN m.id_creador = ? THEN 'administrador'
+                 ELSE COALESCE(rm.rol, 'lector') 
+               END as rol_usuario
         FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
 
-      const [mural] = await db.query(query, [id, userId, userId]);
+      const [mural] = await db.query(query, [userId, userId, id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(404).json({ error: 'Mural no encontrado' });
