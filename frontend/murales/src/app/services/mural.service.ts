@@ -25,11 +25,64 @@ export interface JoinMuralResponse {
   id_mural: number;
 }
 
+export interface Publicacion {
+  id_publicacion: number;
+  id_mural: number;
+  id_usuario: number;
+  titulo: string;
+  descripcion: string;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  posicion_x: number;
+  posicion_y: number;
+  estado: number;
+  nombre_usuario?: string;
+  avatar_url?: string;
+  contenido?: Contenido[];
+}
+
+export interface Contenido {
+  id_contenido: number;
+  id_publicacion: number;
+  tipo_contenido: 'imagen' | 'video' | 'enlace' | 'archivo' | 'texto';
+  url_contenido?: string;
+  texto?: string;
+  nombre_archivo?: string;
+  tamano_archivo?: number;
+  fecha_subida: string;
+}
+
+export interface CreatePublicacionData {
+  titulo: string;
+  descripcion: string;
+  posicion_x?: number;
+  posicion_y?: number;
+}
+
+export interface CreateContenidoData {
+  tipo_contenido: 'imagen' | 'video' | 'enlace' | 'archivo' | 'texto';
+  url_contenido?: string;
+  texto?: string;
+  nombre_archivo?: string;
+  tamano_archivo?: number;
+}
+
+export interface FileUploadResponse {
+  id_contenido: number;
+  id_publicacion: number;
+  tipo_contenido: string;
+  url_contenido: string;
+  nombre_archivo: string;
+  tamano_archivo: number;
+  mensaje: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class MuralService {
   private apiUrl = `${environment.apiUrl}/murales`;
+  private uploadUrl = `${environment.apiUrl}/uploads`;
 
   constructor(
     private http: HttpClient,
@@ -76,5 +129,42 @@ export class MuralService {
   abandonarMural(id: number): Observable<any> {
     const headers = this.getHeaders();
     return this.http.delete(`${this.apiUrl}/${id}/abandonar`, { headers });
+  }
+  
+  // Métodos para Publicaciones
+  
+  getPublicacionesByMural(idMural: number): Observable<Publicacion[]> {
+    const headers = this.getHeaders();
+    return this.http.get<Publicacion[]>(`${this.apiUrl}/${idMural}/publicaciones`, { headers });
+  }
+  
+  getPublicacionById(idPublicacion: number): Observable<Publicacion> {
+    const headers = this.getHeaders();
+    return this.http.get<Publicacion>(`${this.apiUrl}/publicaciones/${idPublicacion}`, { headers });
+  }
+  
+  createPublicacion(idMural: number, publicacionData: CreatePublicacionData): Observable<Publicacion> {
+    const headers = this.getHeaders();
+    return this.http.post<Publicacion>(`${this.apiUrl}/${idMural}/publicaciones`, publicacionData, { headers });
+  }
+  
+  // Métodos para Contenido
+  
+  addContenido(idPublicacion: number, contenidoData: CreateContenidoData): Observable<Contenido> {
+    const headers = this.getHeaders();
+    return this.http.post<Contenido>(`${this.apiUrl}/publicaciones/${idPublicacion}/contenido`, contenidoData, { headers });
+  }
+  
+  // Método para subir archivos
+  uploadFile(idPublicacion: number, file: File): Observable<FileUploadResponse> {
+    const headers = this.getHeaders();
+    const formData = new FormData();
+    formData.append('archivo', file);
+    
+    return this.http.post<FileUploadResponse>(
+      `${this.uploadUrl}/publicaciones/${idPublicacion}`, 
+      formData, 
+      { headers }
+    );
   }
 } 

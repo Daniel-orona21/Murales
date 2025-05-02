@@ -1,6 +1,7 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion } from '../../services/mural.service';
 
 interface Mural {
   id: number;
@@ -27,13 +28,21 @@ type ContentType = 'archivo' | 'link';
   standalone: true,
   imports: [CommonModule, FormsModule]
 })
-export class MuralDetailComponent implements OnInit, OnChanges {
+export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() muralId: number | null = null;
   mural: Mural | null = null;
   showModal = false;
   isDragging = false;
   contentType: ContentType = 'archivo';
   showTooltip = false;
+  cargando = false;
+  error: string | null = null;
+  publicaciones: Publicacion[] = [];
+  
+  // Tracking image loading
+  totalImages = 0;
+  loadedImages = 0;
+  isLoadingImages = true;
   
   nuevoElemento: NuevoElemento = {
     titulo: '',
@@ -42,18 +51,36 @@ export class MuralDetailComponent implements OnInit, OnChanges {
     link: ''
   };
   
-  constructor() {}
+  constructor(private muralService: MuralService) {}
 
   ngOnInit(): void {
     if (this.muralId) {
       this.loadMural();
+      this.cargarPublicaciones();
     }
+  }
+
+  ngAfterViewInit(): void {
+    // If no images are found after a delay, hide the loader
+    setTimeout(() => {
+      if (this.totalImages === 0) {
+        this.isLoadingImages = false;
+      }
+    }, 1000);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['muralId'] && !changes['muralId'].firstChange) {
+      this.resetImageLoading();
       this.loadMural();
+      this.cargarPublicaciones();
     }
+  }
+
+  resetImageLoading(): void {
+    this.totalImages = 0;
+    this.loadedImages = 0;
+    this.isLoadingImages = true;
   }
 
   loadMural(): void {
@@ -66,6 +93,60 @@ export class MuralDetailComponent implements OnInit, OnChanges {
       privacidad: 'privado',
       fecha_creacion: new Date()
     };
+  }
+  
+  cargarPublicaciones(): void {
+    if (!this.muralId) return;
+    
+    this.cargando = true;
+    this.isLoadingImages = true;
+    this.resetImageLoading();
+    
+    this.muralService.getPublicacionesByMural(this.muralId).subscribe({
+      next: (publicaciones) => {
+        this.publicaciones = publicaciones;
+        this.cargando = false;
+        
+        // Count total images and videos that need to load
+        this.countTotalMediaItems();
+        
+        // If no media items, hide loader
+        if (this.totalImages === 0) {
+          this.isLoadingImages = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar las publicaciones:', error);
+        this.error = 'No se pudieron cargar las publicaciones';
+        this.cargando = false;
+        this.isLoadingImages = false;
+      }
+    });
+  }
+  
+  countTotalMediaItems(): void {
+    this.totalImages = 0;
+    
+    this.publicaciones.forEach(publicacion => {
+      if (publicacion.contenido && publicacion.contenido.length > 0) {
+        publicacion.contenido.forEach(contenido => {
+          if (contenido.tipo_contenido === 'imagen' || contenido.tipo_contenido === 'video') {
+            this.totalImages++;
+          }
+        });
+      }
+    });
+    
+    console.log(`Total images/videos to load: ${this.totalImages}`);
+  }
+  
+  onImageLoaded(): void {
+    this.loadedImages++;
+    console.log(`Loaded ${this.loadedImages} of ${this.totalImages} images`);
+    
+    if (this.loadedImages >= this.totalImages) {
+      this.isLoadingImages = false;
+    }
   }
   
   toggleModal(): void {
@@ -85,6 +166,7 @@ export class MuralDetailComponent implements OnInit, OnChanges {
     };
     this.isDragging = false;
     this.contentType = 'archivo';
+    this.error = null;
   }
   
   setContentType(type: ContentType): void {
@@ -149,9 +231,80 @@ export class MuralDetailComponent implements OnInit, OnChanges {
   }
   
   guardarElemento(): void {
-    // Aquí iría la lógica para guardar el elemento
-    console.log('Elemento guardado:', this.nuevoElemento);
-    console.log('Tipo de contenido:', this.contentType);
-    this.toggleModal();
+    if (!this.muralId || !this.formValid) return;
+    
+    this.cargando = true;
+    this.error = null;
+
+    // Primero creamos la publicación
+    const publicacionData: CreatePublicacionData = {
+      titulo: this.nuevoElemento.titulo,
+      descripcion: this.nuevoElemento.descripcion
+    };
+    
+    this.muralService.createPublicacion(this.muralId, publicacionData).subscribe({
+      next: (publicacion) => {
+        console.log('Publicación creada:', publicacion);
+        
+        // Luego agregamos el contenido según el tipo seleccionado
+        if (this.contentType === 'archivo' && this.nuevoElemento.archivo) {
+          // Usar el nuevo método de subida de archivos
+          this.muralService.uploadFile(publicacion.id_publicacion, this.nuevoElemento.archivo).subscribe({
+            next: (response) => {
+              console.log('Archivo subido:', response);
+              this.toggleModal();
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error) => {
+              console.error('Error al subir archivo:', error);
+              this.error = 'No se pudo subir el archivo';
+              this.cargando = false;
+            }
+          });
+        } 
+        else if (this.contentType === 'link' && this.nuevoElemento.link) {
+          const contenidoData: CreateContenidoData = {
+            tipo_contenido: 'enlace',
+            url_contenido: this.nuevoElemento.link
+          };
+          
+          this.muralService.addContenido(publicacion.id_publicacion, contenidoData).subscribe({
+            next: (contenido) => {
+              console.log('Contenido agregado:', contenido);
+              this.toggleModal();
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error) => {
+              console.error('Error al agregar contenido:', error);
+              this.error = 'No se pudo agregar el contenido';
+              this.cargando = false;
+            }
+          });
+        } else {
+          this.toggleModal();
+          this.cargarPublicaciones();
+          this.cargando = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error al crear publicación:', error);
+        this.error = 'No se pudo crear la publicación';
+        this.cargando = false;
+      }
+    });
+  }
+  
+  // Método para determinar si un contenido es una imagen
+  isImage(url: string): boolean {
+    if (!url) return false;
+    return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
+  }
+  
+  // Método para determinar si un contenido es un video
+  isVideo(url: string): boolean {
+    if (!url) return false;
+    return /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
   }
 }

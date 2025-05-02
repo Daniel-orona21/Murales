@@ -14,6 +14,13 @@
   --line: 1px;
   --color: rgba(255, 255, 255, 0.134);
 
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
   background-image: linear-gradient(
       -90deg,
       transparent calc(var(--gap) - var(--line)),
@@ -27,6 +34,299 @@
       var(--color) var(--gap)
     );
   background-size: var(--gap) var(--gap);
+}
+
+// Estilos para las publicaciones
+.publicaciones-container {
+  width: 100%;
+  padding: 20px;
+}
+
+.publicaciones-grid {
+  column-count: 5;
+  column-gap: 18px;
+  padding: 10px;
+  opacity: 0;
+  animation: gridFadeIn 0.6s ease-out forwards;
+  animation-delay: 0.1s;
+}
+
+@keyframes gridFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.publicacion-item {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  background-color: #131313;
+  border-radius: 12px;
+  border: 1px solid #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 18px;
+  break-inside: avoid;
+  
+  &:hover {
+    border-color: #555;
+  }
+}
+
+.publicacion-header {
+  padding: 16px;
+  border-bottom: 1px solid #333;
+  
+  h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    color: white;
+  }
+  
+  .publicacion-author {
+    display: flex;
+    align-items: center;
+    
+    .author-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin-right: 8px;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+    
+    .author-name {
+      font-size: 13px;
+      color: #999;
+    }
+  }
+}
+
+.publicacion-content {
+  padding: 16px;
+  color: #ccc;
+  
+  .publicacion-descripcion {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+  }
+}
+
+.contenido-item {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+}
+
+// Estilos para imágenes
+.contenido-imagen {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  
+  img.imagen-preview {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease;
+    
+  }
+}
+
+// Estilos para videos
+.contenido-video {
+  width: 100%;
+  
+  video.video-preview {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+  }
+}
+
+.contenido-enlace {
+  display: flex;
+  align-items: center;
+  
+  span {
+    color: #888;
+    margin-right: 8px;
+  }
+  
+  a {
+    color: #4d9fff;
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.contenido-archivo {
+  display: flex;
+  align-items: center;
+  
+  span {
+    color: #888;
+    margin-right: 12px;
+    font-size: 24px;
+  }
+  
+  .archivo-info {
+    .archivo-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        color: #4d9fff;
+      }
+    }
+    
+    .archivo-nombre {
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: white;
+    }
+    
+    .archivo-tamano {
+      margin: 0;
+      font-size: 12px;
+      color: #888;
+    }
+  }
+}
+
+.publicacion-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #333;
+  
+  .publicacion-fecha {
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+// Estados de carga y error
+.cargando-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #999;
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #555;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    font-size: 14px;
+  }
+}
+
+.spinner-button {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #ff6b6b;
+  text-align: center;
+  
+  p {
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  
+  .retry-button {
+    background-color: transparent;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(255, 107, 107, 0.1);
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #999;
+  text-align: center;
+  
+  p {
+    margin: 8px 0;
+    font-size: 14px;
+    max-width: 300px;
+  }
+}
+
+.form-error {
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid #ff6b6b;
+  color: #ff6b6b;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
 }
 
 // Modal styles
@@ -431,16 +731,16 @@
     color: white;
     font-size: 40px;
     margin: 0;
-  }
-  
+}
+
   &:hover {
-    background-color: #262626;
-    transform: rotate(90deg);
-  }
-  
+  background-color: #262626;
+  transform: rotate(90deg);
+}
+
   &:active {
-    background-color: #ffffff4d;
-  }
+  background-color: #ffffff4d;
+}
 }
 
 .tooltip {
@@ -473,6 +773,47 @@
   &.show {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* Responsive columns */
+@media (max-width: 1400px) {
+  .publicaciones-grid {
+    columns: 4 200px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .publicaciones-grid {
+    columns: 3 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .publicaciones-grid {
+    columns: 2 200px;
+  }
+}
+
+@media (max-width: 576px) {
+  .publicaciones-grid {
+    columns: 1 200px;
+  }
+}
+
+/* Ensure all publications start at the same height */
+.publicacion-item:first-child {
+  margin-top: 0;
+}
+
+@keyframes gridFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

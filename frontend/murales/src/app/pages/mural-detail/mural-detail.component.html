@@ -1,4 +1,102 @@
 <div class="mural-detail-container">
+  <!-- Global loading spinner for images -->
+  <div class="global-loading-container" *ngIf="isLoadingImages">
+    <div class="pyramid-loader">
+      <div class="wrapper">
+        <span class="side side1"></span>
+        <span class="side side2"></span>
+        <span class="side side3"></span>
+        <span class="side side4"></span>
+        <span class="shadow"></span>
+      </div>  
+    </div>
+    <div class="global-loading-text">Cargando publicaciones...</div>
+  </div>
+
+  <!-- Mostrar publicaciones existentes -->
+  <div class="publicaciones-container">
+    <div *ngIf="cargando" class="cargando-container">
+      <div class="spinner"></div>
+      <p>Cargando publicaciones...</p>
+    </div>
+    
+    <div *ngIf="error" class="error-container">
+      <p>{{ error }}</p>
+      <button class="retry-button" (click)="cargarPublicaciones()">Reintentar</button>
+    </div>
+    
+    <div *ngIf="!cargando && !error && publicaciones.length === 0" class="empty-state">
+      <p>No hay publicaciones en este mural.</p>
+      <p>¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
+    </div>
+    
+    <div class="publicaciones-grid">
+      <div *ngFor="let publicacion of publicaciones" 
+           class="publicacion-item">
+        <div class="publicacion-header">
+          <h3>{{ publicacion.titulo }}</h3>
+          <div class="publicacion-author">
+            <span class="author-avatar" *ngIf="publicacion.avatar_url">
+              <img [src]="publicacion.avatar_url" alt="Avatar">
+            </span>
+            <span class="author-name">{{ publicacion.nombre_usuario || 'Usuario' }}</span>
+          </div>
+        </div>
+        
+        <div class="publicacion-content">
+          <p class="publicacion-descripcion">{{ publicacion.descripcion }}</p>
+          
+          <div *ngIf="publicacion.contenido && publicacion.contenido.length > 0">
+            <div *ngFor="let contenido of publicacion.contenido" class="contenido-item">
+              <!-- Contenido tipo imagen -->
+              <div *ngIf="contenido.tipo_contenido === 'imagen'" class="contenido-imagen">
+                <img [src]="contenido.url_contenido" 
+                     [alt]="contenido.nombre_archivo || 'Imagen'" 
+                     class="imagen-preview"
+                     (load)="onImageLoaded()"
+                     (error)="onImageLoaded()">
+              </div>
+              
+              <!-- Contenido tipo video -->
+              <div *ngIf="contenido.tipo_contenido === 'video'" class="contenido-video">
+                <video controls class="video-preview" (loadeddata)="onImageLoaded()" (error)="onImageLoaded()">
+                  <source [src]="contenido.url_contenido" type="video/mp4">
+                  Tu navegador no soporta la reproducción de video.
+                </video>
+              </div>
+              
+              <!-- Contenido tipo enlace -->
+              <div *ngIf="contenido.tipo_contenido === 'enlace'" class="contenido-enlace">
+                <span class="material-symbols-outlined">link</span>
+                <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer">
+                  {{ contenido.url_contenido }}
+                </a>
+              </div>
+              
+              <!-- Contenido tipo archivo -->
+              <div *ngIf="contenido.tipo_contenido === 'archivo'" class="contenido-archivo">
+                <span class="material-symbols-outlined">description</span>
+                <div class="archivo-info">
+                  <a [href]="contenido.url_contenido" target="_blank" rel="noopener noreferrer" class="archivo-link">
+                    <p class="archivo-nombre">{{ contenido.nombre_archivo }}</p>
+                    <p class="archivo-tamano" *ngIf="contenido.tamano_archivo">
+                      {{ formatFileSize(contenido.tamano_archivo) }}
+                    </p>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="publicacion-footer">
+          <span class="publicacion-fecha">{{ publicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para agregar elementos -->
   <div class="modal-sidebar" [class.show]="showModal">
     <div class="modal-header">
       <h2>Agregar elemento</h2>
@@ -7,6 +105,8 @@
       </button>
     </div>
     <div class="modal-content">
+      <div *ngIf="error" class="form-error">{{ error }}</div>
+      
       <div class="form-group">
         <label for="titulo">Título</label>
         <input type="text" id="titulo" [(ngModel)]="nuevoElemento.titulo" placeholder="Añade un título">
@@ -97,12 +197,15 @@
       
       <div class="form-actions">
         <button class="cancel-button" (click)="toggleModal()">Cancelar</button>
-        <button class="save-button" (click)="guardarElemento()" [disabled]="!formValid">Guardar</button>
+        <button class="save-button" (click)="guardarElemento()" [disabled]="!formValid || cargando">
+          <span *ngIf="cargando" class="spinner-button"></span>
+          <span *ngIf="!cargando">Guardar</span>
+        </button>
       </div>
     </div>
   </div>
   <div class="modal-overlay" *ngIf="showModal" (click)="toggleModal()"></div>
-  <div class="button-container">
+  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;">
     <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
       <span class="material-symbols-outlined">add</span>
     </button>

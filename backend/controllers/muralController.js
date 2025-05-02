@@ -469,6 +469,224 @@ const muralController = {
       console.error('Error al abandonar el mural:', error);
       res.status(500).json({ error: 'Error al abandonar el mural' });
     }
+  },
+
+  // Nueva función para crear una publicación en un mural
+  crearPublicacion: async (req, res) => {
+    try {
+      const { id_mural } = req.params;
+      const { titulo, descripcion, posicion_x, posicion_y } = req.body;
+      const id_usuario = req.user.id;
+      
+      // Verificar si el usuario tiene permisos para crear publicaciones en este mural
+      const checkQuery = `
+        SELECT m.*, rm.rol 
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+      `;
+      
+      const [mural] = await db.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
+      
+      if (!mural || mural.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      }
+      
+      const isCreator = mural[0].id_creador == id_usuario;
+      const userRole = mural[0].rol || (isCreator ? 'administrador' : null);
+      
+      // Verificar si el usuario tiene permisos para crear publicaciones
+      if (userRole !== 'administrador' && userRole !== 'editor') {
+        return res.status(403).json({ error: 'No tienes permisos para crear publicaciones en este mural' });
+      }
+      
+      // Insertar la publicación
+      const insertQuery = `
+        INSERT INTO publicaciones (
+          id_mural, id_usuario, titulo, descripcion, 
+          fecha_creacion, fecha_actualizacion, 
+          posicion_x, posicion_y, estado
+        ) VALUES (?, ?, ?, ?, NOW(), NOW(), ?, ?, 1)
+      `;
+      
+      const [result] = await db.query(insertQuery, [
+        id_mural, id_usuario, titulo, descripcion, 
+        posicion_x || 0, posicion_y || 0
+      ]);
+      
+      res.status(201).json({
+        id_publicacion: result.insertId,
+        id_mural,
+        id_usuario,
+        titulo,
+        descripcion,
+        posicion_x: posicion_x || 0,
+        posicion_y: posicion_y || 0,
+        mensaje: 'Publicación creada exitosamente'
+      });
+      
+    } catch (error) {
+      console.error('Error al crear publicación:', error);
+      res.status(500).json({ error: 'Error al crear la publicación' });
+    }
+  },
+  
+  // Función para agregar contenido a una publicación
+  agregarContenido: async (req, res) => {
+    try {
+      const { id_publicacion } = req.params;
+      const { tipo_contenido, url_contenido, texto, nombre_archivo, tamano_archivo } = req.body;
+      const id_usuario = req.user.id;
+      
+      // Verificar si la publicación existe y el usuario tiene permisos
+      const checkQuery = `
+        SELECT p.*, m.id_creador, rm.rol
+        FROM publicaciones p
+        JOIN murales m ON p.id_mural = m.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE p.id_publicacion = ?
+      `;
+      
+      const [publicacion] = await db.query(checkQuery, [id_usuario, id_publicacion]);
+      
+      if (!publicacion || publicacion.length === 0) {
+        return res.status(404).json({ error: 'Publicación no encontrada' });
+      }
+      
+      const isCreator = publicacion[0].id_creador == id_usuario;
+      const isPublicationAuthor = publicacion[0].id_usuario == id_usuario;
+      const userRole = publicacion[0].rol || (isCreator ? 'administrador' : null);
+      
+      // Verificar permisos para agregar contenido
+      if (!isPublicationAuthor && userRole !== 'administrador' && userRole !== 'editor') {
+        return res.status(403).json({ error: 'No tienes permisos para agregar contenido a esta publicación' });
+      }
+      
+      // Verificar tipo de contenido válido
+      const tiposValidos = ['imagen', 'video', 'enlace', 'archivo', 'texto'];
+      if (!tiposValidos.includes(tipo_contenido)) {
+        return res.status(400).json({ error: 'Tipo de contenido no válido' });
+      }
+      
+      // Insertar el contenido
+      const insertQuery = `
+        INSERT INTO contenido (
+          id_publicacion, tipo_contenido, url_contenido,
+          texto, nombre_archivo, tamano_archivo, fecha_subida
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+      `;
+      
+      const [result] = await db.query(insertQuery, [
+        id_publicacion, tipo_contenido, url_contenido,
+        texto, nombre_archivo, tamano_archivo
+      ]);
+      
+      res.status(201).json({
+        id_contenido: result.insertId,
+        id_publicacion,
+        tipo_contenido,
+        url_contenido,
+        texto,
+        nombre_archivo,
+        tamano_archivo,
+        mensaje: 'Contenido agregado exitosamente'
+      });
+      
+    } catch (error) {
+      console.error('Error al agregar contenido:', error);
+      res.status(500).json({ error: 'Error al agregar contenido a la publicación' });
+    }
+  },
+  
+  // Función para obtener publicaciones de un mural
+  getPublicacionesByMural: async (req, res) => {
+    try {
+      const { id_mural } = req.params;
+      const id_usuario = req.user.id;
+      
+      // Verificar acceso al mural
+      const checkQuery = `
+        SELECT m.*, rm.rol 
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+      `;
+      
+      const [mural] = await db.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
+      
+      if (!mural || mural.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      }
+      
+      // Obtener publicaciones del mural
+      const query = `
+        SELECT p.*, u.nombre as nombre_usuario, u.avatar_url
+        FROM publicaciones p
+        JOIN usuarios u ON p.id_usuario = u.id_usuario
+        WHERE p.id_mural = ? AND p.estado = 1
+        ORDER BY p.fecha_creacion DESC
+      `;
+      
+      const [publicaciones] = await db.query(query, [id_mural]);
+      
+      // Obtener el contenido para cada publicación
+      for (let i = 0; i < publicaciones.length; i++) {
+        const contenidoQuery = `
+          SELECT * FROM contenido 
+          WHERE id_publicacion = ?
+          ORDER BY fecha_subida DESC
+        `;
+        
+        const [contenido] = await db.query(contenidoQuery, [publicaciones[i].id_publicacion]);
+        publicaciones[i].contenido = contenido;
+      }
+      
+      res.json(publicaciones);
+      
+    } catch (error) {
+      console.error('Error al obtener publicaciones:', error);
+      res.status(500).json({ error: 'Error al obtener las publicaciones del mural' });
+    }
+  },
+  
+  // Función para obtener una publicación específica
+  getPublicacionById: async (req, res) => {
+    try {
+      const { id_publicacion } = req.params;
+      const id_usuario = req.user.id;
+      
+      // Verificar permisos y obtener publicación
+      const query = `
+        SELECT p.*, u.nombre as nombre_usuario, u.avatar_url, m.id_creador, rm.rol
+        FROM publicaciones p
+        JOIN usuarios u ON p.id_usuario = u.id_usuario
+        JOIN murales m ON p.id_mural = m.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE p.id_publicacion = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+      `;
+      
+      const [publicacion] = await db.query(query, [id_usuario, id_publicacion, id_usuario, id_usuario]);
+      
+      if (!publicacion || publicacion.length === 0) {
+        return res.status(404).json({ error: 'Publicación no encontrada o no tienes permisos para verla' });
+      }
+      
+      // Obtener contenido
+      const contenidoQuery = `
+        SELECT * FROM contenido 
+        WHERE id_publicacion = ?
+        ORDER BY fecha_subida DESC
+      `;
+      
+      const [contenido] = await db.query(contenidoQuery, [id_publicacion]);
+      publicacion[0].contenido = contenido;
+      
+      res.json(publicacion[0]);
+      
+    } catch (error) {
+      console.error('Error al obtener publicación:', error);
+      res.status(500).json({ error: 'Error al obtener la publicación' });
+    }
   }
 };
 

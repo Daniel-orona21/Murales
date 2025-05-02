@@ -21,4 +21,18 @@ router.post('/solicitar-acceso', verificarToken, muralController.joinMuralWithCo
 // Abandon mural by ID
 router.delete('/:id/abandonar', verificarToken, muralController.abandonarMural);
 
+// NUEVAS RUTAS PARA PUBLICACIONES
+
+// Obtener todas las publicaciones de un mural
+router.get('/:id_mural/publicaciones', verificarToken, muralController.getPublicacionesByMural);
+
+// Crear una nueva publicación en un mural
+router.post('/:id_mural/publicaciones', verificarToken, muralController.crearPublicacion);
+
+// Obtener una publicación específica
+router.get('/publicaciones/:id_publicacion', verificarToken, muralController.getPublicacionById);
+
+// Agregar contenido a una publicación
+router.post('/publicaciones/:id_publicacion/contenido', verificarToken, muralController.agregarContenido);
+
 module.exports = router; 
