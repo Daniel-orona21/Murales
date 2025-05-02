@@ -160,7 +160,7 @@
   width: 100%;
   border-radius: 6px;
   overflow: hidden;
-  padding: 10px;
+  padding: 8px;
 }
 
 /* Estilos para imágenes */
@@ -168,13 +168,14 @@
   width: 100%;
   overflow: hidden;
   line-height: 0;
-  background: #000;
+  background: transparent;
   
   img.imagen-preview {
     width: 100%;
     height: auto;
     display: block;
     object-fit: cover;
+    border-radius: 6px;
   }
 }
 
@@ -183,13 +184,15 @@
   width: 100%;
   overflow: hidden;
   line-height: 0;
-  background: #000;
+  background: transparent;
+  padding: 8px;
   
   video.video-preview {
     width: 100%;
     height: auto;
     display: block;
     background: #000;
+    border-radius: 6px;
   }
 }
 
@@ -343,9 +346,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  min-height: calc(100vh - 200px);
   color: #999;
   text-align: center;
+  padding: 20px;
   
   p {
     margin: 8px 0;
@@ -770,7 +774,7 @@
 }
 
   &:hover {
-  background-color: #262626;
+  background-color: #000000;
   transform: rotate(90deg);
 }
 

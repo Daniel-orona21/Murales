@@ -75,6 +75,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
     // Initialize Masonry
     this.initMasonry();
+    
+    // Initialize video previews
+    this.initVideoPreviews();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -371,23 +374,32 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     
     // Asegurar que el video tenga un poster/thumbnail
     try {
-      if (video.readyState >= 2) {
-        // Crear un canvas para capturar el thumbnail
+      // Intentar cargar los metadatos si aún no están cargados
+      if (video.readyState === 0) {
+        video.load();
+      }
+
+      // Función para generar el thumbnail
+      const generateThumbnail = () => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         
         if (ctx) {
-          // Dibujar el frame actual del video
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          // Guardar como poster
-          const thumbnail = canvas.toDataURL('image/jpeg');
-          video.poster = thumbnail;
+          video.poster = canvas.toDataURL('image/jpeg');
         }
-        
-        // Establecer el tiempo al inicio
         video.currentTime = 0;
+        video.pause();
+      };
+
+      // Si el video está listo, generar el thumbnail inmediatamente
+      if (video.readyState >= 2) {
+        generateThumbnail();
+      } else {
+        // Si no está listo, esperar a que lo esté
+        video.addEventListener('loadeddata', generateThumbnail, { once: true });
       }
     } catch (e) {
       console.warn('Error al generar thumbnail del video:', e);
@@ -395,6 +407,43 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     
     // Contabilizar la carga
     this.onImageLoaded();
+  }
+
+  // Método para asegurar que los videos tengan una vista previa
+  ensureVideoPreview(videoElement: HTMLVideoElement): void {
+    if (!videoElement.poster) {
+      // Si no hay poster, intentar generar uno
+      videoElement.addEventListener('loadeddata', () => {
+        if (videoElement.readyState >= 2) {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          const ctx = canvas.getContext('2d');
+          
+          if (ctx) {
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            videoElement.poster = canvas.toDataURL('image/jpeg');
+          }
+        }
+      });
+      
+      // Intentar cargar los metadatos si aún no están cargados
+      if (videoElement.readyState === 0) {
+        videoElement.load();
+      }
+      
+      // Establecer el tiempo al inicio
+      videoElement.currentTime = 0.1;
+    }
+  }
+
+  // Método para inicializar las vistas previas de video
+  initVideoPreviews(): void {
+    const videoElements = document.querySelectorAll('video.video-preview');
+    videoElements.forEach((element) => {
+      const videoElement = element as HTMLVideoElement;
+      this.ensureVideoPreview(videoElement);
+    });
   }
 
   @HostListener('window:resize')

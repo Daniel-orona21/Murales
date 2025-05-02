@@ -15,10 +15,6 @@
 
   <!-- Publicaciones container -->
   <div class="publicaciones-container">
-    <div *ngIf="cargando" class="cargando-container">
-      <div class="spinner"></div>
-      <p>Cargando publicaciones...</p>
-    </div>
     
     <div *ngIf="error" class="error-container">
       <p>{{ error }}</p>
