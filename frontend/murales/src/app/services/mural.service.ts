@@ -155,11 +155,19 @@ export class MuralService {
     return this.http.post<Publicacion>(`${this.apiUrl}/${idMural}/publicaciones`, publicacionData, { headers });
   }
   
+  updatePublicacion(publicacionId: number, data: { titulo: string; descripcion: string }): Observable<any> {
+    return this.http.put(`${this.apiUrl}/publicaciones/${publicacionId}`, data);
+  }
+  
   // Métodos para Contenido
   
   addContenido(idPublicacion: number, contenidoData: CreateContenidoData): Observable<Contenido> {
     const headers = this.getHeaders();
     return this.http.post<Contenido>(`${this.apiUrl}/publicaciones/${idPublicacion}/contenido`, contenidoData, { headers });
+  }
+  
+  updateContenido(publicacionId: number, data: { tipo_contenido: string; url_contenido?: string; texto?: string }): Observable<any> {
+    return this.http.put(`${this.apiUrl}/publicaciones/${publicacionId}/contenido`, data);
   }
   
   // Método para subir archivos

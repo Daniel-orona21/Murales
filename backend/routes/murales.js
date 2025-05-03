@@ -35,6 +35,12 @@ router.post('/:id_mural/publicaciones', verificarToken, muralController.crearPub
 // Obtener una publicación específica
 router.get('/publicaciones/:id_publicacion', verificarToken, muralController.getPublicacionById);
 
+// Actualizar una publicación
+router.put('/publicaciones/:id_publicacion', verificarToken, muralController.actualizarPublicacion);
+
+// Actualizar contenido de una publicación
+router.put('/publicaciones/:id_publicacion/contenido', verificarToken, muralController.actualizarContenido);
+
 // Agregar contenido a una publicación
 router.post('/publicaciones/:id_publicacion/contenido', verificarToken, muralController.agregarContenido);
 

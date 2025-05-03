@@ -691,6 +691,105 @@ const muralController = {
       console.error('Error al obtener publicación:', error);
       res.status(500).json({ error: 'Error al obtener la publicación' });
     }
+  },
+
+  actualizarPublicacion: async (req, res) => {
+    try {
+      const { id_publicacion } = req.params;
+      const { titulo, descripcion } = req.body;
+      const userId = req.user.id;
+
+      // Verificar si el usuario tiene permisos para editar
+      const checkQuery = `
+        SELECT p.*, m.id_creador, rm.rol 
+        FROM publicaciones p
+        JOIN murales m ON p.id_mural = m.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
+      `;
+
+      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+
+      if (!publicacion || publicacion.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
+      }
+
+      const updateQuery = `
+        UPDATE publicaciones 
+        SET titulo = ?, descripcion = ?, fecha_actualizacion = NOW()
+        WHERE id_publicacion = ?
+      `;
+
+      await db.query(updateQuery, [titulo, descripcion, id_publicacion]);
+
+      res.json({ 
+        mensaje: 'Publicación actualizada exitosamente',
+        id_publicacion,
+        titulo,
+        descripcion
+      });
+    } catch (error) {
+      console.error('Error al actualizar publicación:', error);
+      res.status(500).json({ error: 'Error al actualizar la publicación' });
+    }
+  },
+
+  actualizarContenido: async (req, res) => {
+    try {
+      const { id_publicacion } = req.params;
+      const { tipo_contenido, url_contenido, texto } = req.body;
+      const userId = req.user.id;
+
+      // Verificar si el usuario tiene permisos para editar
+      const checkQuery = `
+        SELECT p.*, m.id_creador, rm.rol 
+        FROM publicaciones p
+        JOIN murales m ON p.id_mural = m.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
+      `;
+
+      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+
+      if (!publicacion || publicacion.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
+      }
+
+      // Obtener el contenido actual
+      const [contenidoActual] = await db.query(
+        'SELECT id_contenido FROM contenido WHERE id_publicacion = ?',
+        [id_publicacion]
+      );
+
+      if (!contenidoActual || contenidoActual.length === 0) {
+        return res.status(404).json({ error: 'No se encontró contenido para actualizar' });
+      }
+
+      const id_contenido = contenidoActual[0].id_contenido;
+
+      // Actualizar el contenido
+      const updateQuery = `
+        UPDATE contenido 
+        SET tipo_contenido = ?, 
+            url_contenido = ?, 
+            texto = ?,
+            fecha_subida = NOW()
+        WHERE id_contenido = ?
+      `;
+
+      await db.query(updateQuery, [tipo_contenido, url_contenido, texto, id_contenido]);
+
+      res.json({ 
+        mensaje: 'Contenido actualizado exitosamente',
+        id_contenido,
+        tipo_contenido,
+        url_contenido,
+        texto
+      });
+    } catch (error) {
+      console.error('Error al actualizar contenido:', error);
+      res.status(500).json({ error: 'Error al actualizar el contenido' });
+    }
   }
 };
 

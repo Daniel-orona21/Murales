@@ -720,9 +720,83 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   onSaveEdit(publicacionId: number, data: any): void {
-    // Handle the edit with both parameters
-    console.log('Saving edit for publication:', publicacionId, data);
-    // Add your save logic here
+    this.cargando = true;
+    this.error = null;
+
+    // First update the publication basic info
+    const publicacionData = {
+      titulo: data.titulo,
+      descripcion: data.descripcion
+    };
+
+    this.muralService.updatePublicacion(publicacionId, publicacionData).subscribe({
+      next: (publicacion: Publicacion) => {
+        console.log('Publicación actualizada:', publicacion);
+        
+        // Then update the content based on the content type
+        if (data.contentType === 'archivo' && data.content) {
+          // Upload new file
+          this.muralService.uploadFile(publicacionId, data.content).subscribe({
+            next: (response: any) => {
+              console.log('Archivo actualizado:', response);
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error: any) => {
+              console.error('Error al actualizar archivo:', error);
+              this.error = 'No se pudo actualizar el archivo';
+              this.cargando = false;
+            }
+          });
+        }
+        else if (data.contentType === 'link' && data.content) {
+          const contenidoData = {
+            tipo_contenido: 'enlace',
+            url_contenido: data.content
+          };
+          
+          this.muralService.updateContenido(publicacionId, contenidoData).subscribe({
+            next: (contenido: any) => {
+              console.log('Enlace actualizado:', contenido);
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error: any) => {
+              console.error('Error al actualizar enlace:', error);
+              this.error = 'No se pudo actualizar el enlace';
+              this.cargando = false;
+            }
+          });
+        }
+        else if (data.contentType === 'nota' && data.content) {
+          const contenidoData = {
+            tipo_contenido: 'texto',
+            texto: data.content
+          };
+          
+          this.muralService.updateContenido(publicacionId, contenidoData).subscribe({
+            next: (contenido: any) => {
+              console.log('Nota actualizada:', contenido);
+              this.cargarPublicaciones();
+              this.cargando = false;
+            },
+            error: (error: any) => {
+              console.error('Error al actualizar nota:', error);
+              this.error = 'No se pudo actualizar la nota';
+              this.cargando = false;
+            }
+          });
+        } else {
+          this.cargarPublicaciones();
+          this.cargando = false;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error al actualizar publicación:', error);
+        this.error = 'No se pudo actualizar la publicación';
+        this.cargando = false;
+      }
+    });
   }
 
   onCancelEdit() {
