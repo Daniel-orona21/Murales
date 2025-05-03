@@ -33,7 +33,7 @@
       <div class="publicacion-item" *ngFor="let publicacion of publicaciones; let i = index" (click)="openCarousel(i)">
         <div class="publicacion-header">
           <h3>{{ publicacion.titulo }}</h3>
-          <div class="like-container">
+          <div class="like-container" (click)="$event.stopPropagation()">
             <label class="container">
               <input type="checkbox" 
                      [checked]="userLikes[publicacion.id_publicacion]"
@@ -66,7 +66,7 @@
               </div>
               
               <!-- Contenido tipo video -->
-              <div *ngIf="contenido.tipo_contenido === 'video'" class="contenido-video">
+              <div *ngIf="contenido.tipo_contenido === 'video'" class="contenido-video" (click)="$event.stopPropagation()">
                 <video controls 
                        class="video-preview" 
                        preload="auto"
