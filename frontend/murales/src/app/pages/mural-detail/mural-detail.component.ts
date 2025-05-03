@@ -27,6 +27,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
+  isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
   isDragging = false;
@@ -113,6 +114,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.muralService.getMuralById(this.muralId).subscribe({
       next: (mural) => {
         this.mural = mural;
+        this.isAdmin = mural.rol_usuario === 'administrador';
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error al cargar el mural:', error);
@@ -702,5 +705,29 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   onCommentAdded(event: {publicacionId: number, comment: string}) {
     // Implement comment addition logic here
     console.log('New comment:', event);
+  }
+
+  onEditPublicacion(publicacionId: number) {
+    // Implement edit logic here
+    console.log('Edit publicacion:', publicacionId);
+    // TODO: Implement edit functionality
+  }
+
+  onDeletePublicacion(publicacionId: number) {
+    // Implement delete logic here
+    console.log('Delete publicacion:', publicacionId);
+    // TODO: Implement delete functionality
+  }
+
+  onSaveEdit(publicacionId: number, data: any): void {
+    // Handle the edit with both parameters
+    console.log('Saving edit for publication:', publicacionId, data);
+    // Add your save logic here
+  }
+
+  onCancelEdit() {
+    // Implement cancel edit logic here
+    console.log('Cancel edit');
+    // TODO: Implement cancel functionality
   }
 }

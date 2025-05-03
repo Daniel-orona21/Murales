@@ -164,9 +164,14 @@
     [userLikes]="userLikes"
     [likesCount]="likesCount"
     [likesLoading]="likesLoading"
+    [isAdmin]="isAdmin"
     (close)="closeCarousel()"
     (likeToggled)="onLikeToggled($event)"
-    (commentAdded)="onCommentAdded($event)">
+    (commentAdded)="onCommentAdded($event)"
+    (editPublicacion)="onEditPublicacion($event)"
+    (deletePublicacion)="onDeletePublicacion($event)"
+    (saveEdit)="onSaveEdit($event.publicacionId, $event.data)"
+    (cancelEdit)="onCancelEdit()">
   </app-publicacion-carousel>
 
   <!-- Modal para agregar elementos -->

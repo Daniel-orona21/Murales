@@ -4,9 +4,27 @@
   </button>
   <div class="carousel-container">
     <div class="botonera">
-       <button class="options-button">
+      <div class="edicion">
+        <button class="options-button confirmar" *ngIf="isAdmin && isEditing" (click)="onSaveEdit()">
+          <span class="material-symbols-outlined">check</span>
+        </button>
+        <button class="options-button cancelar" *ngIf="isAdmin && isEditing" (click)="onCancelEdit()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <button class="options-button" *ngIf="isAdmin && !isEditing" (click)="toggleOptionsMenu($event)">
       <span class="material-symbols-outlined">more_vert</span>
     </button>
+      <div class="options-menu" *ngIf="showOptionsMenu" (click)="$event.stopPropagation()">
+        <button class="menu-item" (click)="onEdit()">
+          <span class="material-symbols-outlined">edit</span>
+          Editar
+        </button>
+        <button class="menu-item delete" (click)="onDelete()">
+          <span class="material-symbols-outlined">delete</span>
+          Eliminar
+        </button>
+      </div>
     </div>
 
     <!-- Navigation arrows -->
@@ -126,13 +144,126 @@
           
           
           <div class="publicacion-descripcion" *ngIf="currentPublicacion.descripcion">
-            <h2 class="publicacion-titulo">{{ currentPublicacion.titulo }}</h2>
-            <p>{{ currentPublicacion.descripcion }}</p>
+            <h2 class="publicacion-titulo" *ngIf="!isEditing">{{ currentPublicacion.titulo }}</h2>
+            <input 
+              type="text" 
+              class="publicacion-titulo-input" 
+              *ngIf="isEditing"
+              [(ngModel)]="editedContent.titulo"
+              placeholder="Título de la publicación">
+            <p *ngIf="!isEditing">{{ currentPublicacion.descripcion }}</p>
+            <textarea 
+              class="publicacion-descripcion-input" 
+              *ngIf="isEditing"
+              [(ngModel)]="editedContent.descripcion"
+              placeholder="Descripción de la publicación"
+              rows="3"></textarea>
+
+            <!-- Content type selector and editing -->
+            <div *ngIf="isEditing" class="content-editing-section">
+              <div class="form-group">
+                <label>Contenido</label>
+                
+                <div class="content-type-selector">
+                  <button 
+                    class="content-type-button" 
+                    [class.active]="contentType === 'nota'"
+                    (click)="setContentType('nota')">
+                    <span class="material-symbols-outlined">note</span>
+                    <span>Nota</span>
+                  </button>
+                  <button 
+                    class="content-type-button" 
+                    [class.active]="contentType === 'archivo'"
+                    (click)="setContentType('archivo')">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    <span>Archivo</span>
+                  </button>
+                  <button 
+                    class="content-type-button" 
+                    [class.active]="contentType === 'link'"
+                    (click)="setContentType('link')">
+                    <span class="material-symbols-outlined">link</span>
+                    <span>Enlace</span>
+                  </button>
+                </div>
+                
+                <!-- Sección de Nota -->
+                <div class="note-container" *ngIf="contentType === 'nota'">
+                  <div class="form-group">
+                    <label for="note-content">Contenido de la nota</label>
+                    <textarea 
+                      id="note-content" 
+                      [(ngModel)]="editedContent.nota" 
+                      rows="6" 
+                      placeholder="Escribe tu nota aquí..."
+                      class="note-textarea"></textarea>
+                  </div>
+                </div>
+                
+                <!-- Sección de Archivo -->
+                <div class="file-upload-container" 
+                     *ngIf="contentType === 'archivo'"
+                     [class.drag-over]="isDragging"
+                     (dragover)="onDragOver($event)" 
+                     (dragleave)="onDragLeave($event)" 
+                     (drop)="onDrop($event)">
+                  
+                  <div class="upload-area" *ngIf="!editedContent.archivo">
+                    <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                    <p>Arrastra un archivo aquí o</p>
+                    <label class="upload-button">
+                      Seleccionar archivo
+                      <input type="file" (change)="onFileSelected($event)" hidden>
+                    </label>
+                  </div>
+                  
+                  <div class="file-preview" *ngIf="editedContent.archivo">
+                    <div class="file-info">
+                      <span class="material-symbols-outlined file-icon">description</span>
+                      <div class="file-details">
+                        <p class="file-name">{{ editedContent.archivo.name }}</p>
+                        <p class="file-size">{{ formatFileSize(editedContent.archivo.size) }}</p>
+                      </div>
+                    </div>
+                    <button class="remove-file" (click)="removeFile()">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Sección de Link -->
+                <div class="link-container" *ngIf="contentType === 'link'">
+                  <div class="form-group">
+                    <label for="link-url">URL del enlace</label>
+                    <input 
+                      type="url" 
+                      id="link-url" 
+                      [(ngModel)]="editedContent.link" 
+                      placeholder="https://ejemplo.com"
+                      pattern="https?://.+"
+                      title="Incluye http:// o https://">
+                  </div>
+                  
+                  <div class="link-preview" *ngIf="editedContent.link">
+                    <div class="link-info">
+                      <span class="material-symbols-outlined link-icon">link</span>
+                      <div class="link-details">
+                        <p class="link-url">{{ editedContent.link }}</p>
+                      </div>
+                    </div>
+                    <button class="remove-link" (click)="removeLink()">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Comments section -->
-        <div class="comments-section">
+        <div class="comments-section" *ngIf="!isEditing">
           <h3>Comentarios</h3>
 
           

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
+type ContentType = 'archivo' | 'link' | 'nota';
+
 @Component({
   selector: 'app-publicacion-carousel',
   templateUrl: './publicacion-carousel.component.html',
@@ -16,13 +18,38 @@ export class PublicacionCarouselComponent {
   @Input() userLikes: { [key: number]: boolean } = {};
   @Input() likesCount: { [key: number]: number } = {};
   @Input() likesLoading: { [key: number]: boolean } = {};
+  @Input() isAdmin: boolean = false;
   
   @Output() close = new EventEmitter<void>();
   @Output() likeToggled = new EventEmitter<number>();
   @Output() commentAdded = new EventEmitter<{publicacionId: number, comment: string}>();
+  @Output() editPublicacion = new EventEmitter<number>();
+  @Output() deletePublicacion = new EventEmitter<number>();
+  @Output() saveEdit = new EventEmitter<{publicacionId: number, data: any}>();
+  @Output() cancelEdit = new EventEmitter<void>();
   
   newComment: string = '';
   private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
+  showOptionsMenu: boolean = false;
+  isEditing: boolean = false;
+  contentType: ContentType = 'nota';
+  isDragging: boolean = false;
+  error: string | null = null;
+  
+  // Properties for editing content
+  editedContent: {
+    titulo: string;
+    descripcion: string;
+    archivo: File | null;
+    link: string;
+    nota: string;
+  } = {
+    titulo: '',
+    descripcion: '',
+    archivo: null,
+    link: '',
+    nota: ''
+  };
   
   constructor(private sanitizer: DomSanitizer) {}
   
@@ -58,6 +85,134 @@ export class PublicacionCarouselComponent {
   
   closeCarousel() {
     this.close.emit();
+  }
+
+  toggleOptionsMenu(event: Event): void {
+    event.stopPropagation();
+    this.showOptionsMenu = !this.showOptionsMenu;
+  }
+
+  onEdit(): void {
+    this.isEditing = true;
+    this.editedContent = {
+      titulo: this.currentPublicacion.titulo,
+      descripcion: this.currentPublicacion.descripcion,
+      archivo: null,
+      link: '',
+      nota: ''
+    };
+    
+    // Set initial content type based on current content
+    if (this.currentPublicacion.contenido && this.currentPublicacion.contenido.length > 0) {
+      const contenido = this.currentPublicacion.contenido[0];
+      if (contenido.tipo_contenido === 'texto') {
+        this.contentType = 'nota';
+        this.editedContent.nota = contenido.texto;
+      } else if (contenido.tipo_contenido === 'enlace') {
+        this.contentType = 'link';
+        this.editedContent.link = contenido.url_contenido;
+      } else if (['imagen', 'video', 'archivo'].includes(contenido.tipo_contenido)) {
+        this.contentType = 'archivo';
+      }
+    }
+    
+    this.editPublicacion.emit(this.currentPublicacion.id_publicacion);
+    this.showOptionsMenu = false;
+  }
+
+  onSaveEdit(): void {
+    if (!this.formValid) return;
+    
+    const editData = {
+      titulo: this.editedContent.titulo,
+      descripcion: this.editedContent.descripcion,
+      contentType: this.contentType,
+      content: this.contentType === 'nota' ? this.editedContent.nota :
+               this.contentType === 'link' ? this.editedContent.link :
+               this.editedContent.archivo
+    };
+    
+    this.saveEdit.emit({
+      publicacionId: this.currentPublicacion.id_publicacion,
+      data: editData
+    });
+    this.isEditing = false;
+  }
+
+  onCancelEdit(): void {
+    this.isEditing = false;
+    this.cancelEdit.emit();
+  }
+
+  onDelete(): void {
+    this.deletePublicacion.emit(this.currentPublicacion.id_publicacion);
+    this.showOptionsMenu = false;
+  }
+
+  setContentType(type: ContentType): void {
+    this.contentType = type;
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = false;
+    
+    if (event.dataTransfer?.files.length) {
+      const file = event.dataTransfer.files[0];
+      if (file.type === 'application/pdf' || 
+          ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'].includes(file.type)) {
+        this.editedContent.archivo = file;
+      } else {
+        this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
+      }
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      const file = input.files[0];
+      if (file.type === 'application/pdf' || 
+          ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'].includes(file.type)) {
+        this.editedContent.archivo = file;
+      } else {
+        this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
+      }
+    }
+  }
+
+  removeFile(): void {
+    this.editedContent.archivo = null;
+  }
+
+  removeLink(): void {
+    this.editedContent.link = '';
+  }
+
+  get formValid(): boolean {
+    if (this.contentType === 'archivo') {
+      return this.editedContent.titulo.trim() !== '' && 
+             this.editedContent.descripcion.trim() !== '' && 
+             this.editedContent.archivo !== null;
+    } else if (this.contentType === 'link') {
+      return this.editedContent.titulo.trim() !== '' && 
+             this.editedContent.descripcion.trim() !== '' && 
+             this.editedContent.link.trim() !== '';
+    } else {
+      return this.editedContent.titulo.trim() !== '' && 
+             this.editedContent.descripcion.trim() !== '' && 
+             this.editedContent.nota.trim() !== '';
+    }
   }
 
   // Método para determinar si un enlace es de YouTube
