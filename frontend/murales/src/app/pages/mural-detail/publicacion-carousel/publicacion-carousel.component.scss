@@ -274,9 +274,9 @@
   }
   .like-container {
     display: flex;
+    
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
     .container {
       position: relative;
       cursor: pointer;
@@ -294,6 +294,7 @@
     .likes-count {
       font-size: 14px;
       color: #fff;
+      margin-top: -4px;
     }
   }
   .publicacion-descripcion {
@@ -353,7 +354,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      color: #aaa;
+      color: #ffffff36;
 
       span {
         font-size: 50px !important;
