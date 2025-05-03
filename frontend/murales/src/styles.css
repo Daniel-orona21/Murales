@@ -190,3 +190,7 @@ button {
   font-size: 18px;
   letter-spacing: 1px;
 }
+
+body.carousel-open .navbar {
+  display: none !important;
+} 

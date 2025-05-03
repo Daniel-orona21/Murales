@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
 import Masonry from 'masonry-layout';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
 
 interface NuevoElemento {
   titulo: string;
@@ -20,7 +21,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
   templateUrl: './mural-detail.component.html',
   styleUrls: ['./mural-detail.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PublicacionCarouselComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
@@ -59,6 +60,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   
   // Add loading state for likes
   likesLoading: { [key: number]: boolean } = {};
+  
+  showCarousel = false;
+  selectedPublicacionIndex = 0;
   
   constructor(
     private muralService: MuralService, 
@@ -677,5 +681,25 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.youtubeEmbedCache[url] = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
     
     return this.youtubeEmbedCache[url];
+  }
+
+  openCarousel(index: number) {
+    this.selectedPublicacionIndex = index;
+    this.showCarousel = true;
+    document.body.classList.add('carousel-open');
+  }
+
+  closeCarousel() {
+    this.showCarousel = false;
+    document.body.classList.remove('carousel-open');
+  }
+
+  onLikeToggled(publicacionId: number) {
+    this.toggleLike(publicacionId);
+  }
+
+  onCommentAdded(event: {publicacionId: number, comment: string}) {
+    // Implement comment addition logic here
+    console.log('New comment:', event);
   }
 }

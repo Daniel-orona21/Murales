@@ -98,13 +98,14 @@
   border: 1px solid #333;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform 0.3s, box-shadow 0.3s;
   margin-bottom: 18px;
   break-inside: avoid;
+  cursor: pointer;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
 }
 

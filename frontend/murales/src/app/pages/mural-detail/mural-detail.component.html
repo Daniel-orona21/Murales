@@ -30,7 +30,7 @@
     <div #masonryGrid class="publicaciones-grid" [class.loaded]="!isLoadingImages">
       <div class="grid-sizer"></div>
       <div class="gutter-sizer"></div>
-      <div class="publicacion-item" *ngFor="let publicacion of publicaciones">
+      <div class="publicacion-item" *ngFor="let publicacion of publicaciones; let i = index" (click)="openCarousel(i)">
         <div class="publicacion-header">
           <h3>{{ publicacion.titulo }}</h3>
           <div class="like-container">
@@ -147,6 +147,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Carousel component -->
+  <app-publicacion-carousel
+    *ngIf="showCarousel"
+    [publicaciones]="publicaciones"
+    [currentIndex]="selectedPublicacionIndex"
+    [userLikes]="userLikes"
+    [likesCount]="likesCount"
+    [likesLoading]="likesLoading"
+    (close)="closeCarousel()"
+    (likeToggled)="onLikeToggled($event)"
+    (commentAdded)="onCommentAdded($event)">
+  </app-publicacion-carousel>
 
   <!-- Modal para agregar elementos -->
   <div class="modal-sidebar" [class.show]="showModal">
