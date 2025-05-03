@@ -70,7 +70,7 @@
                 <video controls 
                        class="video-preview" 
                        preload="auto"
-                       poster
+                       [poster]="contenido.url_contenido ? videoThumbnails[contenido.url_contenido] : null"
                        controlsList="nodownload" 
                        disablePictureInPicture
                        playsinline

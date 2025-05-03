@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef, ChangeDetectionStrategy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -41,6 +41,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   contentType: ContentType = 'nota';
   isDragging: boolean = false;
   error: string | null = null;
+  slideDirection: 'left' | 'right' | null = null;
   
   // Properties for editing content
   editedContent: {
@@ -103,15 +104,25 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   
   next() {
     if (this.currentIndex < this.publicaciones.length - 1) {
+      this.slideDirection = 'left';
       this.currentIndex++;
       this.cargarComentarios();
+      setTimeout(() => {
+        this.slideDirection = null;
+        this.cdr.detectChanges();
+      }, 300);
     }
   }
   
   previous() {
     if (this.currentIndex > 0) {
+      this.slideDirection = 'right';
       this.currentIndex--;
       this.cargarComentarios();
+      setTimeout(() => {
+        this.slideDirection = null;
+        this.cdr.detectChanges();
+      }, 300);
     }
   }
   
@@ -156,10 +167,15 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
       text: 'Esta acción no se puede deshacer',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
     }).then((result) => {
       if (result.isConfirmed) {
         this.comentarioService.eliminarComentario(commentId).subscribe({
@@ -173,7 +189,11 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
               text: 'El comentario ha sido eliminado',
               icon: 'success',
               confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar'
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
             });
           },
           error: (error) => {
@@ -183,7 +203,11 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
               text: 'No se pudo eliminar el comentario',
               icon: 'error',
               confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar'
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
             });
           }
         });
@@ -197,6 +221,17 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
 
   closeCarousel() {
     this.close.emit();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    // Si el menú está abierto y el clic no fue en el botón de opciones ni en el menú
+    if (this.showOptionsMenu && 
+        !(event.target as Element).closest('.options-button') && 
+        !(event.target as Element).closest('.options-menu')) {
+      this.showOptionsMenu = false;
+      this.cdr.markForCheck();
+    }
   }
 
   toggleOptionsMenu(event: Event): void {

@@ -5,7 +5,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true
 })
 export class TimeAgoPipe implements PipeTransform {
-  transform(value: string | Date): string {
+  transform(value: string | Date, includeHace: boolean = false): string {
     if (!value) return '';
 
     const date = new Date(value);
@@ -17,18 +17,20 @@ export class TimeAgoPipe implements PipeTransform {
     const months = Math.floor(days / 30);
     const years = Math.floor(months / 12);
 
+    const prefix = includeHace ? 'hace' : '';
+
     if (seconds < 60) {
-      return 'hace un momento';
+      return includeHace ? 'hace un momento' : 'justo ahora';
     } else if (minutes < 60) {
-      return `hace ${minutes}m`;
+      return `${prefix} ${minutes}m`;
     } else if (hours < 24) {
-      return `hace ${hours}h`;
+      return `${prefix} ${hours}h`;
     } else if (days < 30) {
-      return `hace ${days}d`;
+      return `${prefix} ${days}d`;
     } else if (months < 12) {
-      return `hace ${months}mes`;
+      return `${prefix} ${months}mes`;
     } else {
-      return `hace ${years}a`;
+      return `${prefix} ${years}a`;
     }
   }
 } 

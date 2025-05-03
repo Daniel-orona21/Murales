@@ -37,7 +37,7 @@
 
     <div class="carousel-content">
       <!-- Left side - Content -->
-      <div class="content-section">
+      <div class="content-section" [class.slide-left]="slideDirection === 'left'" [class.slide-right]="slideDirection === 'right'">
         <div class="content-container">
           <div *ngFor="let contenido of currentPublicacion.contenido" class="contenido-item">
             <!-- Image content -->
@@ -116,7 +116,7 @@
       </div>
 
       <!-- Right side - Info and comments -->
-      <div class="info-section">
+      <div class="info-section" [class.slide-left]="slideDirection === 'left'" [class.slide-right]="slideDirection === 'right'">
         <div class="publicacion-info">
           <div class="autorYlikes">
             <div class="contenedor">
@@ -125,7 +125,7 @@
                 </div>
               
               <div class="publicacion-meta">
-                <span class="publicacion-fecha">{{ currentPublicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span class="publicacion-fecha">{{ currentPublicacion.fecha_creacion | timeAgo:true }}</span>
               </div>
             </div>
             <div class="like-container">
@@ -274,7 +274,7 @@
               <div *ngFor="let comentario of comentarios[currentPublicacion.id_publicacion]" class="comentario-item">
                 <div class="comentario-header">
                   <div class="comentario-usuario">
-                    <img [src]="comentario.avatar_url || '/images/default-avatar.png'" 
+                    <img [src]="comentario.avatar_url || '/images/default-avatar2.jpeg'" 
                          [alt]="comentario.nombre_usuario"
                          class="avatar-comentario"
                          (error)="handleImageError($event)">
@@ -282,7 +282,7 @@
                         <div class="contenedorComentario">
                           <div class="nombreYfecha">
                             <span class="nombre-usuario">{{ comentario.nombre_usuario }}</span>
-                            <span class="comentario-fecha">{{ comentario.fecha_creacion | timeAgo }}</span>
+                            <span class="comentario-fecha">{{ comentario.fecha_creacion | timeAgo:false }}</span>
                           </div>
                           <p class="comentario-contenido">{{ comentario.contenido }}</p>
                         </div>

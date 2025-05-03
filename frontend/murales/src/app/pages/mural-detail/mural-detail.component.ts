@@ -68,6 +68,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   showCarousel = false;
   selectedPublicacionIndex = 0;
   
+  videoThumbnails: { [key: string]: string } = {};
+  
   constructor(
     private muralService: MuralService, 
     private sanitizer: DomSanitizer,
@@ -514,7 +516,10 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          video.poster = canvas.toDataURL('image/jpeg');
+          const thumbnailUrl = canvas.toDataURL('image/jpeg');
+          // Store the thumbnail URL in our map
+          this.videoThumbnails[video.querySelector('source')?.src || ''] = thumbnailUrl;
+          video.poster = thumbnailUrl;
         }
         video.currentTime = 0;
         video.pause();
@@ -537,30 +542,33 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   // Método para asegurar que los videos tengan una vista previa
   ensureVideoPreview(videoElement: HTMLVideoElement): void {
-    if (!videoElement.poster) {
-      // Si no hay poster, intentar generar uno
-      videoElement.addEventListener('loadeddata', () => {
-        if (videoElement.readyState >= 2) {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          const ctx = canvas.getContext('2d');
-          
-          if (ctx) {
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            videoElement.poster = canvas.toDataURL('image/jpeg');
-          }
+    const videoUrl = videoElement.querySelector('source')?.src;
+    if (!videoUrl || this.videoThumbnails[videoUrl]) return;
+
+    // Si no hay poster, intentar generar uno
+    videoElement.addEventListener('loadeddata', () => {
+      if (videoElement.readyState >= 2) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          const thumbnailUrl = canvas.toDataURL('image/jpeg');
+          this.videoThumbnails[videoUrl] = thumbnailUrl;
+          videoElement.poster = thumbnailUrl;
         }
-      });
-      
-      // Intentar cargar los metadatos si aún no están cargados
-      if (videoElement.readyState === 0) {
-        videoElement.load();
       }
-      
-      // Establecer el tiempo al inicio
-      videoElement.currentTime = 0.1;
+    });
+    
+    // Intentar cargar los metadatos si aún no están cargados
+    if (videoElement.readyState === 0) {
+      videoElement.load();
     }
+    
+    // Establecer el tiempo al inicio
+    videoElement.currentTime = 0.1;
   }
 
   // Método para inicializar las vistas previas de video
