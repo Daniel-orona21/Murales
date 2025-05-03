@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import Swal from 'sweetalert2';
 
 type ContentType = 'archivo' | 'link' | 'nota';
 
@@ -121,7 +122,7 @@ export class PublicacionCarouselComponent {
   }
 
   onSaveEdit(): void {
-    if (!this.formValid) return;
+    if (!this.editedContent.titulo.trim() || !this.editedContent.descripcion.trim()) return;
     
     const editData = {
       titulo: this.editedContent.titulo,
@@ -132,11 +133,36 @@ export class PublicacionCarouselComponent {
                this.editedContent.archivo
     };
     
-    this.saveEdit.emit({
-      publicacionId: this.currentPublicacion.id_publicacion,
-      data: editData
-    });
-    this.isEditing = false;
+    try {
+      this.saveEdit.emit({
+        publicacionId: this.currentPublicacion.id_publicacion,
+        data: editData
+      });
+      Swal.fire({
+        title: '¡Guardado!',
+        text: 'La publicación se actualizó correctamente.',
+        icon: 'success',
+        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+        confirmButtonText: 'Aceptar',
+        customClass: {
+          popup: 'custom-swal-popup',
+          confirmButton: 'custom-confirm-button'
+        }
+      });
+      this.isEditing = false;
+    } catch (error) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Ocurrió un error al guardar la publicación.',
+        icon: 'error',
+        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+        confirmButtonText: 'Aceptar',
+        customClass: {
+          popup: 'custom-swal-popup',
+          confirmButton: 'custom-confirm-button'
+        }
+      });
+    }
   }
 
   onCancelEdit(): void {

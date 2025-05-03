@@ -1,5 +1,6 @@
 const path = require('path');
 const db = require('../config/database');
+const fs = require('fs').promises;
 
 const uploadController = {
   // Subir un archivo y asociarlo a una publicación
@@ -54,8 +55,32 @@ const uploadController = {
       if (!isPublicationAuthor && userRole !== 'administrador' && userRole !== 'editor') {
         return res.status(403).json({ error: 'No tienes permisos para agregar contenido a esta publicación' });
       }
+
+      // Obtener el contenido anterior
+      const [contenidoAnterior] = await db.query(
+        'SELECT * FROM contenido WHERE id_publicacion = ?',
+        [id_publicacion]
+      );
+
+      // Si hay contenido anterior, eliminarlo
+      if (contenidoAnterior && contenidoAnterior.length > 0) {
+        // Eliminar el archivo físico si existe
+        for (const contenido of contenidoAnterior) {
+          if (contenido.url_contenido) {
+            const filePath = path.join(__dirname, '..', 'uploads', path.basename(contenido.url_contenido));
+            try {
+              await fs.unlink(filePath);
+            } catch (error) {
+              console.error('Error al eliminar archivo físico:', error);
+            }
+          }
+        }
+
+        // Eliminar registros de la base de datos
+        await db.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+      }
       
-      // Insertar el contenido en la base de datos
+      // Insertar el nuevo contenido
       const insertQuery = `
         INSERT INTO contenido (
           id_publicacion, tipo_contenido, url_contenido,
@@ -78,7 +103,7 @@ const uploadController = {
         url_contenido: fileUrl,
         nombre_archivo: req.file.originalname,
         tamano_archivo: req.file.size,
-        mensaje: 'Archivo subido exitosamente'
+        mensaje: 'Archivo actualizado exitosamente'
       });
       
     } catch (error) {

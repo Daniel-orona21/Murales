@@ -35,8 +35,8 @@ button {
 }
 
 .custom-swal-popup {
-  background-color: rgba(50, 50, 50, 0.3); /* gris translúcido */
-  backdrop-filter: blur(10px); /* efecto blur */
+  background-color: rgba(22, 22, 22, 0.77); /* gris translúcido */
+  backdrop-filter: blur(40px); /* efecto blur */
   border-radius: 14px;
 }
 

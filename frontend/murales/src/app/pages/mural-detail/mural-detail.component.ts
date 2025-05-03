@@ -735,7 +735,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         
         // Then update the content based on the content type
         if (data.contentType === 'archivo' && data.content) {
-          // Upload new file
+          // Solo subir archivo si se proporcionó uno nuevo
           this.muralService.uploadFile(publicacionId, data.content).subscribe({
             next: (response: any) => {
               console.log('Archivo actualizado:', response);
@@ -787,6 +787,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             }
           });
         } else {
+          // Si no hay nuevo contenido, solo recargar las publicaciones
           this.cargarPublicaciones();
           this.cargando = false;
         }
