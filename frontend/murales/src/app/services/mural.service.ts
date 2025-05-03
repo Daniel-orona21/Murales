@@ -207,4 +207,9 @@ export class MuralService {
     const headers = this.getHeaders();
     return this.http.get<{liked: boolean}>(`${environment.apiUrl}/likes/check/${publicacionId}`, { headers });
   }
+
+  deletePublicacion(publicacionId: number): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.delete(`${this.apiUrl}/publicaciones/${publicacionId}`, { headers });
+  }
 } 

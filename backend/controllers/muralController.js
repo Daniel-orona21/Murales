@@ -790,6 +790,36 @@ const muralController = {
       console.error('Error al actualizar contenido:', error);
       res.status(500).json({ error: 'Error al actualizar el contenido' });
     }
+  },
+
+  eliminarPublicacion: async (req, res) => {
+    try {
+      const { id_publicacion } = req.params;
+      const userId = req.user.id;
+
+      // Verificar si el usuario tiene permisos para eliminar la publicación
+      const checkQuery = `
+        SELECT p.*, m.id_creador, rm.rol 
+        FROM publicaciones p
+        JOIN murales m ON p.id_mural = m.id_mural
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
+      `;
+
+      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+
+      if (!publicacion || publicacion.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para eliminar esta publicación' });
+      }
+
+      // Eliminar la publicación
+      await db.query('DELETE FROM publicaciones WHERE id_publicacion = ?', [id_publicacion]);
+
+      res.json({ mensaje: 'Publicación eliminada exitosamente' });
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error);
+      res.status(500).json({ error: 'Error al eliminar la publicación' });
+    }
   }
 };
 

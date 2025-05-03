@@ -35,21 +35,20 @@ button {
 }
 
 .custom-swal-popup {
-  background-color: rgba(22, 22, 22, 0.77); /* gris translúcido */
-  backdrop-filter: blur(40px); /* efecto blur */
-  border-radius: 14px;
+  background-color: rgba(22, 22, 22, 0.77) !important;
+  backdrop-filter: blur(40px) !important;
+  border-radius: 14px !important;
 }
 
 .custom-swal-popup .swal2-title {
-  color: #ffffff !important; /* Título blanco */
+  color: #ffffff !important;
 }
 
 .custom-swal-popup .swal2-html-container,
 .custom-swal-popup .swal2-content {
-  color: #ffffff !important; /* Subtítulo o texto */
+  color: #ffffff !important;
 }
 
-/* Eliminar círculo oscuro detrás del ícono */
 .custom-swal-popup .swal2-icon {
   background: transparent !important;
 }
@@ -60,7 +59,6 @@ button {
   background: transparent !important;
 }
 
-/* Custom button styles (assuming a standard dark theme button) */
 .custom-swal-popup .swal2-confirm.custom-confirm-button,
 .custom-swal-popup .swal2-cancel.custom-cancel-button,
 .custom-swal-popup .swal2-deny.custom-deny-button {
@@ -69,29 +67,22 @@ button {
   font-size: 0.95rem !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important; 
-  background: rgba(0, 0, 0, 0.2) !important; /* Darker semi-transparent background */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
   color: rgba(255, 255, 255, 0.8) !important;
 }
 
 .custom-swal-popup .swal2-confirm.custom-confirm-button:hover,
 .custom-swal-popup .swal2-cancel.custom-cancel-button:hover,
 .custom-swal-popup .swal2-deny.custom-deny-button:hover {
-  background: rgba(255, 255, 255, 0.1) !important; /* Lighter on hover */
+  background: rgba(255, 255, 255, 0.1) !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
   color: #ffffff !important;
 }
 
-/* Style for specific confirm button if needed (e.g., primary action) */
-.custom-swal-popup .swal2-confirm.custom-confirm-button {
-  /* Add slight distinction if desired, maybe less transparency? */
-  /* background: rgba(255, 255, 255, 0.15) !important; */ 
-}
-
-/* Custom validation message style */
 .custom-swal-popup .swal2-validation-message {
-  background: rgba(0, 0, 0, 0.1) !important; /* Match dark theme */
-  color: #ffdddd !important; /* Lighter red for readability */
+  background: rgba(0, 0, 0, 0.1) !important;
+  color: #ffdddd !important;
   border: 1px solid rgba(255, 100, 100, 0.3) !important;
   border-radius: 6px !important;
   padding: 0.5rem 1rem !important;

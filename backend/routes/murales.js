@@ -44,4 +44,7 @@ router.put('/publicaciones/:id_publicacion/contenido', verificarToken, muralCont
 // Agregar contenido a una publicación
 router.post('/publicaciones/:id_publicacion/contenido', verificarToken, muralController.agregarContenido);
 
+// Eliminar una publicación
+router.delete('/publicaciones/:id_publicacion', verificarToken, muralController.eliminarPublicacion);
+
 module.exports = router; 

@@ -6,6 +6,7 @@ import Masonry from 'masonry-layout';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
+import Swal from 'sweetalert2';
 
 interface NuevoElemento {
   titulo: string;
@@ -714,9 +715,67 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   onDeletePublicacion(publicacionId: number) {
-    // Implement delete logic here
-    console.log('Delete publicacion:', publicacionId);
-    // TODO: Implement delete functionality
+    // Show confirmation dialog
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción no se puede deshacer',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cargando = true;
+        this.muralService.deletePublicacion(publicacionId).subscribe({
+          next: () => {
+            // Remove the publication from the array
+            this.publicaciones = this.publicaciones.filter(p => p.id_publicacion !== publicacionId);
+            this.cargando = false;
+            this.closeCarousel();
+            this.cdr.markForCheck();
+            
+            // Show success message
+            Swal.fire({
+              title: '¡Eliminado!',
+              text: 'La publicación ha sido eliminada',
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error al eliminar publicación:', error);
+            this.error = 'No se pudo eliminar la publicación';
+            this.cargando = false;
+            this.cdr.markForCheck();
+            
+            // Show error message
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo eliminar la publicación',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      }
+    });
   }
 
   onSaveEdit(publicacionId: number, data: any): void {
