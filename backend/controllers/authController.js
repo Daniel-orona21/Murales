@@ -239,6 +239,17 @@ const obtenerUsuario = async (req, res) => {
   }
 };
 
+// Obtener solo el ID del usuario actual
+const obtenerUsuarioActual = async (req, res) => {
+  try {
+    console.log('User from request:', req.user);
+    res.json({ id_usuario: req.user.id });
+  } catch (error) {
+    console.error('Error in obtenerUsuarioActual:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
 // Solicitar restablecimiento de contraseña
 const solicitarResetPassword = async (req, res) => {
   const { email } = req.body;
@@ -399,6 +410,7 @@ module.exports = {
   registrar,
   iniciarSesion,
   obtenerUsuario,
+  obtenerUsuarioActual,
   solicitarResetPassword,
   verificarTokenReset,
   restablecerPassword

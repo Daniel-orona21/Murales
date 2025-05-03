@@ -801,4 +801,169 @@
   font-size: 14px;
   margin-top: 8px;
   text-align: center;
+}
+
+.comentarios-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+
+  h3 {
+    margin-bottom: 15px;
+    color: #fff;
+    font-size: 1.2em;
+  }
+
+  .comentarios-lista {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+
+    .no-comentarios {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+
+      .material-symbols-outlined {
+        font-size: 48px;
+        margin-bottom: 10px;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+      }
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+  }
+
+  .comentario-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+
+    .comentario-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .comentario-usuario {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .avatar-comentario {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .nombre-usuario {
+          color: #fff;
+          font-weight: 500;
+        }
+      }
+
+      .comentario-acciones {
+        .delete-comment {
+          background: none;
+          border: none;
+          color: #ff4444;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: background-color 0.2s;
+
+          &:hover {
+            background: rgba(255, 68, 68, 0.1);
+          }
+
+          .material-symbols-outlined {
+            font-size: 18px;
+          }
+        }
+      }
+    }
+
+    .comentario-contenido {
+      color: #fff;
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+
+    .comentario-fecha {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.8em;
+    }
+  }
+
+  .nuevo-comentario {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+
+    .comentario-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 10px;
+      color: #fff;
+      resize: none;
+      min-height: 60px;
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+    }
+
+    .enviar-comentario {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .material-symbols-outlined {
+        font-size: 20px;
+      }
+    }
+  }
 } 

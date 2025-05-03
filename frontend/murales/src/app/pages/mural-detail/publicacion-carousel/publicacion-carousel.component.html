@@ -187,7 +187,7 @@
                     <span>Enlace</span>
                   </button>
                 </div>
-                
+
                 <!-- Sección de Nota -->
                 <div class="note-container" *ngIf="contentType === 'nota'">
                   <div class="form-group">
@@ -260,35 +260,51 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Comments section -->
-        <div class="comments-section" *ngIf="!isEditing">
-          <h3>Comentarios</h3>
-
-          
-          <div class="comments-list">
-            <div class="noComentarios" *ngIf="!currentPublicacion?.comentarios || currentPublicacion.comentarios.length === 0">
-              <span class="material-symbols-outlined">comment</span>
-              <p>No hay comentarios</p>
-            </div>
-            <div *ngFor="let comment of currentPublicacion.comentarios" class="comment-item">
-              <div class="comment-header">
-                <span class="comment-author">{{ comment.nombre_usuario }}</span>
-                <span class="comment-date">{{ comment.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+          <!-- Sección de Comentarios -->
+          <div class="comentarios-section" *ngIf="!isEditing">
+            <h3>Comentarios</h3>
+            
+            <!-- Lista de comentarios -->
+            <div class="comentarios-lista">
+              <div *ngIf="!comentarios[currentPublicacion.id_publicacion]" class="no-comentarios">
+                <span class="material-symbols-outlined">chat</span>
+                <p>No hay comentarios aún</p>
               </div>
-              <p class="comment-text">{{ comment.contenido }}</p>
+              <div *ngFor="let comentario of comentarios[currentPublicacion.id_publicacion]" class="comentario-item">
+                <div class="comentario-header">
+                  <div class="comentario-usuario">
+                    <img [src]="comentario.avatar_url || '/images/default-avatar.png'" 
+                         [alt]="comentario.nombre_usuario"
+                         class="avatar-comentario"
+                         (error)="handleImageError($event)">
+                    <span class="nombre-usuario">{{ comentario.nombre_usuario }}</span>
+                  </div>
+                  <div class="comentario-acciones" *ngIf="canDeleteComment(comentario)">
+                    <button class="delete-comment" (click)="onDeleteComment(comentario.id_comentario)">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+                <p class="comentario-contenido">{{ comentario.contenido }}</p>
+                <span class="comentario-fecha">{{ comentario.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
             </div>
-          </div>
 
-          <div class="add-comment">
-            <input 
-              [(ngModel)]="newComment" 
-              placeholder="Escribe un comentario..."
-              rows="3">
-            <button class="send-comment" (click)="addComment()" [disabled]="!newComment.trim()">
-              <span class="material-symbols-outlined">send</span>
-            </button>
+            <!-- Formulario para nuevo comentario -->
+            <div class="nuevo-comentario">
+              <textarea 
+                [(ngModel)]="newComment"
+                placeholder="Escribe un comentario..."
+                rows="2"
+                class="comentario-input"></textarea>
+              <button 
+                class="enviar-comentario"
+                [disabled]="!newComment.trim()"
+                (click)="addComment()">
+                <span class="material-symbols-outlined">send</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

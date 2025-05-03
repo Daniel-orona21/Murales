@@ -1,8 +1,9 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import Swal from 'sweetalert2';
+import { ComentarioService, Comentario } from '../../../services/comentario.service';
 
 type ContentType = 'archivo' | 'link' | 'nota';
 
@@ -11,24 +12,27 @@ type ContentType = 'archivo' | 'link' | 'nota';
   templateUrl: './publicacion-carousel.component.html',
   styleUrls: ['./publicacion-carousel.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PublicacionCarouselComponent {
+export class PublicacionCarouselComponent implements OnInit, OnChanges {
   @Input() publicaciones: any[] = [];
   @Input() currentIndex: number = 0;
   @Input() userLikes: { [key: number]: boolean } = {};
   @Input() likesCount: { [key: number]: number } = {};
   @Input() likesLoading: { [key: number]: boolean } = {};
   @Input() isAdmin: boolean = false;
+  @Input() currentUserId: number = 0;
   
   @Output() close = new EventEmitter<void>();
   @Output() likeToggled = new EventEmitter<number>();
-  @Output() commentAdded = new EventEmitter<{publicacionId: number, comment: string}>();
   @Output() editPublicacion = new EventEmitter<number>();
   @Output() deletePublicacion = new EventEmitter<number>();
   @Output() saveEdit = new EventEmitter<{publicacionId: number, data: any}>();
   @Output() cancelEdit = new EventEmitter<void>();
+  @Output() commentAdded = new EventEmitter<{publicacionId: number, comment: string}>();
   
+  comentarios: { [key: number]: Comentario[] } = {};
   newComment: string = '';
   private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
   showOptionsMenu: boolean = false;
@@ -52,7 +56,45 @@ export class PublicacionCarouselComponent {
     nota: ''
   };
   
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(
+    private sanitizer: DomSanitizer,
+    private comentarioService: ComentarioService,
+    private cdr: ChangeDetectorRef
+  ) {}
+  
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['currentIndex'] && !changes['currentIndex'].firstChange) {
+      this.cargarComentarios();
+    }
+  }
+
+  ngOnInit() {
+    this.cargarComentarios();
+  }
+
+  cargarComentarios() {
+    if (this.currentPublicacion && this.currentPublicacion.id_publicacion) {
+      console.log('Cargando comentarios para publicación:', this.currentPublicacion.id_publicacion);
+      this.comentarioService.getComentariosPublicacion(this.currentPublicacion.id_publicacion)
+        .subscribe({
+          next: (comentarios) => {
+            console.log('Comentarios cargados:', comentarios);
+            this.comentarios[this.currentPublicacion.id_publicacion] = comentarios;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error al cargar comentarios:', error);
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudieron cargar los comentarios',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar'
+            });
+          }
+        });
+    }
+  }
   
   get currentPublicacion() {
     return this.publicaciones[this.currentIndex];
@@ -61,12 +103,14 @@ export class PublicacionCarouselComponent {
   next() {
     if (this.currentIndex < this.publicaciones.length - 1) {
       this.currentIndex++;
+      this.cargarComentarios();
     }
   }
   
   previous() {
     if (this.currentIndex > 0) {
       this.currentIndex--;
+      this.cargarComentarios();
     }
   }
   
@@ -76,14 +120,80 @@ export class PublicacionCarouselComponent {
   
   addComment() {
     if (this.newComment.trim()) {
-      this.commentAdded.emit({
-        publicacionId: this.currentPublicacion.id_publicacion,
-        comment: this.newComment
+      this.comentarioService.agregarComentario(
+        this.currentPublicacion.id_publicacion,
+        this.newComment.trim()
+      ).subscribe({
+        next: (nuevoComentario) => {
+          if (!this.comentarios[this.currentPublicacion.id_publicacion]) {
+            this.comentarios[this.currentPublicacion.id_publicacion] = [];
+          }
+          this.comentarios[this.currentPublicacion.id_publicacion].unshift(nuevoComentario);
+          this.newComment = '';
+          this.commentAdded.emit({
+            publicacionId: this.currentPublicacion.id_publicacion,
+            comment: nuevoComentario.contenido
+          });
+        },
+        error: (error) => {
+          console.error('Error al agregar comentario:', error);
+          Swal.fire({
+            title: 'Error',
+            text: 'No se pudo agregar el comentario',
+            icon: 'error',
+            confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+            confirmButtonText: 'Aceptar'
+          });
+        }
       });
-      this.newComment = '';
     }
   }
-  
+
+  onDeleteComment(commentId: number) {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción no se puede deshacer',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.comentarioService.eliminarComentario(commentId).subscribe({
+          next: () => {
+            this.comentarios[this.currentPublicacion.id_publicacion] = 
+              this.comentarios[this.currentPublicacion.id_publicacion].filter(
+                c => c.id_comentario !== commentId
+              );
+            Swal.fire({
+              title: '¡Eliminado!',
+              text: 'El comentario ha sido eliminado',
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar'
+            });
+          },
+          error: (error) => {
+            console.error('Error al eliminar comentario:', error);
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo eliminar el comentario',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  canDeleteComment(comment: Comentario): boolean {
+    return this.isAdmin || comment.id_usuario === this.currentUserId;
+  }
+
   closeCarousel() {
     this.close.emit();
   }
@@ -290,5 +400,10 @@ export class PublicacionCarouselComponent {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  handleImageError(event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = '/images/default-avatar.png';
   }
 } 

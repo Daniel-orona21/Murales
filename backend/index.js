@@ -47,6 +47,7 @@ app.use('/api/murales', require('./routes/murales'));
 app.use('/api/likes', require('./routes/likes'));
 app.use('/api/notificaciones', require('./routes/notificaciones'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/comentarios', require('./routes/comentarios'));
 
 // Conectar a la base de datos
 conectarDB();

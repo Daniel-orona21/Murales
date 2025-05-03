@@ -37,6 +37,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   cargando = false;
   error: string | null = null;
   publicaciones: Publicacion[] = [];
+  currentUserId: number = 0;
   
   // Cache for YouTube embed URLs
   private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
@@ -77,6 +78,16 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.muralId) {
       this.loadMural();
       this.cargarPublicaciones();
+      // Obtener el ID del usuario actual del servicio de autenticación
+      this.muralService.getCurrentUserId().subscribe({
+        next: (userId) => {
+          this.currentUserId = userId;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Error al obtener el ID del usuario:', error);
+        }
+      });
     }
   }
 

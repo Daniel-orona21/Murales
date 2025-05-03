@@ -24,6 +24,10 @@ router.post('/login', loginLimiter, [
 // GET /api/auth/usuario
 router.get('/usuario', verificarToken, authController.obtenerUsuario);
 
+// Ruta para obtener el ID del usuario actual
+// GET /api/auth/current-user
+router.get('/current-user', verificarToken, authController.obtenerUsuarioActual);
+
 // Ruta para solicitar restablecimiento de contraseña
 // POST /api/auth/recuperar-password
 router.post('/recuperar-password', recuperarPasswordLimiter, authController.solicitarResetPassword);

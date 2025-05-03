@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
+import { map } from 'rxjs/operators';
 
 export interface Mural {
   id_mural: number;
@@ -211,5 +212,12 @@ export class MuralService {
   deletePublicacion(publicacionId: number): Observable<any> {
     const headers = this.getHeaders();
     return this.http.delete(`${this.apiUrl}/publicaciones/${publicacionId}`, { headers });
+  }
+
+  getCurrentUserId(): Observable<number> {
+    const headers = this.getHeaders();
+    return this.http.get<{id_usuario: number}>(`${environment.apiUrl}/auth/current-user`, { headers }).pipe(
+      map(response => response.id_usuario)
+    );
   }
 } 
