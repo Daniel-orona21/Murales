@@ -108,12 +108,20 @@
                 <ng-container *ngIf="isPDF(contenido.url_contenido ?? ''); else normalFile">
                   <div class="pdf-preview-container">
                     <ng-container *ngIf="!cargando && !isLoadingImages; else pdfPlaceholder">
-                      <iframe
-                        [src]="getSafeUrl(contenido.url_contenido ?? '')"
-                        class="pdf-preview"
-                        type="application/pdf"
-                        loading="lazy">
-                      </iframe>
+                      <pdf-viewer
+                        [src]="contenido.url_contenido"
+                        [render-text]="true"
+                        [original-size]="false"
+                        [show-all]="true"
+                        [fit-to-page]="true"
+                        [zoom]="1"
+                        [rotation]="0"
+                        [page]="1"
+                        [external-link-target]="'blank'"
+                        [autoresize]="true"
+                        [show-borders]="false"
+                        class="pdf-preview">
+                      </pdf-viewer>
                     </ng-container>
                     <ng-template #pdfPlaceholder>
                       <div class="pdf-placeholder"></div>

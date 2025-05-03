@@ -5,6 +5,7 @@ import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, 
 import Masonry from 'masonry-layout';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
+import { PdfViewerModule } from 'ng2-pdf-viewer';
 
 interface NuevoElemento {
   titulo: string;
@@ -21,7 +22,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
   templateUrl: './mural-detail.component.html',
   styleUrls: ['./mural-detail.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, PublicacionCarouselComponent],
+  imports: [CommonModule, FormsModule, PublicacionCarouselComponent, PdfViewerModule],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {

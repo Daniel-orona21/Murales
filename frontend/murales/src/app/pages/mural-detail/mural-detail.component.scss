@@ -274,16 +274,36 @@
   max-height: 650px; // Ajusta según tu preferencia
   background: #1a1a1a;
   border-radius: 8px;
-  overflow: auto;
+  overflow: hidden;
   margin: 0px;
   position: relative;
 
   .pdf-preview {
     width: 100%;
     height: 100%;
-    border: none;
-    background: #222;
     display: block;
+    background: #222;
+    
+    ::ng-deep {
+      .ng2-pdf-viewer-container {
+        background: #222;
+        overflow: hidden;
+      }
+      
+      .pdf-page {
+        margin: 0 auto;
+        box-shadow: none;
+        background: #222;
+      }
+      
+      .textLayer {
+        background: transparent;
+      }
+      
+      .annotationLayer {
+        background: transparent;
+      }
+    }
   }
 
   // Loader overlay
