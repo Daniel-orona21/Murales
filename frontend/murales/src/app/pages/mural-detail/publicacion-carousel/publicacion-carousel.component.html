@@ -1,9 +1,13 @@
 <div class="carousel-modal" *ngIf="currentPublicacion">
+  <button class="close-button" (click)="closeCarousel()">
+    <span class="material-symbols-outlined">close</span>
+  </button>
   <div class="carousel-container">
-    <!-- Close button -->
-    <button class="close-button" (click)="closeCarousel()">
-      <span class="material-symbols-outlined">close</span>
+    <div class="botonera">
+       <button class="options-button">
+      <span class="material-symbols-outlined">more_vert</span>
     </button>
+    </div>
 
     <!-- Navigation arrows -->
     <button class="nav-arrow prev" (click)="previous()" [class.disabled]="currentIndex === 0">
@@ -48,7 +52,7 @@
                     frameborder="0"
                     allowfullscreen
                     loading="lazy"
-                    style="width: 100%; aspect-ratio: 16/9; min-height: none; border-radius: 8px; background: #000;">
+                    style="width: 600px; aspect-ratio: 16/9; min-height: none; border-radius: 8px; background: #000;">
                   </iframe>
                 </div>
               </ng-container>
@@ -96,32 +100,33 @@
       <!-- Right side - Info and comments -->
       <div class="info-section">
         <div class="publicacion-info">
-          <h2 class="publicacion-titulo">{{ currentPublicacion.titulo }}</h2>
-          
-          <div class="publicacion-meta">
-            <div class="author-info">
-              <span class="author-avatar" *ngIf="currentPublicacion.avatar_url">
-                <img [src]="currentPublicacion.avatar_url" alt="Avatar">
-              </span>
-              <span class="author-name">{{ currentPublicacion.nombre_usuario || 'Usuario' }}</span>
+          <div class="autorYlikes">
+            <div class="contenedor">
+                  <div class="author-info">
+                <span class="author-name">{{ currentPublicacion.nombre_usuario || 'Usuario' }}</span>
+                </div>
+              
+              <div class="publicacion-meta">
+                <span class="publicacion-fecha">{{ currentPublicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
             </div>
-            <span class="publicacion-fecha">{{ currentPublicacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+            <div class="like-container">
+              <label class="container">
+                <input type="checkbox" 
+                [checked]="userLikes[currentPublicacion.id_publicacion]"
+                [disabled]="likesLoading[currentPublicacion.id_publicacion]"
+                (change)="onLikeToggle(currentPublicacion.id_publicacion)">
+                <svg id="Layer_1" version="1.0" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M16.4,4C14.6,4,13,4.9,12,6.3C11,4.9,9.4,4,7.6,4C4.5,4,2,6.5,2,9.6C2,14,12,22,12,22s10-8,10-12.4C22,6.5,19.5,4,16.4,4z"></path></svg>
+              </label>
+              <span class="likes-count" *ngIf="likesCount[currentPublicacion.id_publicacion] > 0">
+                {{ likesCount[currentPublicacion.id_publicacion] }}
+              </span>
+            </div>
           </div>
-
-          <div class="like-container">
-            <label class="container">
-              <input type="checkbox" 
-                     [checked]="userLikes[currentPublicacion.id_publicacion]"
-                     [disabled]="likesLoading[currentPublicacion.id_publicacion]"
-                     (change)="onLikeToggle(currentPublicacion.id_publicacion)">
-              <svg id="Layer_1" version="1.0" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M16.4,4C14.6,4,13,4.9,12,6.3C11,4.9,9.4,4,7.6,4C4.5,4,2,6.5,2,9.6C2,14,12,22,12,22s10-8,10-12.4C22,6.5,19.5,4,16.4,4z"></path></svg>
-            </label>
-            <span class="likes-count" *ngIf="likesCount[currentPublicacion.id_publicacion] > 0">
-              {{ likesCount[currentPublicacion.id_publicacion] }}
-            </span>
-          </div>
-
+          
+          
           <div class="publicacion-descripcion" *ngIf="currentPublicacion.descripcion">
+            <h2 class="publicacion-titulo">{{ currentPublicacion.titulo }}</h2>
             <p>{{ currentPublicacion.descripcion }}</p>
           </div>
         </div>
@@ -129,8 +134,13 @@
         <!-- Comments section -->
         <div class="comments-section">
           <h3>Comentarios</h3>
+
           
           <div class="comments-list">
+            <div class="noComentarios" *ngIf="!currentPublicacion?.comentarios || currentPublicacion.comentarios.length === 0">
+              <span class="material-symbols-outlined">comment</span>
+              <p>No hay comentarios</p>
+            </div>
             <div *ngFor="let comment of currentPublicacion.comentarios" class="comment-item">
               <div class="comment-header">
                 <span class="comment-author">{{ comment.nombre_usuario }}</span>
@@ -141,11 +151,10 @@
           </div>
 
           <div class="add-comment">
-            <textarea 
+            <input 
               [(ngModel)]="newComment" 
               placeholder="Escribe un comentario..."
               rows="3">
-            </textarea>
             <button class="send-comment" (click)="addComment()" [disabled]="!newComment.trim()">
               <span class="material-symbols-outlined">send</span>
             </button>
