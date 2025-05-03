@@ -300,6 +300,9 @@
   box-sizing: border-box;
   .publicacion-info {
     margin-bottom: 18px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     .publicacion-titulo {
       font-size: 1.5rem;
       margin-bottom: 10px;
@@ -804,10 +807,17 @@
 }
 
 .comentarios-section {
+  display: flex;
+  flex-direction: column;
   margin-top: 20px;
   padding: 15px;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #232323;
+  background: transparent;
   border-radius: 8px;
+  flex: 1;
+  
+  justify-content: center;
+
 
   h3 {
     margin-bottom: 15px;
@@ -816,12 +826,14 @@
   }
 
   .comentarios-lista {
-    max-height: 300px;
+    max-height: 340px;
     overflow-y: auto;
     margin-bottom: 15px;
+    flex: 1;
 
     .no-comentarios {
       display: flex;
+      height: 100%;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -858,13 +870,25 @@
   .comentario-item {
     padding: 10px;
     margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0);
     border-radius: 6px;
+
+    .contenedorComentario {
+      padding: 0 5px;
+      flex: 1;
+    }
+
+    .nombreYfecha {
+      display: flex;
+      gap: 5px;
+      width: 100%;
+      align-items: center;
+    }
 
     .comentario-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: start;
       margin-bottom: 8px;
 
       .comentario-usuario {
@@ -877,6 +901,8 @@
           height: 32px;
           border-radius: 50%;
           object-fit: cover;
+          margin-top: 10px;
+          margin-right: 5px;
         }
 
         .nombre-usuario {
@@ -908,7 +934,7 @@
 
     .comentario-contenido {
       color: #fff;
-      margin: 8px 0;
+      margin: 0;
       line-height: 1.4;
     }
 
@@ -926,12 +952,14 @@
     .comentario-input {
       flex: 1;
       background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      height: 100%;
       padding: 10px;
       color: #fff;
       resize: none;
-      min-height: 60px;
+      font-size: 14px;
+      transition: all 0.3s ease;
 
       &::placeholder {
         color: rgba(255, 255, 255, 0.5);
@@ -939,7 +967,7 @@
 
       &:focus {
         outline: none;
-        border-color: rgba(255, 255, 255, 0.3);
+        border-color: rgba(214, 214, 214, 0.619);
       }
     }
 

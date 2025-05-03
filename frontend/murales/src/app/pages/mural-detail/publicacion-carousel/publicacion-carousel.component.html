@@ -267,7 +267,7 @@
             
             <!-- Lista de comentarios -->
             <div class="comentarios-lista">
-              <div *ngIf="!comentarios[currentPublicacion.id_publicacion]" class="no-comentarios">
+              <div *ngIf="!comentarios[currentPublicacion.id_publicacion] || comentarios[currentPublicacion.id_publicacion].length === 0" class="no-comentarios">
                 <span class="material-symbols-outlined">chat</span>
                 <p>No hay comentarios aún</p>
               </div>
@@ -278,26 +278,30 @@
                          [alt]="comentario.nombre_usuario"
                          class="avatar-comentario"
                          (error)="handleImageError($event)">
-                    <span class="nombre-usuario">{{ comentario.nombre_usuario }}</span>
+                        </div>
+                        <div class="contenedorComentario">
+                          <div class="nombreYfecha">
+                            <span class="nombre-usuario">{{ comentario.nombre_usuario }}</span>
+                            <span class="comentario-fecha">{{ comentario.fecha_creacion | timeAgo }}</span>
+                          </div>
+                          <p class="comentario-contenido">{{ comentario.contenido }}</p>
+                        </div>
+                    <div class="comentario-acciones" *ngIf="canDeleteComment(comentario)">
+                      <button class="delete-comment" (click)="onDeleteComment(comentario.id_comentario)">
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
                   </div>
-                  <div class="comentario-acciones" *ngIf="canDeleteComment(comentario)">
-                    <button class="delete-comment" (click)="onDeleteComment(comentario.id_comentario)">
-                      <span class="material-symbols-outlined">delete</span>
-                    </button>
-                  </div>
-                </div>
-                <p class="comentario-contenido">{{ comentario.contenido }}</p>
-                <span class="comentario-fecha">{{ comentario.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
             </div>
 
             <!-- Formulario para nuevo comentario -->
             <div class="nuevo-comentario">
-              <textarea 
+              <input 
                 [(ngModel)]="newComment"
                 placeholder="Escribe un comentario..."
                 rows="2"
-                class="comentario-input"></textarea>
+                class="comentario-input">
               <button 
                 class="enviar-comentario"
                 [disabled]="!newComment.trim()"

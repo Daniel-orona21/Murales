@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import Swal from 'sweetalert2';
 import { ComentarioService, Comentario } from '../../../services/comentario.service';
+import { TimeAgoPipe } from '../../../pipes/time-ago.pipe';
 
 type ContentType = 'archivo' | 'link' | 'nota';
 
@@ -12,7 +13,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
   templateUrl: './publicacion-carousel.component.html',
   styleUrls: ['./publicacion-carousel.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TimeAgoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PublicacionCarouselComponent implements OnInit, OnChanges {
