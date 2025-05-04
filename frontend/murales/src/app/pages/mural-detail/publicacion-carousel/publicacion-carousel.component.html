@@ -13,8 +13,8 @@
         </button>
       </div>
       <button class="options-button" *ngIf="isAdmin && !isEditing" (click)="toggleOptionsMenu($event)">
-      <span class="material-symbols-outlined">more_vert</span>
-    </button>
+        <span class="material-symbols-outlined">more_vert</span>
+      </button>
       <div class="options-menu" *ngIf="showOptionsMenu" (click)="$event.stopPropagation()">
         <button class="menu-item" (click)="onEdit()">
           <span class="material-symbols-outlined">edit</span>
@@ -26,14 +26,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Navigation arrows -->
-    <button class="nav-arrow prev" (click)="previous()" [class.disabled]="currentIndex === 0">
-      <span class="material-symbols-outlined">chevron_left</span>
-    </button>
-    <button class="nav-arrow next" (click)="next()" [class.disabled]="currentIndex === publicaciones.length - 1">
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
 
     <div class="carousel-content">
       <!-- Left side - Content -->
@@ -314,4 +306,12 @@
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<!-- Navigation arrows outside the modal -->
+<button class="nav-arrow prev" (click)="previous()" [class.disabled]="currentIndex === 0">
+  <span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="nav-arrow next" (click)="next()" [class.disabled]="currentIndex === publicaciones.length - 1">
+  <span class="material-symbols-outlined">chevron_right</span>
+</button> 
