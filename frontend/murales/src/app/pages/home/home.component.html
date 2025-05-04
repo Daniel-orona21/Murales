@@ -5,7 +5,9 @@
         <!-- Contenedor para los títulos con transición -->
         <div class="title-container" [style.width]="getTitleWidth()">
           <!-- Mis murales -->
-          <h1 class="title primary-title" (click)="backToMuralesList()" [class.clickable]="selectedMuralId">
+          <h1 class="title primary-title" 
+              (click)="backToMuralesList()" 
+              [class.clickable]="selectedMuralId">
             Mis murales
           </h1>
           <!-- Separador mural -->
@@ -17,6 +19,7 @@
               [class.slide-up]="selectedMuralId"
               (click)="backToMural()"
               [class.clickable]="selectedPost"
+              [class.active]="selectedMuralId && !selectedPost"
               [title]="isTitleTruncated() ? getMuralTitle() : ''">
             {{ getMuralTitle() }}
           </h1>
@@ -27,6 +30,7 @@
           <!-- Título de la publicación -->
           <h1 class="title post-title" 
               [class.slide-up]="selectedPost"
+              [class.active]="selectedPost"
               [title]="selectedPost?.titulo || ''">
             {{ selectedPost?.titulo }}
           </h1>
