@@ -7,6 +7,7 @@ interface RegisterData {
   nombre: string;
   email: string;
   contrasena: string;
+  recaptchaToken: string;
 }
 
 @Injectable({
@@ -65,7 +66,8 @@ export class AuthService {
     const registerData = {
       nombre: userData.nombre,
       email: userData.email,
-      contrasena: userData.contrasena
+      contrasena: userData.contrasena,
+      recaptchaToken: userData.recaptchaToken
     };
     
     return this.http.post(`${this.apiUrl}/auth/registro`, registerData)

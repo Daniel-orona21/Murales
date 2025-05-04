@@ -1,17 +1,18 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors, FormControl } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 import { HttpClientModule } from '@angular/common/http';
+import { RecaptchaModule } from 'ng-recaptcha';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HttpClientModule]
+  imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RecaptchaModule]
 })
 export class LoginComponent {
   loginForm: FormGroup;
@@ -20,6 +21,8 @@ export class LoginComponent {
   showRegister: boolean = false;
   showRegisterPassword: boolean = false;
   showRegisterConfirmPassword: boolean = false;
+  readonly recaptchaKey = '6LeLYy0rAAAAADP0r56l-mUKKfHewF4n_tt3yQuL'; // Reemplaza con tu clave de sitio real
+  recaptchaToken: string | null = null;
 
   constructor(
     private router: Router,
@@ -44,7 +47,8 @@ export class LoginComponent {
         Validators.minLength(8),
         this.passwordStrengthValidator()
       ]],
-      confirmPassword: ['', [Validators.required]]
+      confirmPassword: ['', [Validators.required]],
+      recaptcha: new FormControl('', [Validators.required])
     }, {
       validators: this.passwordMatchValidator
     });
@@ -192,11 +196,27 @@ export class LoginComponent {
       return;
     }
 
+    if (!this.recaptchaToken) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Por favor, completa el CAPTCHA',
+        icon: 'error',
+        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+        confirmButtonText: 'Entendido',
+        customClass: {
+          popup: 'custom-swal-popup',
+          confirmButton: 'custom-confirm-button'
+        }
+      });
+      return;
+    }
+
     const { name, email, password } = this.registerForm.value;
     const userData = {
       nombre: name,
       email: email,
-      contrasena: password
+      contrasena: password,
+      recaptchaToken: this.recaptchaToken
     };
 
     this.authService.register(userData).subscribe({
@@ -224,6 +244,37 @@ export class LoginComponent {
       error: (error) => {
         console.error('Error en registro:', error);
         this.showError(typeof error === 'string' ? error : 'Error al registrar usuario');
+        this.recaptchaToken = null;
+      }
+    });
+  }
+
+  onRecaptchaResolved(token: string | null) {
+    if (!token) return;
+    this.recaptchaToken = token;
+    const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
+    recaptchaControl.setValue(token);
+  }
+
+  onRecaptchaExpired() {
+    this.recaptchaToken = null;
+    const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
+    recaptchaControl.setValue('');
+  }
+
+  onRecaptchaError() {
+    this.recaptchaToken = null;
+    const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
+    recaptchaControl.setValue('');
+    Swal.fire({
+      title: 'Error',
+      text: 'Error al cargar el CAPTCHA. Por favor, recarga la página.',
+      icon: 'error',
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      confirmButtonText: 'Entendido',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button'
       }
     });
   }
@@ -235,6 +286,7 @@ export class LoginComponent {
   get registerEmail() { return this.registerForm.get('email'); }
   get registerPassword() { return this.registerForm.get('password'); }
   get registerConfirmPassword() { return this.registerForm.get('confirmPassword'); }
+  get recaptchaControl() { return this.registerForm.get('recaptcha') as FormControl; }
 
   // Métodos para manejar la prioridad de errores
   getPasswordError() {

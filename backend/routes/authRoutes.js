@@ -4,10 +4,11 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { verificarToken } = require('../middleware/auth');
 const { loginLimiter, recuperarPasswordLimiter, registroLimiter } = require('../middleware/rateLimit');
+const verifyRecaptcha = require('../middleware/recaptcha');
 
 // Ruta para registro de usuarios
 // POST /api/auth/registro
-router.post('/registro', registroLimiter, [
+router.post('/registro', registroLimiter, verifyRecaptcha, [
   check('nombre', 'El nombre es obligatorio').not().isEmpty(),
   check('email', 'Incluye un email válido').isEmail(),
   check('contrasena', 'La contraseña debe tener al menos 6 caracteres').isLength({ min: 6 })

@@ -72,7 +72,7 @@
       </div>
 
       <!-- Register Card -->
-      <div class="card" [class.hidden]="!showRegister">
+      <div class="card cartaRegistro" [class.hidden]="!showRegister">
         <div class="form-header">
           <h2>Crear cuenta</h2>
           <p>Únete a nuestra comunidad!</p>
@@ -134,6 +134,21 @@
             </div>
             <div class="error-message" *ngIf="registerConfirmPassword?.invalid && (registerConfirmPassword?.touched || registerConfirmPassword?.dirty)">
               <small>{{ getConfirmPasswordError() }}</small>
+            </div>
+          </div>
+
+          <div class="form-group recaptcha-container">
+            <re-captcha
+              [siteKey]="recaptchaKey"
+              (resolved)="onRecaptchaResolved($event)"
+              (expired)="onRecaptchaExpired()"
+              (error)="onRecaptchaError()"
+              [formControl]="recaptchaControl"
+              size="normal"
+              theme="dark"
+            ></re-captcha>
+            <div class="error-message" *ngIf="recaptchaControl.invalid && recaptchaControl.touched">
+              <small>Por favor, completa el CAPTCHA</small>
             </div>
           </div>
 
