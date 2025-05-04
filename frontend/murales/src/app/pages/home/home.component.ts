@@ -65,6 +65,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   closeMenusAndNotifications(event: MouseEvent) {
+    // No cerrar si el clic es en el modal de SweetAlert2
+    if ((event.target as HTMLElement).closest('.swal2-container')) {
+      return;
+    }
+
     // Close menus
     if (!(event.target as HTMLElement).closest('.mural-menu')) {
       this.murals.forEach(mural => mural.showMenu = false);
@@ -677,6 +682,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   closeSession(sessionId: string, event: Event) {
     event.stopPropagation();
+    event.preventDefault(); // Prevenir el comportamiento por defecto
+    
     Swal.fire({
       title: '¿Cerrar sesión?',
       text: sessionId === this.currentSessionId 
@@ -706,21 +713,6 @@ export class HomeComponent implements OnInit, OnDestroy {
             } else {
               // Recargar la lista de sesiones
               this.loadSessions();
-              // Mostrar mensaje de éxito
-              Swal.fire({
-                title: '¡Sesión cerrada!',
-                text: 'La sesión ha sido cerrada exitosamente.',
-                icon: 'success',
-                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-                confirmButtonText: 'Entendido',
-                customClass: {
-                  popup: 'custom-swal-popup',
-                  confirmButton: 'custom-confirm-button'
-                },
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                stopKeydownPropagation: true
-              });
             }
           },
           error: (error) => {
@@ -746,8 +738,29 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: '¿Estás seguro de que deseas cerrar tu sesión actual?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      },
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      stopKeydownPropagation: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.authService.logout();
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   toggleSessionsList() {

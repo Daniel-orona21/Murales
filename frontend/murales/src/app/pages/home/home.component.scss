@@ -1579,8 +1579,21 @@
 
     .sessions-list {
       max-height: 0;
-      overflow: hidden;
+      overflow: auto;
       transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+  
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+  
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
 
       &.expanded {
         max-height: 300px;
