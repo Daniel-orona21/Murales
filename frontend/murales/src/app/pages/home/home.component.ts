@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -50,6 +50,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   sessions: any[] = [];
   currentSessionId: string | null = null;
   showSessionsList = false;
+
+  selectedPost: any = null;
+  forceClosePost = false;
+
+  @ViewChild('muralDetail') muralDetailComponent: any;
 
   constructor(
     public router: Router,
@@ -594,8 +599,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.selectedMuralId) return false;
     
     const title = this.getMuralTitle();
-    // Si el título es más largo que 18 caracteres, consideramos que necesitará truncado
-    return title.length > 18;
+    // Si el título es más largo que 25 caracteres, consideramos que necesitará truncado
+    return title.length > 25;
   }
 
   // Método para calcular el ancho del contenedor del título
@@ -604,8 +609,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.selectedMuralId) {
       const title = this.getMuralTitle();
       // Calculamos un ancho responsivo basado en la longitud del título
-      // y lo limitamos entre un mínimo de 8vw y un máximo de 30vw
-      const baseWidth = Math.min(Math.max(title.length * 1.4, 8), 30);
+      // y lo limitamos entre un mínimo de 20vw y un máximo de 40vw
+      const baseWidth = Math.min(Math.max(title.length * 1.4 + 12, 50), 50);
       return `${baseWidth}vw`;
     }
     
@@ -629,8 +634,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
-    // Volver a la lista directamente
     this.selectedMuralId = null;
+    this.selectedPost = null;
   }
 
   toggleProfileMenu(event: Event) {
@@ -787,5 +792,29 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return `${os} - ${browser}`;
+  }
+
+  // Método para manejar la selección de una publicación
+  onPostSelect(post: any) {
+    this.selectedPost = post;
+    this.forceClosePost = false;
+  }
+
+  // Método para volver al mural (deseleccionar publicación)
+  backToMural() {
+    this.selectedPost = null;
+    this.forceClosePost = true;
+    if (this.muralDetailComponent && this.muralDetailComponent.forceCloseCarousel) {
+      this.muralDetailComponent.forceCloseCarousel();
+    }
+  }
+
+  onPostClosed() {
+    this.selectedPost = null;
+    this.forceClosePost = false;
+  }
+
+  clearSelectedPost() {
+    this.selectedPost = null;
   }
 } 

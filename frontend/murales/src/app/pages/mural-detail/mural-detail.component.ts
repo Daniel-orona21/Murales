@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
@@ -28,6 +28,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
+  @Input() forceClosePost: boolean = false;
   isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
@@ -69,6 +70,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   selectedPublicacionIndex = 0;
   
   videoThumbnails: { [key: string]: string } = {};
+  
+  @Output() postSelected = new EventEmitter<any>();
+  @Output() postClosed = new EventEmitter<void>();
+  
+  @ViewChild('carousel') carouselComponent: any;
   
   constructor(
     private muralService: MuralService, 
@@ -113,6 +119,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       this.resetImageLoading();
       this.loadMural();
       this.cargarPublicaciones();
+    }
+    if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
+      this.closeCarousel();
     }
   }
 
@@ -711,11 +720,16 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.selectedPublicacionIndex = index;
     this.showCarousel = true;
     document.body.classList.add('carousel-open');
+    // Emitir el evento con la publicación seleccionada
+    if (this.publicaciones && this.publicaciones[index]) {
+      this.postSelected.emit(this.publicaciones[index]);
+    }
   }
 
   closeCarousel() {
     this.showCarousel = false;
     document.body.classList.remove('carousel-open');
+    this.postClosed.emit();
   }
 
   onLikeToggled(publicacionId: number) {
@@ -882,5 +896,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     // Implement cancel edit logic here
     console.log('Cancel edit');
     // TODO: Implement cancel functionality
+  }
+
+  public forceCloseCarousel() {
+    this.closeCarousel();
   }
 }

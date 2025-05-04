@@ -11,6 +11,8 @@
 body {
   font-family: 'Inter', sans-serif;
   background-color: #1a1a1a;
+  max-height: 100vh !important;
+  overflow: hidden;
   color: #ffffff;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -183,5 +185,5 @@ button {
 }
 
 body.carousel-open .navbar {
-  display: none !important;
+  /* display: none !important; */
 } 

@@ -35,6 +35,7 @@
       max-width: 70vi;
       display: flex;
       align-items: center;
+      gap: 0.5rem;
       
       .title {
         font-size: 1.5rem;
@@ -46,104 +47,66 @@
         margin: 0;
         text-transform: capitalize;
         white-space: nowrap;
-        position: absolute;
-        top: 0;
-        left: 0;
         transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.4s ease-out;
         max-width: 100%;
+
+        &.clickable {
+          cursor: pointer;
+          position: relative;
+          
+          &:hover {
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              width: 100%;
+              height: 1px;
+              background: rgba(255, 255, 255, 0.5);
+              animation: fadeIn 0.3s ease;
+            }
+          }
+        }
       }
       
-      .back-arrow-btn {
-        position: absolute;
-        top: 5px;
-        left: 0px;
-        background: transparent;
-        border-radius: 8px;
-        border: none;
-        color: white;
-        cursor: pointer;
-        padding: 0;
-        height: 27px;
-        width: 27px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .breadcrumb-separator {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1rem;
         opacity: 0;
         transform: translateY(-35px);
-        transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.4s ease-out, background 0.3s ease-out;
-        z-index: 2;
+        transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.4s ease-out;
         
         &.slide-up {
           transform: translateY(0);
           opacity: 1;
-        }
-        
-        .material-symbols-outlined {
-          font-size: 25px;
-          font-weight: 500;
-        }
-        
-        &:hover {
-          color: rgba(255, 255, 255, 1);
-          background: rgba(255, 255, 255, 0.179);
         }
       }
       
       .primary-title {
         transform: translateY(0);
         opacity: 1;
-        
-        &.slide-down {
-          transform: translateY(35px);
-          opacity: 0;
-        }
       }
       
       .mural-title {
         transform: translateY(-35px);
         opacity: 0;
-        margin-left: 10px;
-        padding-left: 28px;
+        overflow: hidden;
+        text-overflow: ellipsis;
         
         &.slide-up {
           transform: translateY(0);
           opacity: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
       }
-    }
-  }
 
-  .nav-links {
-    display: flex;
-    gap: 2rem;
-    margin-left: 0rem;
-
-    a {
-      color: rgba(255, 255, 255, 0.7);
-      text-decoration: none;
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      padding: 0.5rem 0;
-      position: relative;
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: white;
-        transition: width 0.3s ease;
-      }
-
-      &:hover, &.active {
-        color: #ffffff;
-
-        &::after {
-          width: 100%;
+      .post-title {
+        transform: translateY(-35px);
+        opacity: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        &.slide-up {
+          transform: translateY(0);
+          opacity: 1;
         }
       }
     }

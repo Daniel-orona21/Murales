@@ -4,32 +4,40 @@
       <div class="logo">
         <!-- Contenedor para los títulos con transición -->
         <div class="title-container" [style.width]="getTitleWidth()">
-          <!-- Título "Mis murales" -->
-          <h1 class="title primary-title" [class.slide-down]="selectedMuralId">
+          <!-- Mis murales -->
+          <h1 class="title primary-title" (click)="backToMuralesList()" [class.clickable]="selectedMuralId">
             Mis murales
           </h1>
-          
-          <!-- Botón de flecha para volver -->
-          <button class="back-arrow-btn" 
-                  [class.slide-up]="selectedMuralId"
-                  (click)="backToMuralesList()">
-            <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-          
-          <!-- Título del mural seleccionado con tooltip -->
+          <!-- Separador mural -->
+          <span class="breadcrumb-separator" [class.slide-up]="selectedMuralId">
+            <i class="fas fa-chevron-right"></i>
+          </span>
+          <!-- Título del mural -->
           <h1 class="title mural-title" 
               [class.slide-up]="selectedMuralId"
+              (click)="backToMural()"
+              [class.clickable]="selectedPost"
               [title]="isTitleTruncated() ? getMuralTitle() : ''">
             {{ getMuralTitle() }}
           </h1>
+          <!-- Separador publicación -->
+          <span class="breadcrumb-separator" [class.slide-up]="selectedPost">
+            <i class="fas fa-chevron-right"></i>
+          </span>
+          <!-- Título de la publicación -->
+          <h1 class="title post-title" 
+              [class.slide-up]="selectedPost"
+              [title]="selectedPost?.titulo || ''">
+            {{ selectedPost?.titulo }}
+          </h1>
         </div>
       </div>
-      <div class="nav-links">
+      <!-- <div class="nav-links">
         <a href="#" class="active">Dashboard</a>
         <a href="#">Projects</a>
         <a href="#">Resources</a>
         <a href="#">Community</a>
-      </div>
+      </div> -->
     </div>
     <div class="nav-right">
       <div class="search-bar">
@@ -58,7 +66,12 @@
         <!-- Vista de detalle de mural -->
         <div class="view-container detail-view" [class.active]="selectedMuralId" [class.inactive]="!selectedMuralId">
           <div class="mural-detail-view" *ngIf="selectedMuralId">
-            <app-mural-detail [muralId]="selectedMuralId"></app-mural-detail>
+            <app-mural-detail
+              #muralDetail
+              [muralId]="selectedMuralId"
+              (postSelected)="onPostSelect($event)"
+              (postClosed)="onPostClosed()">
+            </app-mural-detail>
           </div>
         </div>
         
