@@ -89,9 +89,13 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
             Swal.fire({
               title: 'Error',
               text: 'No se pudieron cargar los comentarios',
-              icon: 'error',
+              icon: 'warning',
               confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar'
+              confirmButtonText: 'Cerrar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
             });
           }
         });
