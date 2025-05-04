@@ -1407,6 +1407,13 @@
             }
           }
 
+          .current-session {
+            color: #6366f1;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: auto;
+          }
+
           .close-session {
             background: none;
             border: none;
@@ -1598,23 +1605,25 @@
             gap: 0.75rem;
 
             i {
-              font-size: 1.2rem;
-              color: rgba(255, 255, 255, 0.7);
+              color: rgba(255, 255, 255, 0.6);
             }
 
-            .session-details {
-              .device {
-                font-size: 0.9rem;
-                color: #fff;
-                margin: 0;
-              }
-
-              .date {
-                font-size: 0.8rem;
-                color: rgba(255, 255, 255, 0.5);
-                margin: 0.25rem 0 0;
-              }
+            span {
+              color: #fff;
+              font-size: 0.9rem;
             }
+
+            small {
+              color: rgba(255, 255, 255, 0.4);
+              font-size: 0.8rem;
+            }
+          }
+
+          .current-session {
+            color: #6366f1;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: auto;
           }
 
           .close-session {

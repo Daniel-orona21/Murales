@@ -55,7 +55,7 @@ export class AuthService {
           
           if (expirationDate > new Date()) {
             console.log('Token válido y no expirado');
-            this.authSubject.next(true);
+          this.authSubject.next(true);
             // No cargar sesiones aquí para evitar la dependencia circular
           } else {
             console.log('Token expirado');

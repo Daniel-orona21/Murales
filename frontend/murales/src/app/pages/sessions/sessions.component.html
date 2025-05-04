@@ -19,8 +19,8 @@
           Sesión actual
         </span>
         <button class="close-session" 
-                (click)="closeSession(session.id_sesion)"
-                [disabled]="isCurrentSession(session.id_sesion)">
+                *ngIf="!isCurrentSession(session.id_sesion)"
+                (click)="closeSession(session.id_sesion)">
           Cerrar sesión
         </button>
       </div>
