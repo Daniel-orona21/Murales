@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { SessionsComponent } from './pages/sessions/sessions.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -11,6 +12,11 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'sessions',
+    component: SessionsComponent,
     canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: '/login' }

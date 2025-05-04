@@ -41,7 +41,7 @@
           <i class="fas fa-bell"></i>
           <span class="notification-badge" *ngIf="unreadNotifications > 0">{{unreadNotifications}}</span>
         </button>
-        <button class="icon-button">
+        <button class="icon-button" (click)="toggleProfileMenu($event)">
           <i class="fas fa-user"></i>
         </button>
       </div>
@@ -263,6 +263,54 @@
           <p>No tienes notificaciones nuevas</p>
         </div>
       </ng-template>
+    </div>
+  </div>
+
+  <!-- Profile Side Panel -->
+  <div class="profile-overlay" [class.active]="showProfileMenu" (click)="closeProfileMenu()"></div>
+  <div class="profile-panel" [class.active]="showProfileMenu">
+    <div class="profile-header">
+      <h2>Perfil</h2>
+      <button class="close-button" (click)="closeProfileMenu()">&times;</button>
+    </div>
+    
+    <div class="profile-content">
+      <div class="user-info">
+        <div class="avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="user-details">
+          <h3>{{ user?.nombre }}</h3>
+          <p>{{ user?.email }}</p>
+        </div>
+      </div>
+
+      <div class="sessions-section">
+        <h3>Sesiones activas</h3>
+        <div class="sessions-list">
+          <div class="session-item" *ngFor="let session of sessions">
+            <div class="session-info">
+              <i class="fas fa-desktop"></i>
+              <div class="session-details">
+                <p class="device">{{ session.dispositivo }}</p>
+                <p class="date">{{ session.fecha_creacion | date:'dd MMM, HH:mm' }}</p>
+              </div>
+            </div>
+            <button class="close-session" 
+                    [disabled]="session.id_sesion === currentSessionId"
+                    (click)="closeSession(session.id_sesion)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button class="logout-button" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Cerrar sesión
+        </button>
+      </div>
     </div>
   </div>
 </div> 

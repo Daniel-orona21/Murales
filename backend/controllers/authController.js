@@ -94,14 +94,13 @@ const registrar = async (req, res) => {
 const iniciarSesion = async (req, res) => {
   console.log('Intento de inicio de sesión:', req.body);
   
-  // Verificar errores de validación
   const errores = validationResult(req);
   if (!errores.isEmpty()) {
     console.log('Errores de validación:', errores.array());
     return res.status(400).json({ errores: errores.array() });
   }
 
-  const { email, contrasena } = req.body;
+  const { email, contrasena, dispositivo } = req.body;
   
   if (!email || !contrasena) {
     console.log('Faltan campos requeridos:', { email: !!email, contrasena: !!contrasena });
@@ -109,29 +108,23 @@ const iniciarSesion = async (req, res) => {
   }
 
   try {
-    console.log('Conectando a la base de datos...');
     const connection = await mysql.createConnection(dbConfig);
-    console.log('Conexión establecida');
     
     // Buscar usuario por email
-    console.log('Buscando usuario con email:', email);
     const [usuarios] = await connection.execute(
       'SELECT * FROM usuarios WHERE email = ?', 
       [email]
     );
     
     if (usuarios.length === 0) {
-      console.log('Usuario no encontrado');
       await connection.end();
       return res.status(400).json({ mensaje: 'Credenciales incorrectas' });
     }
     
     const usuario = usuarios[0];
-    console.log('Usuario encontrado:', { id: usuario.id_usuario, email: usuario.email });
     
     // Verificar si el usuario está bloqueado
     if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
-      console.log('Usuario bloqueado hasta:', usuario.bloqueado_hasta);
       await connection.end();
       return res.status(403).json({ 
         mensaje: `Cuenta bloqueada temporalmente. Intente nuevamente después de ${new Date(usuario.bloqueado_hasta).toLocaleString()}` 
@@ -139,15 +132,12 @@ const iniciarSesion = async (req, res) => {
     }
     
     // Verificar contraseña
-    console.log('Verificando contraseña...');
     const passwordValido = await bcrypt.compare(contrasena, usuario.contrasena);
-    console.log('Resultado de verificación de contraseña:', passwordValido);
     
     if (!passwordValido) {
       // Incrementar intentos fallidos
       const nuevoIntentos = usuario.intentos_fallidos + 1;
       
-      // Si hay más de 5 intentos fallidos, bloquear la cuenta por 30 minutos
       if (nuevoIntentos >= 5) {
         const tiempoBloqueo = new Date();
         tiempoBloqueo.setMinutes(tiempoBloqueo.getMinutes() + 30);
@@ -163,7 +153,6 @@ const iniciarSesion = async (req, res) => {
         });
       }
       
-      // Actualizar intentos fallidos
       await connection.execute(
         'UPDATE usuarios SET intentos_fallidos = ? WHERE id_usuario = ?', 
         [nuevoIntentos, usuario.id_usuario]
@@ -184,7 +173,7 @@ const iniciarSesion = async (req, res) => {
       [fechaActual, usuario.id_usuario]
     );
     
-    // Crear y devolver token JWT
+    // Crear token JWT
     const payload = {
       usuario: {
         id: usuario.id_usuario,
@@ -193,22 +182,29 @@ const iniciarSesion = async (req, res) => {
       }
     };
     
-    console.log('Generando token JWT...');
-    jwt.sign(
-      payload, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '24h' },
-      (error, token) => {
-        if (error) {
-          console.error('Error al generar token:', error);
-          throw error;
-        }
-        console.log('Token generado exitosamente');
-        res.json({ token });
-      }
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    
+    // Crear nueva sesión
+    const idSesion = uuidv4();
+    await connection.execute(
+      'INSERT INTO sesiones_usuario (id_sesion, id_usuario, token, dispositivo) VALUES (?, ?, ?, ?)',
+      [idSesion, usuario.id_usuario, token, dispositivo || 'Desconocido']
+    );
+    
+    // Obtener todas las sesiones activas del usuario
+    const [sesiones] = await connection.execute(
+      'SELECT id_sesion, dispositivo, fecha_creacion FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
+      [usuario.id_usuario]
     );
     
     await connection.end();
+    
+    res.json({ 
+      token,
+      idSesion,
+      sesionesActivas: sesiones
+    });
+    
   } catch (error) {
     console.error('Error en iniciarSesion:', error);
     res.status(500).json({ mensaje: 'Error en el servidor', error: error.message });
@@ -218,6 +214,12 @@ const iniciarSesion = async (req, res) => {
 // Obtener usuario actual con el token
 const obtenerUsuario = async (req, res) => {
   try {
+    console.log('Request usuario:', req.usuario);
+    
+    if (!req.usuario || !req.usuario.id) {
+      return res.status(401).json({ mensaje: 'Usuario no autenticado' });
+    }
+
     const connection = await mysql.createConnection(dbConfig);
     
     // Obtener usuario desde la base de datos (excluyendo la contraseña)
@@ -234,7 +236,7 @@ const obtenerUsuario = async (req, res) => {
     res.json(usuarios[0]);
     await connection.end();
   } catch (error) {
-    console.error(error);
+    console.error('Error en obtenerUsuario:', error);
     res.status(500).json({ mensaje: 'Error en el servidor' });
   }
 };
@@ -406,6 +408,72 @@ const restablecerPassword = async (req, res) => {
   }
 };
 
+// Cerrar sesión
+const cerrarSesion = async (req, res) => {
+  const { idSesion } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Verificar que la sesión pertenece al usuario
+    const [sesiones] = await connection.execute(
+      'SELECT * FROM sesiones_usuario WHERE id_sesion = ? AND id_usuario = ?',
+      [idSesion, userId]
+    );
+    
+    if (sesiones.length === 0) {
+      await connection.end();
+      return res.status(404).json({ mensaje: 'Sesión no encontrada' });
+    }
+    
+    // Marcar la sesión como inactiva
+    await connection.execute(
+      'UPDATE sesiones_usuario SET activa = FALSE WHERE id_sesion = ?',
+      [idSesion]
+    );
+    
+    await connection.end();
+    res.json({ mensaje: 'Sesión cerrada exitosamente' });
+    
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
+// Obtener sesiones activas
+const obtenerSesionesActivas = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Verificar que el token de la sesión actual sea válido
+    const [sesionActual] = await connection.execute(
+      'SELECT * FROM sesiones_usuario WHERE id_usuario = ? AND token IS NOT NULL AND activa = TRUE',
+      [userId]
+    );
+    
+    if (sesionActual.length === 0) {
+      await connection.end();
+      return res.status(401).json({ mensaje: 'Sesión inválida' });
+    }
+    
+    const [sesiones] = await connection.execute(
+      'SELECT id_sesion, dispositivo, fecha_creacion, ultima_actividad FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
+      [userId]
+    );
+    
+    await connection.end();
+    res.json({ sesiones });
+    
+  } catch (error) {
+    console.error('Error al obtener sesiones:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor' });
+  }
+};
+
 module.exports = {
   registrar,
   iniciarSesion,
@@ -413,5 +481,7 @@ module.exports = {
   obtenerUsuarioActual,
   solicitarResetPassword,
   verificarTokenReset,
-  restablecerPassword
+  restablecerPassword,
+  cerrarSesion,
+  obtenerSesionesActivas
 }; 

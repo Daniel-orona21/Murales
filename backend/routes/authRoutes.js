@@ -29,6 +29,14 @@ router.get('/usuario', verificarToken, authController.obtenerUsuario);
 // GET /api/auth/current-user
 router.get('/current-user', verificarToken, authController.obtenerUsuarioActual);
 
+// Ruta para obtener sesiones activas
+// GET /api/auth/sessions
+router.get('/sessions', verificarToken, authController.obtenerSesionesActivas);
+
+// Ruta para cerrar sesión
+// POST /api/auth/logout/:idSesion
+router.post('/logout/:idSesion', verificarToken, authController.cerrarSesion);
+
 // Ruta para solicitar restablecimiento de contraseña
 // POST /api/auth/recuperar-password
 router.post('/recuperar-password', recuperarPasswordLimiter, authController.solicitarResetPassword);

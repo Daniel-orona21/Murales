@@ -1,0 +1,33 @@
+<div class="sessions-container">
+  <h2>Sesiones Activas</h2>
+  
+  <div class="sessions-list" *ngIf="sessions$ | async as sessions">
+    <div class="session-card" *ngFor="let session of sessions">
+      <div class="session-info">
+        <div class="device-info">
+          <i class="fas fa-laptop"></i>
+          <span>{{ session.dispositivo }}</span>
+        </div>
+        <div class="session-dates">
+          <p>Creada: {{ formatDate(session.fecha_creacion) }}</p>
+          <p *ngIf="session.ultima_actividad">Última actividad: {{ formatDate(session.ultima_actividad) }}</p>
+        </div>
+      </div>
+      
+      <div class="session-actions">
+        <span class="current-session" *ngIf="isCurrentSession(session.id_sesion)">
+          Sesión actual
+        </span>
+        <button class="close-session" 
+                (click)="closeSession(session.id_sesion)"
+                [disabled]="isCurrentSession(session.id_sesion)">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+    
+    <div class="no-sessions" *ngIf="sessions.length === 0">
+      <p>No hay sesiones activas</p>
+    </div>
+  </div>
+</div> 

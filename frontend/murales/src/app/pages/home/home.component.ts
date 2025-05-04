@@ -6,8 +6,10 @@ import { MuralService, Mural, CreateMuralData } from '../../services/mural.servi
 import { NotificationService, Notification } from '../../services/notification.service';
 import { HttpClientModule } from '@angular/common/http';
 import { Subscription } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
+import { AuthService } from '../../services/auth.service';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -43,10 +45,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   private notificationsSubscription?: Subscription;
   private muralAccessSubscription?: Subscription;
 
+  showProfileMenu = false;
+  user: any = null;
+  sessions: any[] = [];
+  currentSessionId: string | null = null;
+
   constructor(
     public router: Router,
     private muralService: MuralService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private authService: AuthService
   ) {}
 
   @HostListener('document:click', ['$event'])
@@ -61,11 +69,19 @@ export class HomeComponent implements OnInit, OnDestroy {
         !(event.target as HTMLElement).closest('.notification-btn')) {
       this.showNotifications = false;
     }
+
+    // Close profile panel
+    if (!(event.target as HTMLElement).closest('.profile-panel') && 
+        !(event.target as HTMLElement).closest('.icon-button')) {
+      this.showProfileMenu = false;
+    }
   }
 
   ngOnInit() {
     this.loadMurals();
     this.loadNotifications();
+    this.loadUserData();
+    this.loadSessions();
     
     // Subscribe to real-time notifications
     this.notificationsSubscription = this.notificationService.notifications$.subscribe(notifications => {
@@ -614,5 +630,60 @@ export class HomeComponent implements OnInit, OnDestroy {
   backToMuralesList(): void {
     // Volver a la lista directamente
     this.selectedMuralId = null;
+  }
+
+  toggleProfileMenu(event: Event) {
+    event.stopPropagation();
+    this.showProfileMenu = !this.showProfileMenu;
+    this.loadSessions();
+  }
+
+  closeProfileMenu() {
+    this.showProfileMenu = false;
+  }
+
+  loadUserData() {
+    this.authService.getCurrentUser().subscribe({
+      next: (user) => {
+        this.user = user;
+      },
+      error: (error) => {
+        console.error('Error loading user data:', error);
+      }
+    });
+  }
+
+  loadSessions() {
+    this.authService.loadActiveSessions().subscribe({
+      next: (response) => {
+        this.sessions = response.sesiones;
+        this.currentSessionId = response.sesiones.find((s: { token: string }) => s.token === this.authService.getToken())?.id_sesion;
+      },
+      error: (error) => {
+        console.error('Error loading sessions:', error);
+      }
+    });
+  }
+
+  closeSession(sessionId: string) {
+    this.authService.closeSession(sessionId).subscribe({
+      next: () => {
+        // Si es la sesión actual, cerrar sesión
+        if (sessionId === this.currentSessionId) {
+          this.logout();
+        } else {
+          // Recargar la lista de sesiones
+          this.loadSessions();
+        }
+      },
+      error: (error) => {
+        console.error('Error closing session:', error);
+      }
+    });
+  }
+
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 } 
