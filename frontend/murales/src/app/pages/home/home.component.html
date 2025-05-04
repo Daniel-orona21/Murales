@@ -284,34 +284,37 @@
           <p>{{ user?.email }}</p>
         </div>
       </div>
+    </div>
 
-      <div class="sessions-section">
-        <h3>Sesiones activas</h3>
-        <div class="sessions-list">
-          <div class="session-item" *ngFor="let session of sessions">
-            <div class="session-info">
-              <i class="fas fa-desktop"></i>
-              <div class="session-details">
-                <p class="device">{{ session.dispositivo }}</p>
-                <p class="date">{{ session.fecha_creacion | date:'dd MMM, HH:mm' }}</p>
-              </div>
+    <!-- Nuevo componente de sesiones activas -->
+    <div class="active-sessions">
+      <div class="sessions-header" (click)="toggleSessionsList()">
+        <h4>Sesiones Activas</h4>
+        <i class="fas" [class.fa-chevron-down]="!showSessionsList" [class.fa-chevron-up]="showSessionsList"></i>
+      </div>
+      
+      <div class="sessions-list" [class.expanded]="showSessionsList">
+        <div class="session-item" *ngFor="let session of sessions">
+          <div class="session-info">
+            <i class="fas fa-desktop"></i>
+            <div class="session-details">
+              <span class="session-device">{{ getDeviceInfo(session) }}</span>
+              <span class="session-time">{{ session.fecha_inicio | date:'dd MMM, HH:mm' }}</span>
             </div>
-            <button class="close-session" 
-                    *ngIf="session.id_sesion !== currentSessionId"
-                    (click)="closeSession(session.id_sesion, $event)">
-              <i class="fas fa-times"></i>
-            </button>
-            <span *ngIf="session.id_sesion === currentSessionId" class="current-session">Sesión actual</span>
           </div>
+          <button class="close-session-btn" (click)="closeSession(session.id_sesion, $event)"
+                  *ngIf="session.id_sesion !== currentSessionId">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="profile-actions">
-        <button class="logout-button" (click)="logout()">
-          <i class="fas fa-sign-out-alt"></i>
-          Cerrar sesión
-        </button>
-      </div>
+    <div class="profile-actions">
+      <button class="action-button" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        Cerrar Sesión
+      </button>
     </div>
   </div>
 </div> 

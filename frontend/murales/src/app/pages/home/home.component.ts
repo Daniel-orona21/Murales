@@ -49,6 +49,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   user: any = null;
   sessions: any[] = [];
   currentSessionId: string | null = null;
+  showSessionsList = false;
 
   constructor(
     public router: Router,
@@ -742,5 +743,49 @@ export class HomeComponent implements OnInit, OnDestroy {
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  toggleSessionsList() {
+    this.showSessionsList = !this.showSessionsList;
+  }
+
+  getDeviceInfo(session: any): string {
+    const deviceInfo = (session.dispositivo || '').toLowerCase();
+    let os = '';
+    let browser = '';
+
+    // Detectar sistema operativo
+    if (deviceInfo.includes('mac')) {
+      os = 'Mac';
+    } else if (deviceInfo.includes('windows')) {
+      os = 'Windows';
+    } else if (deviceInfo.includes('linux')) {
+      os = 'Linux';
+    } else if (deviceInfo.includes('android')) {
+      os = 'Android';
+    } else if (deviceInfo.includes('iphone') || deviceInfo.includes('ios')) {
+      os = 'iPhone';
+    } else if (deviceInfo.includes('ipad')) {
+      os = 'iPad';
+    } else {
+      os = 'Otro';
+    }
+
+    // Detectar navegador
+    if (deviceInfo.includes('chrome')) {
+      browser = 'Chrome';
+    } else if (deviceInfo.includes('firefox')) {
+      browser = 'Firefox';
+    } else if (deviceInfo.includes('safari')) {
+      browser = 'Safari';
+    } else if (deviceInfo.includes('edge')) {
+      browser = 'Edge';
+    } else if (deviceInfo.includes('opera')) {
+      browser = 'Opera';
+    } else {
+      browser = 'Navegador';
+    }
+
+    return `${os} - ${browser}`;
   }
 } 

@@ -1497,7 +1497,7 @@
   &.active {
     right: 0;
   }
-  
+
   .profile-header {
     padding: 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1549,6 +1549,7 @@
         height: 48px;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1573,109 +1574,145 @@
         }
       }
     }
+  }
 
-    .sessions-section {
-      h3 {
-        font-size: 1rem;
-        color: rgba(255, 255, 255, 0.8);
-        margin: 0 0 1rem;
+  .active-sessions {
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+
+    .sessions-header {
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
       }
 
-      .sessions-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+      h4 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
 
-        .session-item {
+      i {
+        transition: transform 0.3s ease;
+      }
+    }
+
+    .sessions-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &.expanded {
+        max-height: 300px;
+      }
+
+      .session-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        transition: background-color 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .session-info {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 0.75rem;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
+          gap: 0.75rem;
+
+          i {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+          }
+
+          .session-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+
+            .session-device {
+              font-size: 0.85rem;
+              font-weight: 500;
+            }
+
+            .session-time {
+              font-size: 0.75rem;
+              color: rgba(255, 255, 255, 0.6);
+            }
+          }
+        }
+
+        .close-session-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.7);
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
           transition: all 0.3s ease;
+          opacity: 0.7;
 
           &:hover {
             background: rgba(255, 255, 255, 0.1);
+            color: #ff3e3e;
+            opacity: 1;
           }
 
-          .session-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-
-            i {
-              color: rgba(255, 255, 255, 0.6);
-            }
-
-            span {
-              color: #fff;
-              font-size: 0.9rem;
-            }
-
-            small {
-              color: rgba(255, 255, 255, 0.4);
-              font-size: 0.8rem;
-            }
-          }
-
-          .current-session {
-            color: #6366f1;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-left: auto;
-          }
-
-          .close-session {
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
+          &.current {
+            color: #4CAF50;
+            cursor: default;
 
             &:hover {
-              background: rgba(255, 255, 255, 0.1);
-              color: #fff;
-            }
-
-            &:disabled {
-              opacity: 0.5;
-              cursor: not-allowed;
+              background: transparent;
+              color: #4CAF50;
             }
           }
         }
       }
     }
+  }
 
-    .profile-actions {
-      margin-top: 2rem;
-      padding: 0 1rem;
+  .profile-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 
-      .logout-button {
-        width: 100%;
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        color: #fff;
+    .action-button {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      i {
         font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-
-        i {
-          font-size: 1rem;
-        }
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(255, 255, 255, 0.3);
-        }
       }
     }
   }
