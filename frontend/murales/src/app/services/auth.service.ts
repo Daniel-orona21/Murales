@@ -130,20 +130,20 @@ export class AuthService {
       );
   }
 
-  logout(): void {
-    console.log('AuthService - logout - Iniciando logout');
-    const sessionId = localStorage.getItem(this.sessionIdKey);
-    if (sessionId) {
-      console.log('AuthService - logout - Cerrando sesión en el servidor');
-      this.http.post(`${this.apiUrl}/auth/logout/${sessionId}`, {}, { headers: this.getHeaders() }).subscribe({
-        error: (error) => console.error('AuthService - logout - Error al cerrar sesión:', error)
-      });
-    }
+  logout() {
+    // Limpiar el token y el ID de sesión
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.sessionIdKey);
+    
+    // Limpiar los subjects
     this.authSubject.next(false);
     this.sessionsSubject.next([]);
-    console.log('AuthService - logout - Logout completado');
+    
+    // Limpiar cualquier otro dato de sesión que pudiera existir
+    sessionStorage.clear();
+    
+    // Redirigir al login
+    window.location.href = '/login';
   }
 
   getToken(): string | null {
