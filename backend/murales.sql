@@ -205,6 +205,22 @@ CREATE TABLE `usuarios` (
   `updated_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
+--
+-- Estructura de tabla para la tabla `sesiones_usuario`
+--
+
+CREATE TABLE IF NOT EXISTS sesiones_usuario (
+    id_sesion VARCHAR(255) PRIMARY KEY,
+    id_usuario bigint(20) UNSIGNED NOT NULL,
+    token VARCHAR(500) NOT NULL,
+    dispositivo VARCHAR(255),
+    ultima_actividad TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activa BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+); 
+
 --
 -- Índices para tablas volcadas
 --
