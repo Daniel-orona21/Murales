@@ -93,9 +93,10 @@
 
 .publicacion-item {
   position: absolute; /* Importante para el layout de Masonry */
-  background: #1a1a1a;
+  background-color: #5252524d;
+  backdrop-filter: blur(50px);
   border-radius: 12px;
-  border: 1px solid #333;
+  
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   transition: transform 0.3s, box-shadow 0.3s;

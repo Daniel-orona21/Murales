@@ -161,6 +161,16 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
     }
   }
 
+  onCommentKeydown(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
+      event.preventDefault();
+      if (this.newComment.trim()) {
+        this.addComment();
+      }
+    }
+  }
+
   onDeleteComment(commentId: number) {
     Swal.fire({
       title: '¿Estás seguro?',

@@ -293,7 +293,8 @@
                 [(ngModel)]="newComment"
                 placeholder="Escribe un comentario..."
                 rows="2"
-                class="comentario-input">
+                class="comentario-input"
+                (keydown.enter)="onCommentKeydown($event)">
               <button 
                 class="enviar-comentario"
                 [disabled]="!newComment.trim()"
