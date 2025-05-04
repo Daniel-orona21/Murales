@@ -297,10 +297,11 @@
               </div>
             </div>
             <button class="close-session" 
-                    [disabled]="session.id_sesion === currentSessionId"
-                    (click)="closeSession(session.id_sesion)">
+                    *ngIf="session.id_sesion !== currentSessionId"
+                    (click)="closeSession(session.id_sesion, $event)">
               <i class="fas fa-times"></i>
             </button>
+            <span *ngIf="session.id_sesion === currentSessionId" class="current-session">Sesión actual</span>
           </div>
         </div>
       </div>

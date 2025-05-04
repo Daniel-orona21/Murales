@@ -657,7 +657,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.authService.loadActiveSessions().subscribe({
       next: (response) => {
         this.sessions = response.sesiones;
-        this.currentSessionId = response.sesiones.find((s: { token: string }) => s.token === this.authService.getToken())?.id_sesion;
+        const currentSessionId = this.authService.getSessionId();
+        console.log('Current session ID from storage:', currentSessionId);
+        console.log('Sessions:', response.sesiones);
+        this.currentSessionId = currentSessionId;
+        console.log('Set current session ID to:', this.currentSessionId);
       },
       error: (error) => {
         console.error('Error loading sessions:', error);
@@ -665,19 +669,72 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  closeSession(sessionId: string) {
-    this.authService.closeSession(sessionId).subscribe({
-      next: () => {
-        // Si es la sesión actual, cerrar sesión
-        if (sessionId === this.currentSessionId) {
-          this.logout();
-        } else {
-          // Recargar la lista de sesiones
-          this.loadSessions();
-        }
+  closeSession(sessionId: string, event: Event) {
+    event.stopPropagation();
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: sessionId === this.currentSessionId 
+        ? '¿Estás seguro de que deseas cerrar tu sesión actual? Serás redirigido al inicio de sesión.'
+        : '¿Estás seguro de que deseas cerrar esta sesión?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
       },
-      error: (error) => {
-        console.error('Error closing session:', error);
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      stopKeydownPropagation: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.authService.closeSession(sessionId).subscribe({
+          next: () => {
+            // Si es la sesión actual, cerrar sesión
+            if (sessionId === this.currentSessionId) {
+              this.logout();
+            } else {
+              // Recargar la lista de sesiones
+              this.loadSessions();
+              // Mostrar mensaje de éxito
+              Swal.fire({
+                title: '¡Sesión cerrada!',
+                text: 'La sesión ha sido cerrada exitosamente.',
+                icon: 'success',
+                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                confirmButtonText: 'Entendido',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button'
+                },
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                stopKeydownPropagation: true
+              });
+            }
+          },
+          error: (error) => {
+            console.error('Error closing session:', error);
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo cerrar la sesión. Intenta de nuevo más tarde.',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              },
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              stopKeydownPropagation: true
+            });
+          }
+        });
       }
     });
   }
