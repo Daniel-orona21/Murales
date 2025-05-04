@@ -130,6 +130,37 @@ export class AuthService {
       );
   }
 
+  // Método para solicitar restablecimiento de contraseña
+  requestPasswordReset(email: string): Observable<any> {
+    console.log('AuthService - requestPasswordReset - Solicitando recuperación para:', email);
+    return this.http.post(`${this.apiUrl}/auth/recuperar-password`, { email })
+      .pipe(
+        tap(response => {
+          console.log('AuthService - requestPasswordReset - Solicitud enviada');
+        }),
+        catchError(this.handleError)
+      );
+  }
+
+  // Método para verificar un token de restablecimiento
+  verifyResetToken(token: string): Observable<any> {
+    console.log('AuthService - verifyResetToken - Verificando token');
+    return this.http.get(`${this.apiUrl}/auth/verificar-token/${token}`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // Método para restablecer la contraseña
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    console.log('AuthService - resetPassword - Restableciendo contraseña');
+    return this.http.post(`${this.apiUrl}/auth/restablecer-password/${token}`, { 
+      contrasena: newPassword 
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   logout() {
     // Limpiar el token y el ID de sesión
     localStorage.removeItem(this.tokenKey);

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors, FormControl } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -12,7 +12,7 @@ import { RecaptchaModule } from 'ng-recaptcha';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RecaptchaModule]
+  imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RecaptchaModule, RouterModule]
 })
 export class LoginComponent {
   loginForm: FormGroup;
