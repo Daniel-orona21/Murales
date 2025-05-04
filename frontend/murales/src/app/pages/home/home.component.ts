@@ -830,4 +830,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   clearSelectedPost() {
     this.selectedPost = null;
   }
+
+  onMuralUpdated(updatedMural: Mural) {
+    this.muralService.getMuralById(updatedMural.id_mural).subscribe({
+      next: (muralCompleto) => {
+        const idx = this.murals.findIndex(m => m.id_mural === muralCompleto.id_mural);
+        if (idx !== -1) {
+          this.murals[idx] = { ...this.murals[idx], ...muralCompleto };
+        }
+        if (this.selectedMuralId === updatedMural.id_mural) {
+          this.selectedMuralTitle = updatedMural.titulo;
+        }
+      }
+    });
+  }
 } 

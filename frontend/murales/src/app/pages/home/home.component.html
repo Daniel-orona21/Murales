@@ -74,7 +74,8 @@
               #muralDetail
               [muralId]="selectedMuralId"
               (postSelected)="onPostSelect($event)"
-              (postClosed)="onPostClosed()">
+              (postClosed)="onPostClosed()"
+              (muralUpdated)="onMuralUpdated($event)">
             </app-mural-detail>
           </div>
         </div>
@@ -139,6 +140,7 @@
                     <i class="far fa-calendar"></i>
                     <span>{{ mural.fecha_creacion | date:'dd MMM, yyyy' }}</span>
                   </div>
+                  
                   <div class="meta-item">
                     <i [class]="mural.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
                     <span>{{ mural.privacidad }}</span>

@@ -180,9 +180,6 @@
   <div class="modal-sidebar" [class.show]="showModal">
     <div class="modal-header">
       <h2>Agregar elemento</h2>
-      <button class="close-button" (click)="toggleModal()">
-        <span class="material-symbols-outlined">close</span>
-      </button>
     </div>
     <div class="modal-content">
       <div *ngIf="error" class="form-error">{{ error }}</div>
@@ -304,13 +301,80 @@
       </div>
     </div>
   </div>
-  <div class="modal-overlay" *ngIf="showModal" (click)="toggleModal()"></div>
+  <div class="modal-overlay" *ngIf="showModal || showConfigModal" (click)="showModal ? toggleModal() : toggleConfigModal()"></div>
+
+  <!-- Modal de configuración -->
+  <div class="modal-sidebar config-modal" [class.show]="showConfigModal">
+    <div class="modal-header">
+      <div class="contenedorHeader">
+        <h2>Configuración</h2>
+        <div class="botonera">
+          <button class="boton editar" (click)="toggleEditMode()" *ngIf="!isEditing">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="boton cancelar" (click)="cancelEdit()" *ngIf="isEditing">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+          <button class="boton confirmar" (click)="saveConfig()" *ngIf="isEditing">
+            <span class="material-symbols-outlined">check</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-contentC">
+      <div class="detallesMural">
+        
+        <div class="detalles">
+          <!-- Vista sin edición -->
+          <div class="mural-card-details" *ngIf="!isEditing">
+            <div class="mural-title">{{ configData.titulo }}</div>
+            <div class="mural-description">{{ configData.descripcion }}</div>
+            <div class="mural-meta">
+              <span class="meta-item privacidadT">
+                <span class="material-symbols-outlined">
+                  {{ configData.privacidad === 'privado' ? 'lock' : 'public' }}
+                </span>
+                {{ configData.privacidad }}
+              </span>
+              <span class="meta-item">
+                <span class="material-symbols-outlined">code</span>
+                {{ configData.codigo_acceso }}
+              </span>
+            </div>
+          </div>
+          <!-- Modo edición -->
+          <div class="form-group" *ngIf="isEditing">
+            <input type="text" [(ngModel)]="configData.titulo" placeholder="Título del mural">
+          </div>
+          <div class="form-group" *ngIf="isEditing">
+            <textarea [(ngModel)]="configData.descripcion" placeholder="Descripción del mural"></textarea>
+          </div>
+          <div class="form-group" *ngIf="isEditing">
+            <select [(ngModel)]="configData.privacidad">
+              <option value="publico">Público</option>
+              <option value="privado">Privado</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;" *ngIf="mural?.rol_usuario === 'administrador'">
     <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
       <span class="material-symbols-outlined">add</span>
     </button>
     <div class="tooltip" [class.show]="showTooltip">
       Agregar contenido
+    </div>
+  </div>
+
+  <div class="button-container config-button" style="position: fixed; bottom: 30px; right: 30px;" *ngIf="mural?.rol_usuario === 'administrador'">
+    <button class="agregar-elemento" (click)="openConfig()" (mouseenter)="showConfigTooltip = true" (mouseleave)="showConfigTooltip = false">
+      <span class="material-symbols-outlined">settings</span>
+    </button>
+    <div class="tooltip" [class.show]="showConfigTooltip">
+      Configuración
     </div>
   </div>
 </div>

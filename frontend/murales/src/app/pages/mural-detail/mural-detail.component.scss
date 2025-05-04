@@ -493,33 +493,166 @@
 .modal-sidebar {
   position: fixed;
   top: 0;
-  left: -350px; // Initially off-screen
   height: 100vh;
   width: 350px;
   background-color: #000000;
-  border-right: 1px solid #ededed27;
   z-index: 1000;
-  transition: left 0.3s ease-in-out;
   padding: 20px;
   box-sizing: border-box;
   color: white;
   display: flex;
   flex-direction: column;
-}
 
-.modal-sidebar.show {
-  left: 0; // Slide in when active
+  &.config-modal {
+    right: -350px;
+    border-left: 1px solid #ededed27;
+    transition: right 0.3s ease-in-out;
+
+    .modal-header {
+
+      .contenedorHeader {
+        display: flex;
+        width: 100%; 
+        align-items: center;
+        justify-content: center;
+        position: relative;
+
+        button {
+          margin: 0;
+        }
+
+        .botonera {
+          display: flex;
+          gap: 5px;
+          position: absolute;
+          right: 0;
+          padding: 10px 0 10px 0;
+          justify-content: flex-end;
+        }
+
+        .boton {
+          background-color: rgb(0, 0, 0) !important;
+          padding: 5px;
+          border-radius: 8px;
+          width: 30px;
+          height: 30px;
+          border: 2px solid #6262624c;
+          cursor: pointer;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background-color: #242424 !important;
+          }
+          span {
+            font-size: 18px;
+            margin: 0;
+          }
+        }
+      }
+    }
+
+    .modal-contentC {
+      justify-content: flex-start;
+      padding: 0;
+      flex: 1;
+
+      .detallesMural {
+        width: 100%;
+        height: auto;
+        display: flex;
+        position: relative;
+        box-sizing: border-box;
+        flex-direction: column;
+
+        .detalles {
+          padding-top: 10px;
+          border-top: 1px solid #ededed27;
+          flex-direction: column;
+          box-sizing: border-box;
+          position: relative;
+          width: 100%;
+          gap: 10px;
+          display: flex;
+
+          .form-group {
+            width: 100%;
+            margin: 0;
+
+            input, textarea, select {
+              width: 100%;
+              padding: 12px;
+              border-radius: 8px;
+              background-color: #131313;
+              border: 1px solid #333;
+              color: white;
+              font-size: 14px;
+              transition: border-color 0.2s ease;
+              box-sizing: border-box;
+              
+              &:focus {
+                outline: none;
+                border-color: #ffffffad;
+              }
+              
+              &::placeholder {
+                color: #555;
+              }
+            }
+
+            textarea {
+              min-height: 100px;
+              resize: vertical;
+            }
+
+            select {
+              appearance: none;
+              background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+              background-repeat: no-repeat;
+              background-position: right 12px center;
+              background-size: 20px;
+              padding-right: 40px;
+            }
+          }
+        }
+      } 
+
+      .info-title {
+        margin: 0;
+      }
+    }
+
+
+    &.show {
+      right: 0;
+    }
+  }
+
+  &:not(.config-modal) {
+    left: -350px;
+    border-right: 1px solid #ededed27;
+    transition: left 0.3s ease-in-out;
+
+    &.show {
+      left: 0;
+    }
+  }
 }
 
 .modal-header {
+  padding-top: 4rem;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   
   h2 {
-    margin: 0;
+    margin: 0 auto;
     font-size: 24px;
+    text-align: center;
   }
 }
 
@@ -904,6 +1037,31 @@
   display: flex;
   align-items: center;
   z-index: 10;
+
+  &.config-button {
+    left: auto;
+    right: 30px;
+    span {
+      font-size: 35px;
+      font-weight: 300;
+    }
+
+    .agregar-elemento {
+      &:hover {
+        transform: rotate(90deg);
+      }
+    }
+
+    .tooltip {
+      left: auto;
+      right: 75px;
+
+      &::before {
+        left: auto;
+        right: -6px;
+      }
+    }
+  }
 }
 
 .agregar-elemento {
@@ -1059,5 +1217,233 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+// Switch styles
+.permissions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  
+  span {
+    color: #ccc;
+    font-size: 14px;
+  }
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    
+    &:checked + .slider {
+      background-color: #2196F3;
+      
+      &:before {
+        transform: translateX(26px);
+      }
+    }
+  }
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  
+  &:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+  }
+  
+  &.round {
+    border-radius: 34px;
+    
+    &:before {
+      border-radius: 50%;
+    }
+  }
+}
+
+.privacy-selector {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.privacy-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  background-color: #131313;
+  border: 1px solid #333;
+  border-radius: 12px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  span {
+    display: block;
+    &:first-child {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    &:last-child {
+      font-size: 14px;
+    }
+  }
+  
+  &:hover:not(.active) {
+    background-color: #1a1a1a;
+    color: #bbb;
+  }
+  
+  &.active {
+    background-color: #222;
+    color: white;
+    border-color: #2196F3;
+  }
+}
+
+.privacy-info {
+  background-color: #131313;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 10px;
+}
+
+.privacy-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  
+  span.material-symbols-outlined {
+    font-size: 24px;
+    color: #2196F3;
+  }
+  
+  .privacy-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+  }
+  
+  &.private {
+    span.material-symbols-outlined {
+      color: #ff6b6b;
+    }
+  }
+}
+
+.privacy-description {
+  margin: 0;
+  font-size: 14px;
+  color: #888;
+  line-height: 1.4;
+}
+
+.info-block {
+  background: #131313;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 6px;
+  margin-bottom: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.info-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.info-description {
+  font-size: 15px;
+  color: #ccc;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.mural-card-details {
+  background: rgb(0, 0, 0);
+  padding: 10px;
+  box-shadow: 0 2px 8px #00000030;
+  width: 100%;
+  border-bottom: 1px solid #222;
+  min-width: 220px;
+
+  .mural-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .mural-description {
+    color: #b0b0b0;
+    font-size: 1.1rem;
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+  .mural-meta {
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #222;
+    padding-top: 12px;
+    margin-top: 10px;
+
+    .privacidadT {
+      text-transform: capitalize;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      color: #aaa;
+      font-size: 1rem;
+      gap: 6px;
+
+      .material-symbols-outlined {
+        font-size: 1.2em;
+        color: #aaa;
+      }
+    }
+  }
 }
 

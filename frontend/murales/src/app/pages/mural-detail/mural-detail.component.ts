@@ -32,6 +32,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
+  showConfigModal = false;
+  showConfigTooltip = false;
   isDragging = false;
   contentType: ContentType = 'archivo';
   showTooltip = false;
@@ -39,6 +41,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   error: string | null = null;
   publicaciones: Publicacion[] = [];
   currentUserId: number = 0;
+  isEditing = false;
+  originalConfigData: any = null;
   
   // Cache for YouTube embed URLs
   private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
@@ -75,6 +79,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   @Output() postClosed = new EventEmitter<void>();
   
   @ViewChild('carousel') carouselComponent: any;
+  
+  configData = {
+    titulo: '',
+    descripcion: '',
+    permite_comentarios: true,
+    permite_likes: true,
+    privacidad: 'publico',
+    codigo_acceso: ''
+  };
+  
+  @Output() muralUpdated = new EventEmitter<Mural>();
   
   constructor(
     private muralService: MuralService, 
@@ -900,5 +915,82 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   public forceCloseCarousel() {
     this.closeCarousel();
+  }
+
+  toggleConfigModal(): void {
+    this.showConfigModal = !this.showConfigModal;
+    if (this.showConfigModal && this.mural) {
+      // Inicializar los datos de configuración con los valores actuales del mural
+      this.configData = {
+        titulo: this.mural.titulo || '',
+        descripcion: this.mural.descripcion || '',
+        permite_comentarios: this.mural.permite_comentarios ?? true,
+        permite_likes: this.mural.permite_likes ?? true,
+        privacidad: this.mural.privacidad || 'publico',
+        codigo_acceso: this.mural.codigo_acceso || ''
+      };
+      this.isEditing = false;
+    }
+  }
+
+  toggleEditMode(): void {
+    this.isEditing = true;
+    // Store original values in case of cancellation
+    this.originalConfigData = { ...this.configData };
+  }
+
+  cancelEdit(): void {
+    this.isEditing = false;
+    // Restore original values
+    if (this.originalConfigData) {
+      this.configData = { ...this.originalConfigData };
+    }
+  }
+
+  get configValid(): boolean {
+    return this.configData.titulo.trim() !== '' && 
+           this.configData.descripcion.trim() !== '';
+  }
+
+  saveConfig(): void {
+    if (!this.muralId || !this.configValid) return;
+    
+    this.cargando = true;
+    this.error = null;
+
+    const configData = {
+      titulo: this.configData.titulo,
+      descripcion: this.configData.descripcion,
+      permite_comentarios: this.configData.permite_comentarios,
+      permite_likes: this.configData.permite_likes,
+      privacidad: this.configData.privacidad
+    };
+
+    this.muralService.updateMural(this.muralId, configData).subscribe({
+      next: (mural) => {
+        // Volver a cargar el mural completo para no perder campos como rol_usuario
+        this.muralService.getMuralById(this.muralId!).subscribe({
+          next: (muralCompleto) => {
+            this.mural = muralCompleto;
+            this.isAdmin = muralCompleto.rol_usuario === 'administrador';
+            this.muralUpdated.emit(muralCompleto);
+            this.isEditing = false;
+            this.toggleConfigModal();
+            this.cargando = false;
+            this.cdr.markForCheck();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error al actualizar la configuración:', error);
+        this.error = 'No se pudo actualizar la configuración';
+        this.cargando = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  openConfig(): void {
+    this.toggleConfigModal();
   }
 }

@@ -13,12 +13,16 @@ export interface Mural {
   fecha_creacion: string;
   codigo_acceso?: string;
   rol_usuario?: string;
+  permite_comentarios?: boolean;
+  permite_likes?: boolean;
 }
 
 export interface CreateMuralData {
   titulo: string;
   descripcion: string;
   privacidad: string;
+  permite_comentarios?: boolean;
+  permite_likes?: boolean;
 }
 
 export interface JoinMuralResponse {
