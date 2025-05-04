@@ -284,31 +284,30 @@
           <p>{{ user?.email }}</p>
         </div>
       </div>
-    </div>
-
-    <!-- Nuevo componente de sesiones activas -->
-    <div class="active-sessions">
-      <div class="sessions-header" (click)="toggleSessionsList()">
-        <h4>Sesiones Activas</h4>
-        <i class="fas" [class.fa-chevron-down]="!showSessionsList" [class.fa-chevron-up]="showSessionsList"></i>
-      </div>
-      
-      <div class="sessions-list" [class.expanded]="showSessionsList">
-        <div class="session-item" *ngFor="let session of sessions">
-          <div class="session-info">
-            <i class="fas fa-desktop"></i>
-            <div class="session-details">
-              <span class="session-device">{{ getDeviceInfo(session) }}</span>
-              <span class="session-time">{{ session.fecha_inicio | date:'dd MMM, HH:mm' }}</span>
+      <div class="active-sessions">
+        <div class="sessions-header" (click)="toggleSessionsList()">
+          <h4>Sesiones Activas</h4>
+          <i class="fas" [class.fa-chevron-down]="!showSessionsList" [class.fa-chevron-up]="showSessionsList"></i>
+        </div>
+        
+        <div class="sessions-list" [class.expanded]="showSessionsList">
+          <div class="session-item" *ngFor="let session of sessions">
+            <div class="session-info">
+              <i class="fas fa-desktop"></i>
+              <div class="session-details">
+                <span class="session-device">{{ getDeviceInfo(session) }}</span>
+                <span class="session-time">{{ session.fecha_inicio | date:'dd MMM, HH:mm' }}</span>
+              </div>
             </div>
+            <button class="close-session-btn" (click)="closeSession(session.id_sesion, $event)"
+                    *ngIf="session.id_sesion !== currentSessionId">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <button class="close-session-btn" (click)="closeSession(session.id_sesion, $event)"
-                  *ngIf="session.id_sesion !== currentSessionId">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
       </div>
     </div>
+
 
     <div class="profile-actions">
       <button class="action-button" (click)="logout()">

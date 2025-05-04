@@ -1486,7 +1486,7 @@
   right: -350px;
   width: 350px;
   height: 100%;
-  background: black;
+  background: rgb(0, 0, 0);
   border-left: 1px solid rgba(255, 255, 255, 0.107);
   z-index: 1000;
   transition: right 0.3s ease;
@@ -1531,7 +1531,10 @@
   }
   
   .profile-content {
+    background-color: rgb(0, 0, 0);
     padding: 1rem;
+    box-sizing: border-box;
+    position: relative;
     overflow-y: auto;
     flex: 1;
     
@@ -1688,8 +1691,7 @@
   }
 
   .profile-actions {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    padding: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 
     .action-button {
