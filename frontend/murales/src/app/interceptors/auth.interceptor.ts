@@ -52,10 +52,6 @@ export const authInterceptor: HttpInterceptorFn = (
             popup: 'custom-swal-popup',
             confirmButton: 'custom-confirm-button'
           }
-        }).then(() => {
-          // Después de cerrar la alerta, hacer logout y redirigir al login
-          authService.logout();
-          router.navigate(['/login']);
         });
       }
       return throwError(() => error);
