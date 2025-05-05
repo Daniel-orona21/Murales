@@ -39,7 +39,7 @@ const registroLimiter = rateLimit({
 // Limitar las solicitudes generales a la API
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Limitar a 100 solicitudes por ventana
+  max: 200, // Limitar a 200 solicitudes por ventana
   standardHeaders: true,
   legacyHeaders: false,
   message: {
