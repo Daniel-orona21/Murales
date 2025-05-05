@@ -793,7 +793,12 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.cargando = false;
             this.closeCarousel();
             this.cdr.markForCheck();
-            
+            // Forzar relayout de Masonry después de eliminar
+            setTimeout(() => {
+              if (this.masonry && typeof this.masonry.layout === 'function') {
+                this.masonry.layout();
+              }
+            }, 100);
             // Show success message
             Swal.fire({
               title: '¡Eliminado!',
