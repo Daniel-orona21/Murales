@@ -55,8 +55,7 @@ export class AuthService {
           
           if (expirationDate > new Date()) {
             console.log('Token válido y no expirado');
-          this.authSubject.next(true);
-            // No cargar sesiones aquí para evitar la dependencia circular
+            this.authSubject.next(true);
           } else {
             console.log('Token expirado');
             this.logout();
@@ -95,8 +94,8 @@ export class AuthService {
       tap((response: any) => {
         console.log('AuthService - login - Respuesta recibida:', !!response?.token);
         if (response?.token) {
-          localStorage.setItem(this.tokenKey, response.token);
-          localStorage.setItem(this.sessionIdKey, response.idSesion);
+          sessionStorage.setItem(this.tokenKey, response.token);
+          sessionStorage.setItem(this.sessionIdKey, response.idSesion);
           this.authSubject.next(true);
           this.sessionsSubject.next(response.sesionesActivas);
           console.log('AuthService - login - Login exitoso');
@@ -120,8 +119,8 @@ export class AuthService {
       .pipe(
         tap((response: any) => {
           if (response?.token) {
-            localStorage.setItem(this.tokenKey, response.token);
-            localStorage.setItem(this.sessionIdKey, response.idSesion);
+            sessionStorage.setItem(this.tokenKey, response.token);
+            sessionStorage.setItem(this.sessionIdKey, response.idSesion);
             this.authSubject.next(true);
             this.sessionsSubject.next(response.sesionesActivas);
           }
@@ -163,8 +162,8 @@ export class AuthService {
 
   logout() {
     // Limpiar el token y el ID de sesión
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.sessionIdKey);
+    sessionStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.sessionIdKey);
     
     // Limpiar los subjects
     this.authSubject.next(false);
@@ -178,13 +177,11 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    const token = localStorage.getItem(this.tokenKey);
-    console.log('AuthService - getToken - Token recuperado:', !!token);
-    return token;
+    return sessionStorage.getItem(this.tokenKey);
   }
 
   getSessionId(): string | null {
-    return localStorage.getItem(this.sessionIdKey);
+    return sessionStorage.getItem(this.sessionIdKey);
   }
 
   isLoggedIn(): boolean {
@@ -233,8 +230,8 @@ export class AuthService {
 
     // Si es la sesión actual, solo limpiar el estado local
     if (sessionId === this.getSessionId()) {
-      localStorage.removeItem(this.tokenKey);
-      localStorage.removeItem(this.sessionIdKey);
+      sessionStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.sessionIdKey);
       this.authSubject.next(false);
       this.sessionsSubject.next([]);
       return of({ success: true });
