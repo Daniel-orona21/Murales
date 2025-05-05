@@ -244,7 +244,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   abandonarMural(mural: MuralWithMenu) {
     this.muralService.getCurrentUserId().subscribe(currentUserId => {
-      if (mural.rol_usuario === 'administrador' && mural.id_creador === currentUserId) {
+      if (mural.id_creador === currentUserId) {
         // Si es el creador, mostrar opciones de transferir o eliminar
         Swal.fire({
           title: 'No puedes abandonar este mural',
@@ -273,7 +273,6 @@ export class HomeComponent implements OnInit, OnDestroy {
                     id: user.id_usuario,
                     text: user.nombre
                   }));
-                  
                   Swal.fire({
                     title: 'Transferir propiedad',
                     text: 'Selecciona el nuevo propietario del mural:',
@@ -425,7 +424,6 @@ export class HomeComponent implements OnInit, OnDestroy {
                           id: user.id_usuario,
                           text: user.nombre
                         }));
-                        
                         Swal.fire({
                           title: 'Transferir propiedad',
                           text: 'Selecciona el nuevo propietario del mural:',
