@@ -553,6 +553,11 @@
     color: rgb(253, 253, 253);
   }
 
+  .botoneraSinMurales {
+    display: flex;
+    gap: 1rem;
+  }
+
   .sin-murales-text {
     display: flex;
     flex-direction: column;

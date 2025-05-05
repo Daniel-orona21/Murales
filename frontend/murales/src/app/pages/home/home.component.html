@@ -89,7 +89,10 @@
                 <h1>No tienes murales</h1>
                 <p>Crea tu primera mural para empezar a trabajar</p>
               </div>
-              <button class="btn-primary" (click)="openCreateModal()">Crear mural</button>
+              <div class="botoneraSinMurales">
+                <button class="btn-primary" (click)="openCreateModal()">Crear mural</button>
+              <button class="btn-secondary" (click)="openJoinModal()">Añadir mediante código</button>
+              </div>
             </div>
           </ng-container>
 
