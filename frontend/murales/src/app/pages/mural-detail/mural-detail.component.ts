@@ -10,6 +10,7 @@ import Swal from 'sweetalert2';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 interface NuevoElemento {
   titulo: string;
@@ -107,7 +108,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -825,6 +827,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                 confirmButton: 'custom-confirm-button'
               }
             });
+            this.router.navigate(['/']);
           },
           error: (error) => {
             console.error('Error al eliminar publicación:', error);
@@ -1002,6 +1005,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.toggleConfigModal();
             this.cargando = false;
             this.cdr.markForCheck();
+            this.router.navigate(['/']);
           }
         });
       },
@@ -1224,6 +1228,379 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           }
         });
         this.cdr.markForCheck();
+      }
+    });
+  }
+
+  isOnlyAdmin(user: any): boolean {
+    const adminCount = this.muralUsers.filter(u => u.rol === 'administrador').length;
+    return adminCount === 1 && user.rol === 'administrador';
+  }
+
+  abandonarMural(): void {
+    if (!this.mural) return;
+    this.muralService.getCurrentUserId().subscribe(currentUserId => {
+      if (this.mural && this.mural.rol_usuario === 'administrador' && this.mural.id_creador === currentUserId) {
+        // Si es el creador, mostrar opciones de transferir o eliminar
+        Swal.fire({
+          title: 'No puedes abandonar este mural',
+          text: 'Como creador, debes transferir la propiedad o eliminar el mural.',
+          icon: 'warning',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Transferir propiedad',
+          denyButtonText: 'Eliminar mural',
+          cancelButtonText: 'Cancelar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button',
+            denyButton: 'custom-deny-button',
+            cancelButton: 'custom-cancel-button'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Obtener lista de todos los usuarios del mural
+            this.muralService.getUsuariosByMural(this.mural!.id_mural).subscribe({
+              next: (usuarios) => {
+                // Filtrar usuarios excluyendo al creador actual
+                const availableUsers = usuarios.filter(u => u.id_usuario !== currentUserId);
+                if (availableUsers.length > 0) {
+                  const userOptions = availableUsers.map(user => ({
+                    id: user.id_usuario,
+                    text: user.nombre
+                  }));
+                  Swal.fire({
+                    title: 'Transferir propiedad',
+                    text: 'Selecciona el nuevo propietario del mural:',
+                    input: 'select',
+                    inputOptions: Object.fromEntries(userOptions.map(opt => [opt.id, opt.text])),
+                    showCancelButton: true,
+                    confirmButtonText: 'Transferir',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                      popup: 'custom-swal-popup',
+                      confirmButton: 'custom-confirm-button',
+                      cancelButton: 'custom-cancel-button'
+                    }
+                  }).then((transferResult) => {
+                    if (transferResult.isConfirmed) {
+                      // Primero actualizar el rol del nuevo propietario a administrador
+                      this.muralService.updateUserRole(this.mural!.id_mural, transferResult.value, 'administrador').subscribe({
+                        next: () => {
+                          // Luego transferir la propiedad
+                          this.muralService.transferirPropiedad(this.mural!.id_mural, transferResult.value).subscribe({
+                            next: () => {
+                              Swal.fire({
+                                title: '¡Completado!',
+                                text: 'La propiedad del mural ha sido transferida exitosamente.',
+                                icon: 'success',
+                                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                                confirmButtonText: 'Continuar',
+                                customClass: {
+                                  popup: 'custom-swal-popup',
+                                  confirmButton: 'custom-confirm-button'
+                                }
+                              });
+                              this.loadMural();
+                              this.loadMuralUsers();
+                              this.router.navigate(['/']);
+                            },
+                            error: (error) => {
+                              Swal.fire({
+                                title: 'Error',
+                                text: error.error?.error || 'No se pudo transferir la propiedad del mural.',
+                                icon: 'error',
+                                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                                confirmButtonText: 'Aceptar',
+                                customClass: {
+                                  popup: 'custom-swal-popup',
+                                  confirmButton: 'custom-confirm-button'
+                                }
+                              });
+                            }
+                          });
+                        },
+                        error: (error) => {
+                          Swal.fire({
+                            title: 'Error',
+                            text: 'No se pudo actualizar el rol del nuevo propietario.',
+                            icon: 'error',
+                            confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                            confirmButtonText: 'Aceptar',
+                            customClass: {
+                              popup: 'custom-swal-popup',
+                              confirmButton: 'custom-confirm-button'
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                } else {
+                  Swal.fire({
+                    title: 'No hay otros usuarios',
+                    text: 'No hay otros usuarios a los que transferir el mural. Debes eliminarlo.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Eliminar mural',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                      popup: 'custom-swal-popup',
+                      confirmButton: 'custom-confirm-button',
+                      cancelButton: 'custom-cancel-button'
+                    }
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      this.deleteMural();
+                    }
+                  });
+                }
+              },
+              error: (error) => {
+                console.error('Error al obtener usuarios del mural:', error);
+                Swal.fire({
+                  title: 'Error',
+                  text: 'No se pudieron obtener los usuarios del mural.',
+                  icon: 'error',
+                  confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                  confirmButtonText: 'Aceptar',
+                  customClass: {
+                    popup: 'custom-swal-popup',
+                    confirmButton: 'custom-confirm-button'
+                  }
+                });
+              }
+            });
+          } else if (result.isDenied) {
+            this.deleteMural();
+          }
+        });
+      } else if (this.mural) {
+        // Para administradores que no son creadores, intentar abandonar
+        this.muralService.abandonarMural(this.mural.id_mural).subscribe({
+          next: () => {
+            Swal.fire({
+              title: '¡Completado!',
+              text: 'Has abandonado el mural exitosamente.',
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Continuar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+            this.loadMural();
+            this.loadMuralUsers();
+            this.router.navigate(['/']);
+          },
+          error: (error) => {
+            if (error.status === 403) {
+              // Si el error es 403, mostrar opciones de transferir o eliminar
+              Swal.fire({
+                title: 'No puedes abandonar este mural',
+                text: 'Como creador, debes transferir la propiedad o eliminar el mural.',
+                icon: 'warning',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Transferir propiedad',
+                denyButtonText: 'Eliminar mural',
+                cancelButtonText: 'Cancelar',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button',
+                  denyButton: 'custom-deny-button',
+                  cancelButton: 'custom-cancel-button'
+                }
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  // Obtener lista de todos los usuarios del mural
+                  this.muralService.getUsuariosByMural(this.mural!.id_mural).subscribe({
+                    next: (usuarios) => {
+                      // Filtrar usuarios excluyendo al creador actual
+                      const availableUsers = usuarios.filter(u => u.id_usuario !== currentUserId);
+                      if (availableUsers.length > 0) {
+                        const userOptions = availableUsers.map(user => ({
+                          id: user.id_usuario,
+                          text: user.nombre
+                        }));
+                        Swal.fire({
+                          title: 'Transferir propiedad',
+                          text: 'Selecciona el nuevo propietario del mural:',
+                          input: 'select',
+                          inputOptions: Object.fromEntries(userOptions.map(opt => [opt.id, opt.text])),
+                          showCancelButton: true,
+                          confirmButtonText: 'Transferir',
+                          cancelButtonText: 'Cancelar',
+                          customClass: {
+                            popup: 'custom-swal-popup',
+                            confirmButton: 'custom-confirm-button',
+                            cancelButton: 'custom-cancel-button'
+                          }
+                        }).then((transferResult) => {
+                          if (transferResult.isConfirmed) {
+                            // Primero actualizar el rol del nuevo propietario a administrador
+                            this.muralService.updateUserRole(this.mural!.id_mural, transferResult.value, 'administrador').subscribe({
+                              next: () => {
+                                // Luego transferir la propiedad
+                                this.muralService.transferirPropiedad(this.mural!.id_mural, transferResult.value).subscribe({
+                                  next: () => {
+                                    Swal.fire({
+                                      title: '¡Completado!',
+                                      text: 'La propiedad del mural ha sido transferida exitosamente.',
+                                      icon: 'success',
+                                      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                                      confirmButtonText: 'Continuar',
+                                      customClass: {
+                                        popup: 'custom-swal-popup',
+                                        confirmButton: 'custom-confirm-button'
+                                      }
+                                    });
+                                    this.loadMural();
+                                    this.loadMuralUsers();
+                                    this.router.navigate(['/']);
+                                  },
+                                  error: (error) => {
+                                    Swal.fire({
+                                      title: 'Error',
+                                      text: error.error?.error || 'No se pudo transferir la propiedad del mural.',
+                                      icon: 'error',
+                                      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                                      confirmButtonText: 'Aceptar',
+                                      customClass: {
+                                        popup: 'custom-swal-popup',
+                                        confirmButton: 'custom-confirm-button'
+                                      }
+                                    });
+                                  }
+                                });
+                              },
+                              error: (error) => {
+                                Swal.fire({
+                                  title: 'Error',
+                                  text: 'No se pudo actualizar el rol del nuevo propietario.',
+                                  icon: 'error',
+                                  confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                                  confirmButtonText: 'Aceptar',
+                                  customClass: {
+                                    popup: 'custom-swal-popup',
+                                    confirmButton: 'custom-confirm-button'
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+                      } else {
+                        Swal.fire({
+                          title: 'No hay otros usuarios',
+                          text: 'No hay otros usuarios a los que transferir el mural. Debes eliminarlo.',
+                          icon: 'warning',
+                          showCancelButton: true,
+                          confirmButtonText: 'Eliminar mural',
+                          cancelButtonText: 'Cancelar',
+                          customClass: {
+                            popup: 'custom-swal-popup',
+                            confirmButton: 'custom-confirm-button',
+                            cancelButton: 'custom-cancel-button'
+                          }
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            this.deleteMural();
+                          }
+                        });
+                      }
+                    },
+                    error: (error) => {
+                      console.error('Error al obtener usuarios del mural:', error);
+                      Swal.fire({
+                        title: 'Error',
+                        text: 'No se pudieron obtener los usuarios del mural.',
+                        icon: 'error',
+                        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                        confirmButtonText: 'Aceptar',
+                        customClass: {
+                          popup: 'custom-swal-popup',
+                          confirmButton: 'custom-confirm-button'
+                        }
+                      });
+                    }
+                  });
+                } else if (result.isDenied) {
+                  this.deleteMural();
+                }
+              });
+            } else {
+              Swal.fire({
+                title: 'Error',
+                text: error.error?.error || 'No se pudo abandonar el mural.',
+                icon: 'error',
+                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                confirmButtonText: 'Aceptar',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button'
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+  }
+
+  deleteMural(): void {
+    if (!this.mural) return;
+    Swal.fire({
+      title: '¿Eliminar mural?',
+      text: `¿Estás seguro de que deseas eliminar el mural "${this.mural ? this.mural.titulo : ''}"? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (!this.mural) return;
+        this.muralService.deleteMural(this.mural.id_mural).subscribe({
+          next: () => {
+            Swal.fire({
+              title: '¡Eliminado!',
+              text: 'El mural ha sido eliminado exitosamente.',
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+            // Opcional: redirigir o recargar
+            this.mural = null;
+            this.muralUsers = [];
+            this.cdr.markForCheck();
+            this.router.navigate(['/']);
+          },
+          error: (error) => {
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo eliminar el mural. Intenta de nuevo más tarde.',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
       }
     });
   }

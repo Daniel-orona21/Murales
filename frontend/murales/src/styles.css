@@ -42,6 +42,15 @@ button {
   border-radius: 14px !important;
 }
 
+.swal2-popup select,
+.swal2-popup select option {
+  color: #fff !important;
+  background: #222 !important;
+}
+.swal2-popup select {
+  border: 1.5px solid #888;
+}
+
 .custom-swal-popup .swal2-title {
   color: #ffffff !important;
 }

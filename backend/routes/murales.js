@@ -33,6 +33,9 @@ router.post('/solicitar-acceso', verificarToken, muralController.joinMuralWithCo
 // Abandon mural by ID
 router.delete('/:id/abandonar', verificarToken, muralController.abandonarMural);
 
+// Transfer mural ownership
+router.post('/:id/transferir', verificarToken, muralController.transferirPropiedad);
+
 // NUEVAS RUTAS PARA PUBLICACIONES
 
 // Obtener todas las publicaciones de un mural

@@ -1025,6 +1025,104 @@ const muralController = {
       console.error('Error al actualizar tema:', error);
       res.status(500).json({ mensaje: 'Error al actualizar el tema' });
     }
+  },
+
+  transferirPropiedad: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { id_nuevo_propietario } = req.body;
+      const userId = req.user.id;
+
+      // Primero verificar si el mural existe
+      const [muralExists] = await db.query(
+        'SELECT * FROM murales WHERE id_mural = ?',
+        [id]
+      );
+
+      if (muralExists.length === 0) {
+        return res.status(404).json({ error: 'El mural no existe' });
+      }
+
+      // Verificar que el usuario actual es el creador del mural
+      const [mural] = await db.query(
+        'SELECT * FROM murales WHERE id_mural = ? AND id_creador = ?',
+        [id, userId]
+      );
+
+      if (mural.length === 0) {
+        return res.status(403).json({ 
+          error: 'Solo el creador del mural puede transferir la propiedad',
+          detail: 'El usuario actual no es el creador de este mural'
+        });
+      }
+
+      // Verificar que el nuevo propietario existe y es un usuario del mural
+      const [usuario] = await db.query(
+        'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id, id_nuevo_propietario]
+      );
+
+      if (usuario.length === 0) {
+        return res.status(404).json({ error: 'El usuario seleccionado no es miembro del mural' });
+      }
+
+      // Iniciar transacción
+      await db.query('START TRANSACTION');
+
+      try {
+        // Actualizar el creador del mural
+        await db.query(
+          'UPDATE murales SET id_creador = ? WHERE id_mural = ?',
+          [id_nuevo_propietario, id]
+        );
+
+        // Eliminar el rol de administrador del creador actual
+        await db.query(
+          'DELETE FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+          [id, userId]
+        );
+
+        // Crear notificación para el nuevo propietario
+        const [notificationResult] = await db.query(
+          `INSERT INTO notificaciones 
+           (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+           VALUES (?, ?, ?, 'otro', ?)`,
+          [
+            userId,
+            id_nuevo_propietario,
+            id,
+            `Has sido nombrado nuevo propietario del mural "${mural[0].titulo}"`
+          ]
+        );
+
+        // Obtener la notificación completa para emitir por WebSocket
+        const [notification] = await db.query(
+          `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+           FROM notificaciones n
+           LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+           LEFT JOIN murales m ON n.id_mural = m.id_mural
+           WHERE n.id_notificacion = ?`,
+          [notificationResult.insertId]
+        );
+
+        if (notification.length > 0) {
+          // Obtener el objeto io de Express
+          const io = req.app.get('io');
+          
+          // Emitir la notificación al nuevo propietario
+          io.to(`user:${id_nuevo_propietario}`).emit('notification', notification[0]);
+        }
+
+        await db.query('COMMIT');
+        res.json({ mensaje: 'Propiedad transferida exitosamente' });
+      } catch (error) {
+        await db.query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error al transferir propiedad del mural:', error);
+      res.status(500).json({ error: 'Error al transferir propiedad del mural' });
+    }
   }
 };
 

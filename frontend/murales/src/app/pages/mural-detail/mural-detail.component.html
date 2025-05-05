@@ -419,7 +419,8 @@
                   <select 
                     [value]="user.rol"
                     (change)="onRoleChange(user, $any($event.target).value, $event)"
-                    [class]="'role-select ' + getRoleBadgeClass(user.rol)">
+                    [class]="'role-select ' + getRoleBadgeClass(user.rol)"
+                    [disabled]="user.id_usuario === mural?.id_creador || (user.rol === 'administrador' && isOnlyAdmin(user))">
                     <option value="administrador">Administrador</option>
                     <option value="editor">Editor</option>
                     <option value="lector">Lector</option>
@@ -433,6 +434,11 @@
               </div>
             </div>
           </div>
+
+          <button class="abandonar-mural-btn" (click)="abandonarMural()">
+            <span class="material-symbols-outlined">logout</span>
+            Abandonar mural
+          </button>
         </div>
       </div>
     </div>

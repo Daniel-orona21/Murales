@@ -162,6 +162,11 @@ export class MuralService {
     return this.http.delete(`${this.apiUrl}/${id}/abandonar`, { headers });
   }
   
+  transferirPropiedad(id_mural: number, nuevoPropietarioId: number): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.post(`${this.apiUrl}/${id_mural}/transferir`, { id_nuevo_propietario: nuevoPropietarioId }, { headers });
+  }
+  
   // Métodos para Publicaciones
   
   getPublicacionesByMural(idMural: number): Observable<Publicacion[]> {
@@ -247,6 +252,10 @@ export class MuralService {
   getMuralUsers(muralId: number): Observable<MuralUser[]> {
     const headers = this.getHeaders();
     return this.http.get<MuralUser[]>(`${this.apiUrl}/${muralId}/usuarios`, { headers });
+  }
+
+  getUsuariosByMural(muralId: number): Observable<MuralUser[]> {
+    return this.getMuralUsers(muralId);
   }
 
   updateUserRole(muralId: number, userId: number, newRole: string): Observable<any> {

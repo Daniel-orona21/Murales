@@ -2023,3 +2023,37 @@
     z-index: 1;
   }
 }
+
+.role-warning {
+  font-size: 0.8em;
+  color: #ff4444;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.role-select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.abandonar-mural-btn {
+  background-color: rgba(0, 0, 0, 0.443);
+  color: white;
+  border: none;
+  display: flex;
+  border: 1px solid transparent;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  gap: 5px;
+  font-weight: 900;
+
+  &:hover {
+    border: 1px solid #d10c0c;
+    color: #d10c0c;
+  }
+}
