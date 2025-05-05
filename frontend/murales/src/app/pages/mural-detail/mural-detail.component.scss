@@ -34,6 +34,106 @@
       var(--color) var(--gap)
     );
   background-size: var(--gap) var(--gap);
+
+  // Clases para los temas
+  &.theme-1 {
+    background: #000000;
+    --gap: 5em;
+    --line: .8px;
+    --color: rgba(255, 255, 255, 0.2);
+    background-image: linear-gradient(
+        -90deg,
+        transparent calc(var(--gap) - var(--line)),
+        var(--color) calc(var(--gap) - var(--line) + 1px),
+        var(--color) var(--gap)
+      ),
+      linear-gradient(
+        0deg,
+        transparent calc(var(--gap) - var(--line)),
+        var(--color) calc(var(--gap) - var(--line) + 1px),
+        var(--color) var(--gap)
+      );
+    background-size: var(--gap) var(--gap);
+  }
+
+  &.theme-2 {
+    background-color: #e5e5f7;
+    background-image: 
+      repeating-radial-gradient(
+        circle at 0 0,
+        transparent 0,
+        #e5e5f7 30px
+      ),
+      linear-gradient(#ffb5b58a, #ffb8b8);
+    background-size: 100% 100%, cover;
+    background-repeat: no-repeat, no-repeat;
+  }
+
+  &.theme-3 {
+    --color: #E1E1E1;
+    background-color: #F3F3F3;
+    background-image: linear-gradient(0deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent),
+        linear-gradient(90deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent);
+    background-size: 55px 55px;
+  }
+
+  &.theme-4 {
+    background: repeating-linear-gradient(45deg, #92c9b1, #92c9b1 10px, #b3e0d2 10px, #b3e0d2 20px);
+  }
+
+  &.theme-5 {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    background: radial-gradient(125% 125% at 50% 10%, #fff 40%, #63e 100%);
+  
+  }
+
+  &.theme-6 {
+    background: #121212;
+    background: linear-gradient(
+      135deg,
+      #121212 25%,
+      #1a1a1a 25%,
+      #1a1a1a 50%,
+      #121212 50%,
+      #121212 75%,
+      #1a1a1a 75%,
+      #1a1a1a
+    );
+    background-size: 40px 40px;
+    animation: move 4s linear infinite;
+  }
+
+  &.theme-7 {
+    background-color: white;
+    background-image: linear-gradient(
+        90deg,
+        rgba(200, 0, 0, 0.5) 50%,
+        transparent 50%
+      ),
+      linear-gradient(rgba(200, 0, 0, 0.5) 50%, transparent 50%);
+    background-size: 25px 25px;
+  }
+
+  &.theme-8 {
+    background: linear-gradient(
+      -45deg,
+      #00eff8,
+      #f800b4,
+      #ebf503,
+      #02f6c1,
+      #00eff8,
+      #9400f8
+    );
+    background-size: 400% 400%;
+    animation: gradient 30s ease infinite;
+  }
+
+  &.theme-9 {
+    background-color: var(--custom-color, #808080);
+  }
 }
 
 // Estilos para las publicaciones
@@ -93,7 +193,7 @@
 
 .publicacion-item {
   position: absolute; /* Importante para el layout de Masonry */
-  background-color: #5252524d;
+  background-color: #2f2f2f83;
   backdrop-filter: blur(50px);
   border-radius: 12px;
   
@@ -507,6 +607,22 @@
     right: -350px;
     border-left: 1px solid #ededed27;
     transition: right 0.3s ease-in-out;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
 
     .modal-header {
 
@@ -561,7 +677,7 @@
       padding: 0;
       flex: 1;
 
-      .detallesMural {
+      .detallesMural { 
         width: 100%;
         height: auto;
         display: flex;
@@ -576,7 +692,7 @@
           box-sizing: border-box;
           position: relative;
           width: 100%;
-          gap: 10px;
+          gap: 30px;
           display: flex;
 
           .form-group {
@@ -1449,7 +1565,7 @@
 }
 
 .active-sessions {
-  margin-top: 20px;
+  margin-top: 0px;
   background: #000000;
   border: 1px solid #333;
   border-radius: 8px;
@@ -1616,3 +1732,258 @@
   }
 }
 
+.temas {
+  background-color: rgb(0, 0, 0);
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #333;
+  .header {
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+
+    span {
+      font-size: 20px;
+      cursor: pointer;
+
+      &:hover {
+        color: #ffffffbb;
+      }
+    }
+
+    .tituloHeader {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  .contenedorTemas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); // 3 columnas iguales
+    gap: 5px;
+    padding: 0px;
+  }
+
+  .tema {
+    overflow: hidden !important;
+    position: relative;
+    height: 60px;
+    border: 2px solid transparent;
+    border-radius: 0px;
+    box-sizing: border-box;
+  }
+
+  .tema1 { 
+      width: 100%;
+      height: 100%;
+    
+      background: #000000;
+      --gap: 1em;
+      --line: 1px;
+      --color: rgba(255, 255, 255, 0.2);
+    
+      background-image: linear-gradient(
+          -90deg,
+          transparent calc(var(--gap) - var(--line)),
+          var(--color) calc(var(--gap) - var(--line) + 1px),
+          var(--color) var(--gap)
+        ),
+        linear-gradient(
+          0deg,
+          transparent calc(var(--gap) - var(--line)),
+          var(--color) calc(var(--gap) - var(--line) + 1px),
+          var(--color) var(--gap)
+        );
+      background-size: var(--gap) var(--gap);
+  }
+  .tema2 { 
+    /* From Uiverse.io by vnuny */ 
+      background-color: #e5e5f7;
+      opacity: 1;
+      width: 100%;
+      height: 100%;
+      background-image: repeating-radial-gradient(
+          circle at 0 0,
+          transparent 0,
+          #e5e5f7 10px
+        ),
+        repeating-linear-gradient(#ffb5b58a, #ffb8b8);
+
+   }
+ 
+  .tema3 {
+    --color: #E1E1E1;
+    background-color: #F3F3F3;
+    background-image: linear-gradient(0deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent),
+        linear-gradient(90deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent);
+    background-size: 55px 55px;
+  }
+
+
+  .tema4 {
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(45deg, #92c9b1, #92c9b1 10px, #b3e0d2 10px, #b3e0d2 20px);
+  
+  }
+  
+  
+  
+
+  .tema6 { 
+     /* Basic dimensions and centering */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Dark mode colors and gradient */
+  background: #121212; /* Fallback for browsers that don't support gradients */
+  background: linear-gradient(
+    135deg,
+    #121212 25%,
+    #1a1a1a 25%,
+    #1a1a1a 50%,
+    #121212 50%,
+    #121212 75%,
+    #1a1a1a 75%,
+    #1a1a1a
+  );
+  background-size: 40px 40px;
+
+  /* Animation */
+  animation: move 4s linear infinite;
+   }
+
+   @keyframes move {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: 40px 40px;
+    }
+  }
+
+  .tema7 { 
+    background-color: white;
+    width: 100%;
+    height: 100%;
+    /* Add your background pattern here */
+    background-image: linear-gradient(
+        90deg,
+        rgba(200, 0, 0, 0.5) 50%,
+        transparent 50%
+      ),
+      linear-gradient(rgba(200, 0, 0, 0.5) 50%, transparent 50%);
+    background-size: 25px 25px;
+   } // pink en hex
+  .tema8 { 
+    width: 100%;
+    /* height: 100%; */
+    /* Add your background pattern here */
+    background: linear-gradient(
+      -45deg,
+      #00eff8,
+      #f800b4,
+      #ebf503,
+      #02f6c1,
+      #00eff8,
+      #9400f8
+    );
+    background-size: 400% 400%;
+    animation: gradient 30s ease infinite;
+    height: 200%;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 50% 100%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    75% {
+      background-position: 50% 0%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .tema9 { 
+    background-color: #808080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: '+';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: white;
+      z-index: 3;
+      pointer-events: none;
+      text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .color-picker {
+      width: 100%;
+      height: 100%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      -webkit-appearance: none;
+      background: transparent;
+      z-index: 2;
+      opacity: 0.7;
+
+      &::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      &::-webkit-color-swatch {
+        border: none;
+        border-radius: 0;
+      }
+
+      &::-moz-color-swatch {
+        border: none;
+        border-radius: 0;
+      }
+    }
+  }
+}
+
+
+
+.tema5 {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  position: relative;
+  transform: scale(1.05);
+
+  .tema5-bg {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(100% 100% at 50% 10%, #fff 40%, #63e 80%);
+    z-index: 1;
+  }
+}

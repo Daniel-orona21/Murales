@@ -94,6 +94,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   muralUsers: MuralUser[] = [];
   loadingUsers = false;
   showUsersList = false;
+  customColor: string = '#808080';
+  selectedTheme: number = 1;
   
   constructor(
     private muralService: MuralService, 
@@ -1116,5 +1118,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.cdr.markForCheck();
       }
     });
+  }
+
+  onThemeSelect(themeNumber: number): void {
+    this.selectedTheme = themeNumber;
+    this.cdr.markForCheck();
+  }
+
+  onColorChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.customColor = input.value;
+    document.documentElement.style.setProperty('--custom-color', this.customColor);
+    this.cdr.markForCheck();
   }
 }

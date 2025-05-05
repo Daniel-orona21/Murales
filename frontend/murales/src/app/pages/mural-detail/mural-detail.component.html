@@ -1,4 +1,12 @@
-<div class="mural-detail-container">
+<div class="mural-detail-container" [class.theme-1]="selectedTheme === 1"
+     [class.theme-2]="selectedTheme === 2"
+     [class.theme-3]="selectedTheme === 3"
+     [class.theme-4]="selectedTheme === 4"
+     [class.theme-5]="selectedTheme === 5"
+     [class.theme-6]="selectedTheme === 6"
+     [class.theme-7]="selectedTheme === 7"
+     [class.theme-8]="selectedTheme === 8"
+     [class.theme-9]="selectedTheme === 9">
   <!-- Global loading spinner for images -->
   <div class="global-loading-container" *ngIf="isLoadingImages">
     <div class="pyramid-loader">
@@ -355,6 +363,27 @@
               <option value="publico">Público</option>
               <option value="privado">Privado</option>
             </select>
+          </div>
+
+          <div class="temas">
+            <div class="header">
+              <h3 class="tituloHeader">Seleccionar tema</h3>
+            </div>
+            <div class="contenedorTemas">
+              <div class="tema tema1" (click)="onThemeSelect(1)" [class.selected]="selectedTheme === 1"></div>
+              <div class="tema tema2" (click)="onThemeSelect(2)" [class.selected]="selectedTheme === 2"></div>
+              <div class="tema tema3" (click)="onThemeSelect(3)" [class.selected]="selectedTheme === 3"></div>
+              <div class="tema tema4" (click)="onThemeSelect(4)" [class.selected]="selectedTheme === 4"></div>
+              <div class="tema tema5" (click)="onThemeSelect(5)" [class.selected]="selectedTheme === 5">
+                <div class="tema5-bg"></div>
+              </div>
+              <div class="tema tema6" (click)="onThemeSelect(6)" [class.selected]="selectedTheme === 6"></div>
+              <div class="tema tema7" (click)="onThemeSelect(7)" [class.selected]="selectedTheme === 7"></div>
+              <div class="tema tema8" (click)="onThemeSelect(8)" [class.selected]="selectedTheme === 8"></div>
+              <div class="tema tema9" (click)="onThemeSelect(9)" [class.selected]="selectedTheme === 9">
+                <input type="color" class="color-picker" [(ngModel)]="customColor" (change)="onColorChange($event)">
+              </div>
+            </div>
           </div>
 
           <!-- User List Section -->
