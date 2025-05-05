@@ -7,6 +7,9 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
 import { PdfViewerModule } from 'ng2-pdf-viewer';
 import Swal from 'sweetalert2';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../../services/auth.service';
 
 interface NuevoElemento {
   titulo: string;
@@ -97,10 +100,14 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   customColor: string = '#808080';
   selectedTheme: number = 1;
   
+  private apiUrl = environment.apiUrl;
+  
   constructor(
     private muralService: MuralService, 
     private sanitizer: DomSanitizer,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -159,12 +166,17 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.muralService.getMuralById(this.muralId).subscribe({
       next: (mural) => {
         this.mural = mural;
+        this.selectedTheme = mural.tema || 1;
+        this.customColor = mural.color_personalizado || '#808080';
+        if (mural.color_personalizado) {
+          document.documentElement.style.setProperty('--custom-color', this.customColor);
+        }
         this.isAdmin = mural.rol_usuario === 'administrador';
         this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error al cargar el mural:', error);
-        this.error = 'No se pudo cargar el mural';
+        this.error = 'Error al cargar el mural';
       }
     });
   }
@@ -1120,15 +1132,99 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     });
   }
 
-  onThemeSelect(themeNumber: number): void {
-    this.selectedTheme = themeNumber;
-    this.cdr.markForCheck();
+  onThemeSelect(theme: number) {
+    if (!this.isAdmin) {
+      console.warn('Solo los administradores pueden cambiar el tema');
+      this.selectedTheme = this.mural?.tema || 1;
+      return;
+    }
+    
+    // Si ya estamos en el tema 9 y se hace clic en él, no hacer nada
+    if (theme === 9 && this.selectedTheme === 9) {
+      return;
+    }
+
+    this.selectedTheme = theme;
+    
+    // Si es el tema personalizado, usar el color actual
+    if (theme === 9) {
+      this.updateMuralTheme(theme, this.customColor);
+    } else {
+      this.updateMuralTheme(theme);
+    }
   }
 
-  onColorChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.customColor = input.value;
-    document.documentElement.style.setProperty('--custom-color', this.customColor);
-    this.cdr.markForCheck();
+  onColorChange(event: any) {
+    if (!this.isAdmin) {
+      console.warn('Solo los administradores pueden cambiar el tema');
+      this.customColor = this.mural?.color_personalizado || '#808080';
+      return;
+    }
+
+    const color = event.target.value;
+    this.customColor = color;
+    // Aplicar el color inmediatamente
+    document.documentElement.style.setProperty('--custom-color', color);
+    
+    // Si estamos en el tema 9, actualizar el tema con el nuevo color
+    if (this.selectedTheme === 9) {
+      this.updateMuralTheme(9, color);
+    } else {
+      // Si no estamos en el tema 9, cambiar al tema 9 con el nuevo color
+      this.selectedTheme = 9;
+      this.updateMuralTheme(9, color);
+    }
+  }
+
+  // Prevenir la selección automática del tema al hacer clic en el selector de color
+  onColorPickerClick(event: Event) {
+    event.stopPropagation(); // Evitar que se propague el click al contenedor del tema
+  }
+
+  private updateMuralTheme(theme: number, color?: string) {
+    const muralId = this.mural?.id_mural;
+    if (!muralId) return;
+
+    const themeData = {
+      tema: theme,
+      ...(color && { color_personalizado: color })
+    };
+
+    this.muralService.updateMuralTheme(muralId, themeData).subscribe({
+      next: (response: any) => {
+        console.log('Tema actualizado correctamente');
+        // Actualizar el mural local con los nuevos valores
+        if (this.mural) {
+          this.mural.tema = theme;
+          if (color) {
+            this.mural.color_personalizado = color;
+            // Asegurar que el color se aplique
+            document.documentElement.style.setProperty('--custom-color', color);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al actualizar el tema:', error);
+        // Revertir el cambio en caso de error
+        this.selectedTheme = this.mural?.tema || 1;
+        if (this.mural?.color_personalizado) {
+          this.customColor = this.mural.color_personalizado;
+          document.documentElement.style.setProperty('--custom-color', this.mural.color_personalizado);
+        }
+        // Mostrar mensaje de error al usuario
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo actualizar el tema del mural',
+          icon: 'error',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Aceptar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

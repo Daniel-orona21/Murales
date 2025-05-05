@@ -94,6 +94,8 @@ CREATE TABLE `murales` (
   `id_creador` int(11) DEFAULT NULL,
   `privacidad` varchar(20) NOT NULL CHECK (`privacidad` in ('publico','privado','codigo')),
   `codigo_acceso` varchar(10) DEFAULT NULL,
+  `tema` int(11) DEFAULT 1,
+  `color_personalizado` varchar(7) DEFAULT NULL,
   `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
   `fecha_actualizacion` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `estado` tinyint(1) DEFAULT 1

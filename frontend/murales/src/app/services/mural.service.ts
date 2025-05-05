@@ -9,9 +9,14 @@ export interface Mural {
   id_mural: number;
   titulo: string;
   descripcion: string;
-  privacidad: string;
+  id_creador: number;
+  privacidad: 'publico' | 'privado' | 'codigo';
+  codigo_acceso: string;
+  tema: number;
+  color_personalizado?: string;
   fecha_creacion: string;
-  codigo_acceso?: string;
+  fecha_actualizacion: string;
+  estado: number;
   rol_usuario?: string;
   permite_comentarios?: boolean;
   permite_likes?: boolean;
@@ -89,6 +94,11 @@ export interface MuralUser {
   avatar_url?: string;
   rol: string;
   fecha_asignacion: string;
+}
+
+export interface UpdateThemeData {
+  tema: number;
+  color_personalizado?: string;
 }
 
 @Injectable({
@@ -242,5 +252,11 @@ export class MuralService {
   updateUserRole(muralId: number, userId: number, newRole: string): Observable<any> {
     const headers = this.getHeaders();
     return this.http.put(`${this.apiUrl}/${muralId}/usuarios/${userId}/rol`, { rol: newRole }, { headers });
+  }
+
+  // Método para actualizar el tema del mural
+  updateMuralTheme(muralId: number, themeData: UpdateThemeData): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.put(`${this.apiUrl}/${muralId}/tema`, themeData, { headers });
   }
 } 

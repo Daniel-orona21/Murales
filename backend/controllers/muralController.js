@@ -976,6 +976,55 @@ const muralController = {
       console.error('Error al actualizar rol:', error);
       res.status(500).json({ error: 'Error al actualizar el rol del usuario' });
     }
+  },
+
+  // Actualizar tema del mural
+  updateMuralTheme: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { tema, color_personalizado } = req.body;
+      const userId = req.user.id;
+
+      // Verificar si el usuario tiene permisos de administrador
+      const checkQuery = `
+        SELECT m.*, 
+               CASE 
+                 WHEN m.id_creador = ? THEN 'administrador'
+                 ELSE COALESCE(rm.rol, 'lector') 
+               END as rol_usuario
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+      `;
+
+      const [mural] = await db.query(checkQuery, [userId, userId, id, userId, userId]);
+
+      if (!mural || mural.length === 0) {
+        return res.status(404).json({ mensaje: 'Mural no encontrado' });
+      }
+
+      if (mural[0].rol_usuario !== 'administrador') {
+        return res.status(403).json({ mensaje: 'No tienes permisos para actualizar el tema' });
+      }
+
+      // Actualizar el tema
+      const updateData = {};
+      if (tema !== undefined) updateData.tema = tema;
+      if (color_personalizado !== undefined) updateData.color_personalizado = color_personalizado;
+      updateData.fecha_actualizacion = new Date();
+
+      await db.query(
+        `UPDATE murales 
+         SET ? 
+         WHERE id_mural = ?`,
+        [updateData, id]
+      );
+
+      res.json({ mensaje: 'Tema actualizado correctamente' });
+    } catch (error) {
+      console.error('Error al actualizar tema:', error);
+      res.status(500).json({ mensaje: 'Error al actualizar el tema' });
+    }
   }
 };
 

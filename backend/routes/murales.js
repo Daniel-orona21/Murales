@@ -15,6 +15,9 @@ router.get('/:id/usuarios', verificarToken, muralController.getUsuariosByMural);
 // Update user role in mural
 router.put('/:id_mural/usuarios/:id_usuario/rol', verificarToken, muralController.actualizarRolUsuario);
 
+// Update mural theme
+router.put('/:id/tema', verificarToken, muralController.updateMuralTheme);
+
 // Create new mural
 router.post('/', verificarToken, muralController.createMural);
 
