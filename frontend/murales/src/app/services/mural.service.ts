@@ -82,6 +82,15 @@ export interface FileUploadResponse {
   mensaje: string;
 }
 
+export interface MuralUser {
+  id_usuario: number;
+  nombre: string;
+  email: string;
+  avatar_url?: string;
+  rol: string;
+  fecha_asignacion: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -223,5 +232,15 @@ export class MuralService {
     return this.http.get<{id_usuario: number}>(`${environment.apiUrl}/auth/current-user`, { headers }).pipe(
       map(response => response.id_usuario)
     );
+  }
+
+  getMuralUsers(muralId: number): Observable<MuralUser[]> {
+    const headers = this.getHeaders();
+    return this.http.get<MuralUser[]>(`${this.apiUrl}/${muralId}/usuarios`, { headers });
+  }
+
+  updateUserRole(muralId: number, userId: number, newRole: string): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.put(`${this.apiUrl}/${muralId}/usuarios/${userId}/rol`, { rol: newRole }, { headers });
   }
 } 

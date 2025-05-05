@@ -820,6 +820,162 @@ const muralController = {
       console.error('Error al eliminar publicación:', error);
       res.status(500).json({ error: 'Error al eliminar la publicación' });
     }
+  },
+
+  // Función para obtener usuarios de un mural
+  getUsuariosByMural: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      // Verificar si el usuario tiene acceso al mural
+      const checkQuery = `
+        SELECT m.*, rm.rol 
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+      `;
+
+      const [mural] = await db.query(checkQuery, [userId, id, userId, userId]);
+
+      if (!mural || mural.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      }
+
+      // Obtener todos los usuarios del mural
+      const query = `
+        SELECT 
+          u.id_usuario,
+          u.nombre,
+          u.avatar_url,
+          CASE 
+            WHEN m.id_creador = u.id_usuario THEN 'administrador'
+            ELSE COALESCE(rm.rol, 'lector')
+          END as rol
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural
+        LEFT JOIN usuarios u ON (rm.id_usuario = u.id_usuario OR m.id_creador = u.id_usuario)
+        WHERE m.id_mural = ?
+        GROUP BY u.id_usuario
+        ORDER BY 
+          CASE 
+            WHEN m.id_creador = u.id_usuario THEN 1
+            WHEN rm.rol = 'administrador' THEN 2
+            WHEN rm.rol = 'editor' THEN 3
+            ELSE 4
+          END,
+          u.nombre ASC
+      `;
+
+      const [usuarios] = await db.query(query, [id]);
+
+      res.json(usuarios);
+    } catch (error) {
+      console.error('Error al obtener usuarios del mural:', error);
+      res.status(500).json({ error: 'Error al obtener los usuarios del mural' });
+    }
+  },
+
+  // Función para actualizar el rol de un usuario en un mural
+  actualizarRolUsuario: async (req, res) => {
+    try {
+      const { id_mural, id_usuario } = req.params;
+      const { rol } = req.body;
+      const userId = req.user.id;
+
+      // Verificar que el rol sea válido
+      const rolesValidos = ['lector', 'editor', 'administrador'];
+      if (!rolesValidos.includes(rol)) {
+        return res.status(400).json({ error: 'Rol no válido' });
+      }
+
+      // Verificar si el usuario que hace la petición tiene permisos de administrador
+      const checkQuery = `
+        SELECT m.*, rm.rol, m.titulo
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol = 'administrador'))
+      `;
+
+      const [mural] = await db.query(checkQuery, [userId, id_mural, userId, userId]);
+
+      if (!mural || mural.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para modificar roles en este mural' });
+      }
+
+      // Verificar que el usuario a modificar exista en el mural
+      const [usuarioMural] = await db.query(
+        'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id_mural, id_usuario]
+      );
+
+      if (!usuarioMural || usuarioMural.length === 0) {
+        return res.status(404).json({ error: 'El usuario no está asociado a este mural' });
+      }
+
+      // No permitir cambiar el rol del creador del mural
+      if (mural[0].id_creador == id_usuario) {
+        return res.status(403).json({ error: 'No se puede cambiar el rol del creador del mural' });
+      }
+
+      // Actualizar el rol
+      const updateQuery = `
+        UPDATE roles_mural 
+        SET rol = ?
+        WHERE id_mural = ? AND id_usuario = ?
+      `;
+
+      await db.query(updateQuery, [rol, id_mural, id_usuario]);
+
+      // Obtener el nombre del usuario que recibe el nuevo rol
+      const [userData] = await db.query(
+        'SELECT nombre FROM usuarios WHERE id_usuario = ?',
+        [id_usuario]
+      );
+
+      if (userData && userData.length > 0) {
+        // Crear notificación para el usuario
+        const [notificationResult] = await pool.query(
+          `INSERT INTO notificaciones 
+           (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+           VALUES (?, ?, ?, 'otro', ?)`,
+          [
+            userId,
+            id_usuario,
+            id_mural,
+            `Se te ha otorgado el rol de "${rol}" en el mural "${mural[0].titulo}"`
+          ]
+        );
+
+        // Obtener la notificación completa para emitir por WebSocket
+        const [notification] = await pool.query(
+          `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+           FROM notificaciones n
+           LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+           LEFT JOIN murales m ON n.id_mural = m.id_mural
+           WHERE n.id_notificacion = ?`,
+          [notificationResult.insertId]
+        );
+
+        if (notification.length > 0) {
+          // Obtener el objeto io de Express
+          const io = req.app.get('io');
+          
+          // Emitir la notificación al usuario
+          io.to(`user:${id_usuario}`).emit('notification', notification[0]);
+        }
+      }
+
+      res.json({ 
+        mensaje: 'Rol actualizado exitosamente',
+        id_usuario,
+        id_mural,
+        rol
+      });
+    } catch (error) {
+      console.error('Error al actualizar rol:', error);
+      res.status(500).json({ error: 'Error al actualizar el rol del usuario' });
+    }
   }
 };
 

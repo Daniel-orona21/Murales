@@ -5,14 +5,14 @@
   <div class="carousel-container">
     <div class="botonera">
       <div class="edicion">
-        <button class="options-button confirmar" *ngIf="isAdmin && isEditing" (click)="onSaveEdit()">
+        <button class="options-button confirmar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onSaveEdit()">
           <span class="material-symbols-outlined">check</span>
         </button>
-        <button class="options-button cancelar" *ngIf="isAdmin && isEditing" (click)="onCancelEdit()">
+        <button class="options-button cancelar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onCancelEdit()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <button class="options-button" *ngIf="isAdmin && !isEditing" (click)="toggleOptionsMenu($event)">
+      <button class="options-button" *ngIf="(isAdmin || isEditor) && !isEditing" (click)="toggleOptionsMenu($event)">
         <span class="material-symbols-outlined">more_vert</span>
       </button>
       <div class="options-menu" *ngIf="showOptionsMenu" (click)="$event.stopPropagation()">

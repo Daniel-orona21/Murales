@@ -1,7 +1,7 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild, ElementRef, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural } from '../../services/mural.service';
+import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural, MuralUser } from '../../services/mural.service';
 import Masonry from 'masonry-layout';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
@@ -91,6 +91,10 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   
   @Output() muralUpdated = new EventEmitter<Mural>();
   
+  muralUsers: MuralUser[] = [];
+  loadingUsers = false;
+  showUsersList = false;
+  
   constructor(
     private muralService: MuralService, 
     private sanitizer: DomSanitizer,
@@ -101,6 +105,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.muralId) {
       this.loadMural();
       this.cargarPublicaciones();
+      this.loadMuralUsers();
       // Obtener el ID del usuario actual del servicio de autenticación
       this.muralService.getCurrentUserId().subscribe({
         next: (userId) => {
@@ -992,5 +997,119 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   openConfig(): void {
     this.toggleConfigModal();
+  }
+
+  loadMuralUsers(): void {
+    if (!this.muralId) return;
+    
+    this.loadingUsers = true;
+    this.muralService.getMuralUsers(this.muralId).subscribe({
+      next: (users) => {
+        this.muralUsers = users;
+        this.loadingUsers = false;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Error al cargar usuarios del mural:', error);
+        this.loadingUsers = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleUsersList(): void {
+    this.showUsersList = !this.showUsersList;
+    if (this.showUsersList && this.muralUsers.length === 0) {
+      this.loadMuralUsers();
+    }
+  }
+
+  getRoleBadgeClass(role: string): string {
+    switch (role) {
+      case 'administrador':
+        return 'badge-admin';
+      case 'editor':
+        return 'badge-editor';
+      case 'lector':
+        return 'badge-reader';
+      default:
+        return '';
+    }
+  }
+
+  onRoleChange(user: MuralUser, newRole: string, event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    const originalRole = user.rol;
+
+    if (!this.muralId || !user.id_usuario || originalRole === newRole) {
+      selectElement.value = originalRole;
+      return;
+    }
+
+    // Mostrar confirmación
+    Swal.fire({
+      title: '¿Cambiar rol?',
+      text: `¿Estás seguro de cambiar el rol de ${user.nombre} a ${newRole}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.muralService.updateUserRole(this.muralId!, user.id_usuario, newRole).subscribe({
+          next: () => {
+            // Actualizar el rol localmente
+            user.rol = newRole;
+            this.cdr.markForCheck();
+            
+            // Mostrar mensaje de éxito
+            Swal.fire({
+              title: '¡Rol actualizado!',
+              text: `El rol de ${user.nombre} ha sido actualizado a ${newRole}`,
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error al actualizar el rol:', error);
+            
+            // Restaurar el valor original en caso de error
+            selectElement.value = originalRole;
+            user.rol = originalRole;
+            this.cdr.markForCheck();
+            
+            // Mostrar mensaje de error
+            Swal.fire({
+              title: 'Error',
+              text: 'No se pudo actualizar el rol del usuario',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      } else {
+        // Si se cancela, restaurar el valor original
+        selectElement.value = originalRole;
+        user.rol = originalRole;
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

@@ -23,6 +23,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   @Input() likesCount: { [key: number]: number } = {};
   @Input() likesLoading: { [key: number]: boolean } = {};
   @Input() isAdmin: boolean = false;
+  @Input() isEditor: boolean = false;
   @Input() currentUserId: number = 0;
   
   @Output() close = new EventEmitter<void>();

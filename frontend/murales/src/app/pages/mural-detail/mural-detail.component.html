@@ -166,6 +166,7 @@
     [likesCount]="likesCount"
     [likesLoading]="likesLoading"
     [isAdmin]="isAdmin"
+    [isEditor]="mural?.rol_usuario === 'editor'"
     [currentUserId]="currentUserId"
     (close)="closeCarousel()"
     (likeToggled)="onLikeToggled($event)"
@@ -355,12 +356,55 @@
               <option value="privado">Privado</option>
             </select>
           </div>
+
+          <!-- User List Section -->
+          <div class="active-sessions">
+            <div class="sessions-header" (click)="toggleUsersList()">
+              <h4>Usuarios del Mural</h4>
+              <i class="fas" [class.fa-chevron-down]="!showUsersList" [class.fa-chevron-up]="showUsersList"></i>
+            </div>
+            
+            <div class="sessions-list" [class.expanded]="showUsersList">
+              <div class="loading-users" *ngIf="loadingUsers">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Cargando usuarios...</span>
+              </div>
+
+              <div class="no-users" *ngIf="!loadingUsers && muralUsers.length === 0">
+                <span>No hay usuarios en este mural</span>
+              </div>
+
+              <div class="session-item" *ngFor="let user of muralUsers">
+                <div class="session-info">
+                  <div class="session-details">
+                    <span class="session-device">{{ user.nombre }}</span>
+                    <span class="session-time">{{ user.email }}</span>
+                  </div>
+                </div>
+                <div class="user-role" *ngIf="isAdmin">
+                  <select 
+                    [value]="user.rol"
+                    (change)="onRoleChange(user, $any($event.target).value, $event)"
+                    [class]="'role-select ' + getRoleBadgeClass(user.rol)">
+                    <option value="administrador">Administrador</option>
+                    <option value="editor">Editor</option>
+                    <option value="lector">Lector</option>
+                  </select>
+                </div>
+                <div class="user-role" *ngIf="!isAdmin">
+                  <span class="role-badge" [class]="getRoleBadgeClass(user.rol)">
+                    {{ user.rol }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;" *ngIf="mural?.rol_usuario === 'administrador'">
+  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;" *ngIf="mural?.rol_usuario === 'administrador' || mural?.rol_usuario === 'editor'">
     <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
       <span class="material-symbols-outlined">add</span>
     </button>
