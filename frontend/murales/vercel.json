@@ -1,20 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/murales",
-        "buildCommand": "npm install --legacy-peer-deps && ng build --configuration production"
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "installCommand": "npm install --legacy-peer-deps"
+  ]
 } 
