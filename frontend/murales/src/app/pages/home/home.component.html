@@ -321,7 +321,12 @@
         <div class="sessions-list" [class.expanded]="showSessionsList">
           <div class="session-item" *ngFor="let session of sessions">
             <div class="session-info">
-              <i class="fas fa-desktop"></i>
+              <i class="fas" [ngClass]="{
+                'fa-mobile-alt': session.dispositivo.toLowerCase().includes('iphone') || session.dispositivo.toLowerCase().includes('android'),
+                'fa-tablet-alt': session.dispositivo.toLowerCase().includes('ipad'),
+                'fa-laptop': session.dispositivo.toLowerCase().includes('mac') || session.dispositivo.toLowerCase().includes('windows') || session.dispositivo.toLowerCase().includes('linux'),
+                'fa-desktop': !session.dispositivo.toLowerCase().includes('iphone') && !session.dispositivo.toLowerCase().includes('android') && !session.dispositivo.toLowerCase().includes('ipad') && !session.dispositivo.toLowerCase().includes('mac') && !session.dispositivo.toLowerCase().includes('windows') && !session.dispositivo.toLowerCase().includes('linux')
+              }"></i>
               <div class="session-details">
                 <span class="session-device">{{ getDeviceInfo(session) }}</span>
                 <span class="session-time">{{ session.fecha_inicio | date:'dd MMM, HH:mm' }}</span>

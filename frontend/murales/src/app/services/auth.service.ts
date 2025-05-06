@@ -256,10 +256,56 @@ export class AuthService {
   }
 
   private getDeviceInfo(): string {
-    const userAgent = navigator.userAgent;
-    const platform = navigator.platform;
-    const vendor = navigator.vendor;
-    return `${platform} - ${vendor} - ${userAgent}`;
+    const userAgent = navigator.userAgent.toLowerCase();
+    let device = '';
+    let browser = '';
+
+    // Detectar dispositivo
+    if (/iphone|ipod/.test(userAgent)) {
+      device = 'iPhone';
+    } else if (/ipad/.test(userAgent)) {
+      device = 'iPad';
+    } else if (/android/.test(userAgent)) {
+      device = 'Android';
+    } else if (/macintosh|mac os x/.test(userAgent)) {
+      device = 'Mac';
+    } else if (/windows/.test(userAgent)) {
+      device = 'Windows';
+    } else if (/linux/.test(userAgent)) {
+      device = 'Linux';
+    } else {
+      device = 'Otro';
+    }
+
+    // Detectar navegador de manera más precisa
+    if (/crios/.test(userAgent)) {
+      browser = 'Chrome';
+    } else if (/firefox/.test(userAgent)) {
+      browser = 'Firefox';
+    } else if (/safari/.test(userAgent) && !/chrome/.test(userAgent)) {
+      browser = 'Safari';
+    } else if (/edg/.test(userAgent)) {
+      browser = 'Edge';
+    } else if (/opera|opr/.test(userAgent)) {
+      browser = 'Opera';
+    } else if (/chrome/.test(userAgent)) {
+      browser = 'Chrome';
+    } else {
+      browser = 'Navegador';
+    }
+
+    // Casos especiales para iOS
+    if (/iphone|ipad|ipod/.test(userAgent)) {
+      if (/crios/.test(userAgent)) {
+        browser = 'Chrome';
+      } else if (/fxios/.test(userAgent)) {
+        browser = 'Firefox';
+      } else if (/version/.test(userAgent)) {
+        browser = 'Safari';
+      }
+    }
+
+    return `${device} - ${browser}`;
   }
 
   private handleError(error: HttpErrorResponse) {

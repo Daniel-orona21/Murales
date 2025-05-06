@@ -230,7 +230,7 @@ exports.processAccessRequest = async (req, res) => {
       return res.status(403).json({ error: 'No tienes permisos para procesar esta solicitud' });
     }
     
-    // Eliminar la notificación original en lugar de actualizar su estado
+    // Eliminar la notificación original
     await pool.query(
       'DELETE FROM notificaciones WHERE id_notificacion = ?',
       [notificationId]
@@ -288,6 +288,13 @@ exports.processAccessRequest = async (req, res) => {
         io.to(`user:${solicitud.id_emisor}`).emit('notification', nuevaNotificacion[0]);
       }
     } else {
+      // Si se rechaza, eliminar cualquier solicitud pendiente del mismo usuario para este mural
+      await pool.query(
+        `DELETE FROM notificaciones 
+         WHERE id_emisor = ? AND id_mural = ? AND tipo = 'solicitud_acceso' AND estado_solicitud = 'pendiente'`,
+        [solicitud.id_emisor, solicitud.id_mural]
+      );
+      
       // Usar el título del mural que ya obtenemos en la consulta inicial
       const muralTitle = solicitud.titulo_mural || 'desconocido';
       

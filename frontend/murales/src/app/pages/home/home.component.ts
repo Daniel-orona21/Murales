@@ -782,7 +782,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   markAsRead(notification: Notification, event: Event) {
     event.stopPropagation();
     
-    // No need to remove from UI immediately, the service will handle it via notifications$ subscription
+    // If it's an access request, automatically reject it when marking as read
+    if (notification.tipo === 'solicitud_acceso') {
+      this.notificationService.processAccessRequest(notification.id_notificacion, false).subscribe({
+        next: () => {
+          console.log('Access request automatically rejected when marked as read');
+        },
+        error: (error) => {
+          console.error('Error al rechazar solicitud de acceso:', error);
+        }
+      });
+    }
     
     this.notificationService.markAsRead(notification.id_notificacion).subscribe({
       next: () => {
