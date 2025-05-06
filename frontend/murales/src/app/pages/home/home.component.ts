@@ -24,6 +24,7 @@ interface MuralWithMenu extends Mural {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
+  searchText: string = '';
   loading = true;
   showCreateModal = false;
   newMural: CreateMuralData = {
@@ -885,15 +886,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     ) {
       return;
     }
-    
     // Cambiar directamente al mural seleccionado
     this.selectedMuralId = mural.id_mural;
+    this.searchText = '';
   }
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
     this.selectedMuralId = null;
     this.selectedPost = null;
+    this.searchText = '';
   }
 
   toggleProfileMenu(event: Event) {
@@ -1096,5 +1098,24 @@ export class HomeComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // Getter para los murales filtrados
+  get filteredMurals(): MuralWithMenu[] {
+    if (!this.searchText.trim()) {
+      return this.murals;
+    }
+    
+    const searchLower = this.searchText.toLowerCase().trim();
+    return this.murals.filter(mural => 
+      mural.titulo.toLowerCase().includes(searchLower) ||
+      mural.descripcion.toLowerCase().includes(searchLower)
+    );
+  }
+
+  // Método para manejar la búsqueda
+  onSearch(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchText = input.value;
   }
 } 

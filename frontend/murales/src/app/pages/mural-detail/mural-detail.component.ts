@@ -33,6 +33,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
   @Input() forceClosePost: boolean = false;
+  @Input() searchText: string = '';
   isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
@@ -153,6 +154,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     }
     if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
       this.closeCarousel();
+    }
+    if (changes['searchText'] && !changes['searchText'].firstChange) {
+      this.relayoutMasonry();
     }
   }
 
@@ -1603,5 +1607,21 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         });
       }
     });
+  }
+
+  // Getter para las publicaciones filtradas
+  get filteredPublicaciones(): Publicacion[] {
+    if (!this.searchText || !this.searchText.trim()) return this.publicaciones;
+    return this.publicaciones.filter(publicacion =>
+      publicacion.titulo.toLowerCase().includes(this.searchText.toLowerCase().trim())
+    );
+  }
+
+  private relayoutMasonry() {
+    setTimeout(() => {
+      if (this.masonry && typeof this.masonry.layout === 'function') {
+        this.masonry.layout();
+      }
+    }, 0);
   }
 }

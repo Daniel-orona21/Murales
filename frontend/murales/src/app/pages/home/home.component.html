@@ -46,7 +46,12 @@
     <div class="nav-right">
       <div class="search-bar">
         <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search...">
+        <input
+          type="text"
+          [placeholder]="selectedMuralId ? 'Buscar publicaciones...' : 'Buscar murales...'"
+          (input)="onSearch($event)"
+          [value]="searchText"
+        >
       </div>
       <div class="user-actions">
         <button class="icon-button notification-btn" (click)="toggleNotifications($event)">
@@ -73,6 +78,7 @@
             <app-mural-detail
               #muralDetail
               [muralId]="selectedMuralId"
+              [searchText]="searchText"
               (postSelected)="onPostSelect($event)"
               (postClosed)="onPostClosed()"
               (muralUpdated)="onMuralUpdated($event)">
@@ -98,7 +104,7 @@
 
           <ng-template #muralesList>
             <div class="murales-grid">
-              <div *ngFor="let mural of murals; let i = index" 
+              <div *ngFor="let mural of filteredMurals; let i = index" 
                   class="mural-card" 
                   [style.animation-delay]="(i * 0.1) + 's'"
                   (click)="onMuralClick(mural, $event)">
