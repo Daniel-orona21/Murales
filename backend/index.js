@@ -30,7 +30,12 @@ const io = socketIo(server, {
 app.set('io', io);
 
 // Configurar CORS
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://tu-app.vercel.app'] // Reemplaza con tu dominio de Vercel
+    : '*',
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
