@@ -10,6 +10,7 @@ import { firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
 import { AuthService } from '../../services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -51,6 +52,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   sessions: any[] = [];
   currentSessionId: string | null = null;
   showSessionsList = false;
+  showRecoveryForm = false;
+  recoveryEmail: string = '';
 
   selectedPost: any = null;
   forceClosePost = false;
@@ -853,6 +856,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     return mural ? mural.titulo : 'Mural';
   }
 
+  
+
   // Método para determinar si el título necesita ser truncado
   isTitleTruncated(): boolean {
     if (!this.selectedMuralId) return false;
@@ -1020,6 +1025,46 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   toggleSessionsList() {
     this.showSessionsList = !this.showSessionsList;
+  }
+
+  toggleRecoveryForm() {
+    this.showRecoveryForm = !this.showRecoveryForm;
+  }
+
+  requestPasswordRecovery() {
+    if (!this.recoveryEmail) return;
+
+    this.authService.requestPasswordReset(this.recoveryEmail).subscribe({
+      next: () => {
+        Swal.fire({
+          title: '¡Correo enviado!',
+          text: 'Si el correo existe en nuestra base de datos, recibirás instrucciones para recuperar tu contraseña.',
+          icon: 'success',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Entendido',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
+        this.recoveryEmail = '';
+        this.showRecoveryForm = false;
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error al solicitar recuperación de contraseña:', error);
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo procesar la solicitud. Intenta de nuevo más tarde.',
+          icon: 'error',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Aceptar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
+      }
+    });
   }
 
   getDeviceInfo(session: any): string {

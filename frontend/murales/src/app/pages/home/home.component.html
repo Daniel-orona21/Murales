@@ -334,8 +334,33 @@
           </div>
         </div>
       </div>
+      <!-- Password Recovery Section -->
+      <div class="password-recovery">
+        <div class="recovery-header" (click)="toggleRecoveryForm()">
+          <h4>Recuperar Contraseña</h4>
+          <i class="fas" [class.fa-chevron-down]="!showRecoveryForm" [class.fa-chevron-up]="showRecoveryForm"></i>
+        </div>
+        
+        <div class="recovery-form" [class.expanded]="showRecoveryForm">
+          <form (ngSubmit)="requestPasswordRecovery()" #recoveryForm="ngForm">
+            <div class="form-group">
+              <input 
+                type="email" 
+                name="email" 
+                [(ngModel)]="recoveryEmail" 
+                required
+                placeholder="Ingresa tu correo electrónico"
+                class="recovery-input"
+              >
+            </div>
+            <button type="submit" class="recovery-button" [disabled]="!recoveryForm.form.valid">
+              <i class="fas fa-paper-plane"></i>
+              Enviar
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
-
 
     <div class="profile-actions">
       <button class="action-button" (click)="logout()">
