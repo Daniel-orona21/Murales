@@ -9,7 +9,6 @@ const dbConfig = {
   database: process.env.DB_NAME || 'murales'
 };
 
-// Crear pool de conexiones para manejar múltiples consultas
 const pool = mysql.createPool(dbConfig);
 
 // Función para verificar la conexión a la base de datos
