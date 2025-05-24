@@ -1,8 +1,10 @@
 {
-  "routes": [
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/murales/browser",
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
