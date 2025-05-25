@@ -831,7 +831,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                 confirmButton: 'custom-confirm-button'
               }
             });
-            this.router.navigate(['/']);
+            // this.router.navigate(['/']);
           },
           error: (error) => {
             console.error('Error al eliminar publicación:', error);

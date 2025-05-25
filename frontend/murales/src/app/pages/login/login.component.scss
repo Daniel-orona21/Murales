@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,100..900;1,100..900&display=swap');
 .login-container {
   min-height: 100vh;
   width: 100%;
@@ -23,7 +24,6 @@
   min-height: 100vh;
   padding: 0 8rem;
   flex: 1;
-  background-color: transparent !important;
   position: relative;
   z-index: 2;
   background: transparent;
@@ -31,17 +31,29 @@
 
 .brand-section {
   text-align: left;
-  flex: 1;
-  max-width: 600px;
+  width: auto;
 }
 
 h1 {
   font-size: 4.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #ffffff 0%, #a5a5a5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
+  font-family: "Saira", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-weight: 100;
+
+  > span {
+    background: none;
+    -webkit-background-clip: initial;
+    -webkit-text-fill-color: initial;
+  }
+
+  > span:not([style*="color"]) {
+    background: linear-gradient(135deg, #ffffff 0%, #a5a5a5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
 .subtitle {
@@ -82,14 +94,12 @@ h1 {
 }
 
 .cartaRegistro {
-
-  .contenedor {
-    gap: 0;
-  }
-  .form-group {
-    margin-bottom: 5px;
+  .login-button {
+    margin: 0.5rem 0;
   }
 }
+
+
 
 .form-header {
   text-align: center;
@@ -178,7 +188,7 @@ h1 {
   border: 1px solid rgba(78, 78, 78, 0.536);
   width: 100%;
   padding: 1rem;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   background: black;
   border-radius: 12px;
   color: white;
@@ -381,7 +391,7 @@ h1 {
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: .5rem;
   position: relative;
 }
 
@@ -409,6 +419,7 @@ h1 {
 
 @media (max-width: 992px) {
   .login-content {
+    justify-content: center;
     flex-direction: column;
     padding: 2rem;
     gap: 3rem;
@@ -423,11 +434,38 @@ h1 {
   }
 }
 
+@media (max-width: 500px) {
+  .login-content {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .cartaRegistro {
+    padding: 1rem;
+    .contenedor {
+      gap: 0;
+    }
+    .form-group {
+      margin-bottom: 3px; 
+    }
+    .additional-options {
+      margin: 0.5rem 0;
+    }
+  
+    .login-button {
+      margin: 0;
+    }
+  }
+}
+
 .recaptcha-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 1rem;
+  margin: 0rem;
   width: 100%;
   
   ::ng-deep .grecaptcha-badge {

@@ -165,7 +165,7 @@
       </div>
     </ng-container>
     <ng-template #noResults>
-      <div class="empty-state">
+      <div class="empty-state" *ngIf="!cargando && !isLoadingImages">
         <p>No hay coincidencias</p>
       </div>
     </ng-template>
