@@ -2,7 +2,7 @@ services:
   - type: web
     name: murales-backend
     env: node
-    buildCommand: rm -rf node_modules package-lock.json && npm cache clean --force && npm install --no-optional
+    buildCommand: rm -rf node_modules package-lock.json && npm cache clean --force && npm install && npm rebuild bcrypt --build-from-source
     startCommand: npm start
     envVars:
       - key: NODE_ENV
