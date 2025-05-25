@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors, FormControl } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 import { HttpClientModule } from '@angular/common/http';
-import { RecaptchaModule } from 'ng-recaptcha';
+import { RecaptchaModule, RecaptchaComponent } from 'ng-recaptcha';
 
 @Component({
   selector: 'app-login',
@@ -25,6 +25,9 @@ export class LoginComponent {
   showRegisterConfirmPassword: boolean = false;
   readonly recaptchaKey = '6LeLYy0rAAAAADP0r56l-mUKKfHewF4n_tt3yQuL'; // Reemplaza con tu clave de sitio real
   recaptchaToken: string | null = null;
+  cargando = false;
+
+  @ViewChild('captchaRef') captchaRef!: RecaptchaComponent;
 
   // Properties for forgot password functionality
   forgotPasswordSubmitted: boolean = false;
@@ -183,7 +186,9 @@ export class LoginComponent {
   }
 
   onLogin() {
+    this.cargando = true;
     if (this.loginForm.invalid) {
+      this.cargando = false;
       Object.keys(this.loginForm.controls).forEach(key => {
         const control = this.loginForm.get(key);
         if (control?.invalid) {
@@ -196,6 +201,7 @@ export class LoginComponent {
     const { email, password } = this.loginForm.value;
     this.authService.login(email, password).subscribe({
       next: (response) => {
+        this.cargando = false;
         Swal.fire({
           title: '¡Bienvenido!',
           text: 'Inicio de sesión exitoso',
@@ -211,6 +217,7 @@ export class LoginComponent {
         });
       },
       error: (error) => {
+        this.cargando = false;
         console.error('Error en login:', error);
         this.showError(typeof error === 'string' ? error : 'Error al iniciar sesión');
       }
@@ -218,7 +225,9 @@ export class LoginComponent {
   }
 
   onRegister() {
+    this.cargando = true;
     if (this.registerForm.invalid) {
+      this.cargando = false;
       Object.keys(this.registerForm.controls).forEach(key => {
         const control = this.registerForm.get(key);
         if (control?.invalid) {
@@ -253,6 +262,7 @@ export class LoginComponent {
 
     this.authService.register(userData).subscribe({
       next: () => {
+        this.cargando = false;
         // Guardar los datos para el login
         this.loginForm.patchValue({
           email: email,
@@ -274,9 +284,17 @@ export class LoginComponent {
         });
       },
       error: (error) => {
+        this.cargando = false;
         console.error('Error en registro:', error);
         this.showError(typeof error === 'string' ? error : 'Error al registrar usuario');
         this.recaptchaToken = null;
+        const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
+        if (recaptchaControl) {
+          recaptchaControl.setValue('');
+        }
+        if (this.captchaRef) {
+          this.captchaRef.reset();
+        }
       }
     });
   }
@@ -292,12 +310,18 @@ export class LoginComponent {
     this.recaptchaToken = null;
     const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
     recaptchaControl.setValue('');
+    if (this.captchaRef) {
+      this.captchaRef.reset();
+    }
   }
 
   onRecaptchaError() {
     this.recaptchaToken = null;
     const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
     recaptchaControl.setValue('');
+    if (this.captchaRef) {
+      this.captchaRef.reset();
+    }
     Swal.fire({
       title: 'Error',
       text: 'Error al cargar el CAPTCHA. Por favor, recarga la página.',
@@ -383,6 +407,7 @@ export class LoginComponent {
 
   // Method to handle forgot password submission
   onForgotPassword() {
+    this.cargando = true;
     this.forgotPasswordError = false;
     this.forgotPasswordMessage = '';
     if (this.forgotPasswordForm.invalid) {
@@ -400,6 +425,7 @@ export class LoginComponent {
 
     this.authService.requestPasswordReset(email).subscribe({
       next: (response: any) => { 
+        this.cargando = false;
         this.forgotPasswordSubmitting = false;
         this.forgotPasswordSubmitted = true;
         this.forgotPasswordMessage = response.message || 'Se han enviado instrucciones a tu correo electrónico.';
@@ -407,6 +433,7 @@ export class LoginComponent {
          this.resetFormErrors(this.forgotPasswordForm);
       },
       error: (error) => {
+        this.cargando = false;
         this.forgotPasswordSubmitting = false;
         this.forgotPasswordError = true;
         this.forgotPasswordMessage = typeof error === 'string' ? error : (error.error?.message || 'Error al enviar las instrucciones. Inténtalo de nuevo.');

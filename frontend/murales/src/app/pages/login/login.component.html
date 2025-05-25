@@ -44,9 +44,10 @@
             </div>
           </div>
 
-          <button type="submit" class="login-button">
+          <button [disabled]="cargando" type="submit" class="login-button">
             <span>Comenzar</span>
-            <i class="fas fa-arrow-right"></i>
+            <i *ngIf="!cargando" class="fas fa-arrow-right"></i>
+            <span *ngIf="cargando" class="spinner-button"></span>
           </button>
         </form>
 
@@ -139,6 +140,7 @@
 
           <div class="form-group recaptcha-container">
             <re-captcha
+              #captchaRef
               [siteKey]="recaptchaKey"
               (resolved)="onRecaptchaResolved($event)"
               (expired)="onRecaptchaExpired()"
@@ -152,9 +154,10 @@
             </div>
           </div>
 
-          <button type="submit" class="login-button">
+          <button [disabled]="cargando" type="submit" class="login-button">
             <span>Registrarse</span>
-            <i class="fas fa-arrow-right"></i>
+            <i *ngIf="!cargando" class="fas fa-arrow-right"></i>
+            <span *ngIf="cargando" class="spinner-button"></span>
           </button>
         </form>
 
@@ -202,10 +205,11 @@
               </div>
             </div>
 
-            <button type="submit" class="login-button" [disabled]="forgotPasswordForm.invalid || forgotPasswordSubmitting">
+            <button [disabled]="cargando" type="submit" class="login-button" [disabled]="forgotPasswordForm.invalid || forgotPasswordSubmitting">
               <span *ngIf="!forgotPasswordSubmitting">Enviar instrucciones</span>
               <span *ngIf="forgotPasswordSubmitting">Enviando...</span>
-              <i class="fas fa-arrow-right"></i>
+              <i *ngIf="!forgotPasswordSubmitting" class="fas fa-arrow-right"></i>
+              <span *ngIf="forgotPasswordSubmitting" class="spinner-button"></span>
             </button>
           </form>
 
