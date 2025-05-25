@@ -17,12 +17,20 @@ import { RecaptchaModule } from 'ng-recaptcha';
 export class LoginComponent {
   loginForm: FormGroup;
   registerForm: FormGroup;
+  forgotPasswordForm: FormGroup;
   showPassword: boolean = false;
   showRegister: boolean = false;
+  showForgotPassword: boolean = false;
   showRegisterPassword: boolean = false;
   showRegisterConfirmPassword: boolean = false;
   readonly recaptchaKey = '6LeLYy0rAAAAADP0r56l-mUKKfHewF4n_tt3yQuL'; // Reemplaza con tu clave de sitio real
   recaptchaToken: string | null = null;
+
+  // Properties for forgot password functionality
+  forgotPasswordSubmitted: boolean = false;
+  forgotPasswordSubmitting: boolean = false;
+  forgotPasswordError: boolean = false;
+  forgotPasswordMessage: string = '';
 
   constructor(
     private router: Router,
@@ -65,6 +73,11 @@ export class LoginComponent {
       if (this.registerForm.get('password')?.value) {
         this.registerForm.get('confirmPassword')?.updateValueAndValidity();
       }
+    });
+
+    // Initialize forgotPasswordForm
+    this.forgotPasswordForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]]
     });
 
     // Validación en tiempo real para el formulario de login
@@ -125,28 +138,47 @@ export class LoginComponent {
     this.showRegisterConfirmPassword = !this.showRegisterConfirmPassword;
   }
 
-  toggleCards() {
-    this.showRegister = !this.showRegister;
-    if (this.showRegister) {
-      // Al ir a registro, siempre resetear el form de login
+  toggleForms(formToShow: 'login' | 'register' | 'forgotPassword') {
+    this.showRegister = formToShow === 'register';
+    this.showForgotPassword = formToShow === 'forgotPassword';
+
+    // Reset forms when switching
+    if (formToShow === 'login') {
+      this.registerForm.reset();
+      this.forgotPasswordForm.reset();
+      this.resetFormErrors(this.registerForm);
+      this.resetFormErrors(this.forgotPasswordForm);
+      this.forgotPasswordSubmitted = false;
+      this.forgotPasswordMessage = '';
+      this.forgotPasswordError = false;
+    } else if (formToShow === 'register') {
       this.loginForm.reset();
-      Object.keys(this.loginForm.controls).forEach(key => {
-        const control = this.loginForm.get(key);
-        control?.setErrors(null);
-        control?.markAsUntouched();
-        control?.markAsPristine();
-      });
-    } else {
-      // Al volver a login, solo resetear si no venimos de un registro exitoso
-      if (!this.loginForm.get('email')?.value) {
-        this.registerForm.reset();
-        Object.keys(this.registerForm.controls).forEach(key => {
-          const control = this.registerForm.get(key);
-          control?.setErrors(null);
-          control?.markAsUntouched();
-          control?.markAsPristine();
-        });
-      }
+      this.forgotPasswordForm.reset();
+      this.resetFormErrors(this.loginForm);
+      this.resetFormErrors(this.forgotPasswordForm);
+      this.forgotPasswordSubmitted = false;
+      this.forgotPasswordMessage = '';
+      this.forgotPasswordError = false;
+    } else if (formToShow === 'forgotPassword') {
+      this.loginForm.reset();
+      this.registerForm.reset();
+      this.resetFormErrors(this.loginForm);
+      this.resetFormErrors(this.registerForm);
+      // Do not reset forgotPasswordSubmitted and message here as they are part of its own flow
+    }
+  }
+
+  private resetFormErrors(form: FormGroup) {
+    Object.keys(form.controls).forEach(key => {
+      const control = form.get(key);
+      control?.setErrors(null);
+      control?.markAsUntouched();
+      control?.markAsPristine();
+    });
+    if (form === this.registerForm) {
+      this.recaptchaToken = null; // Reset recaptcha token for register form
+      const recaptchaControl = this.registerForm.get('recaptcha') as FormControl;
+      recaptchaControl?.setValue('');
     }
   }
 
@@ -238,7 +270,7 @@ export class LoginComponent {
             confirmButton: 'custom-confirm-button'
           }
         }).then(() => {
-          this.toggleCards();
+          this.toggleForms('login');
         });
       },
       error: (error) => {
@@ -279,7 +311,7 @@ export class LoginComponent {
     });
   }
 
-  // Getters para facilitar el acceso a los controles del formulario en el template
+  // Getters for facilitating access to form controls in the template
   get loginEmail() { return this.loginForm.get('email'); }
   get loginPassword() { return this.loginForm.get('password'); }
   get registerName() { return this.registerForm.get('name'); }
@@ -287,8 +319,9 @@ export class LoginComponent {
   get registerPassword() { return this.registerForm.get('password'); }
   get registerConfirmPassword() { return this.registerForm.get('confirmPassword'); }
   get recaptchaControl() { return this.registerForm.get('recaptcha') as FormControl; }
+  get forgotPasswordEmail() { return this.forgotPasswordForm.get('email'); }
 
-  // Métodos para manejar la prioridad de errores
+  // Methods for handling error priority
   getPasswordError() {
     const errors = this.registerPassword?.errors;
     if (!errors) return '';
@@ -344,6 +377,40 @@ export class LoginComponent {
       customClass: {
         popup: 'custom-swal-popup',
         confirmButton: 'custom-confirm-button'
+      }
+    });
+  }
+
+  // Method to handle forgot password submission
+  onForgotPassword() {
+    this.forgotPasswordError = false;
+    this.forgotPasswordMessage = '';
+    if (this.forgotPasswordForm.invalid) {
+      Object.keys(this.forgotPasswordForm.controls).forEach(key => {
+        const control = this.forgotPasswordForm.get(key);
+        if (control?.invalid) {
+          control.markAsTouched();
+        }
+      });
+      return;
+    }
+
+    this.forgotPasswordSubmitting = true;
+    const email = this.forgotPasswordForm.value.email;
+
+    this.authService.requestPasswordReset(email).subscribe({
+      next: (response: any) => { 
+        this.forgotPasswordSubmitting = false;
+        this.forgotPasswordSubmitted = true;
+        this.forgotPasswordMessage = response.message || 'Se han enviado instrucciones a tu correo electrónico.';
+        this.forgotPasswordForm.reset();
+         this.resetFormErrors(this.forgotPasswordForm);
+      },
+      error: (error) => {
+        this.forgotPasswordSubmitting = false;
+        this.forgotPasswordError = true;
+        this.forgotPasswordMessage = typeof error === 'string' ? error : (error.error?.message || 'Error al enviar las instrucciones. Inténtalo de nuevo.');
+        console.error('Error en forgot password:', error);
       }
     });
   }

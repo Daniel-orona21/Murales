@@ -7,7 +7,7 @@
     
     <div class="card-container">
       <!-- Login Card -->
-      <div class="card" [class.hidden]="showRegister">
+      <div class="card" [class.active-card]="!showRegister && !showForgotPassword">
         <div class="form-header">
           <h2>Bienvenido de nuevo</h2>
           <p>Continua creando!</p>
@@ -51,8 +51,8 @@
         </form>
 
         <div class="additional-options">
-          <a (click)="toggleCards()" class="forgot-password">Registrarme</a>
-          <a routerLink="/forgot-password" class="forgot-password">Olvidé mi contraseña</a>
+          <a (click)="toggleForms('register')" class="forgot-password">Registrarme</a>
+          <a (click)="toggleForms('forgotPassword')" class="forgot-password">Olvidé mi contraseña</a>
         </div>
 
         <div class="social-login">
@@ -72,7 +72,7 @@
       </div>
 
       <!-- Register Card -->
-      <div class="card cartaRegistro" [class.hidden]="!showRegister">
+      <div class="card cartaRegistro" [class.active-card]="showRegister">
         <div class="form-header">
           <h2>Crear cuenta</h2>
           <p>Únete a nuestra comunidad!</p>
@@ -159,7 +159,7 @@
         </form>
 
         <div class="additional-options">
-          <a (click)="toggleCards()" class="forgot-password">Ya tengo cuenta</a>
+          <a (click)="toggleForms('login')" class="forgot-password">Ya tengo cuenta</a>
         </div>
 
         <div class="social-login">
@@ -175,6 +175,53 @@
               <i class="fab fa-microsoft"></i>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Forgot Password Card -->
+      <div class="card" [class.active-card]="showForgotPassword">
+        <div class="form-header">
+          <h2>Recuperar contraseña</h2>
+          <p *ngIf="!forgotPasswordSubmitted">Ingresa tu correo electrónico para recibir instrucciones de recuperación.</p>
+        </div>
+        
+        <div *ngIf="!forgotPasswordSubmitted" class="form-container">
+          <form [formGroup]="forgotPasswordForm" (ngSubmit)="onForgotPassword()" class="contenedor">
+            <div class="form-group">
+              <div class="input-wrapper" [class.error]="forgotPasswordEmail?.invalid && (forgotPasswordEmail?.touched || forgotPasswordEmail?.dirty)">
+                <i class="fas fa-envelope"></i>
+                <input 
+                  type="email" 
+                  formControlName="email" 
+                  placeholder="Correo electrónico" 
+                  class="form-control">
+              </div>
+              <div class="error-message" *ngIf="forgotPasswordEmail?.invalid && (forgotPasswordEmail?.touched || forgotPasswordEmail?.dirty)">
+                <small *ngIf="forgotPasswordEmail?.errors?.['required']">El correo electrónico es requerido</small>
+                <small *ngIf="forgotPasswordEmail?.errors?.['email']">Ingresa un correo electrónico válido</small>
+              </div>
+            </div>
+
+            <button type="submit" class="login-button" [disabled]="forgotPasswordForm.invalid || forgotPasswordSubmitting">
+              <span *ngIf="!forgotPasswordSubmitting">Enviar instrucciones</span>
+              <span *ngIf="forgotPasswordSubmitting">Enviando...</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </form>
+
+          <div *ngIf="forgotPasswordError" class="error-message">
+            <small>{{ forgotPasswordMessage }}</small>
+          </div>
+        </div>
+
+        <div *ngIf="forgotPasswordSubmitted" class="success-message">
+          <i class="fas fa-check-circle"></i>
+          <p>{{ forgotPasswordMessage }}</p>
+          <p class="small-text">Revisa tu correo electrónico y sigue las instrucciones para restablecer tu contraseña.</p>
+        </div>
+
+        <div class="additional-options">
+          <a (click)="toggleForms('login')" class="forgot-password volver">Volver al inicio de sesión</a>
         </div>
       </div>
     </div>

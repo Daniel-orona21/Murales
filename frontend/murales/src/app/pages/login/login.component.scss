@@ -22,11 +22,12 @@
   align-items: center;
   justify-content: space-between;
   min-height: 100vh;
+  height: auto;
   padding: 0 8rem;
   flex: 1;
   position: relative;
   z-index: 2;
-  background: transparent;
+  // background: transparent;
 }
 
 .brand-section {
@@ -67,7 +68,7 @@ h1 {
   width: 100%;
   max-width: 480px;
   perspective: 1000px;
-  height: 600px;
+  height: 620px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,11 +86,14 @@ h1 {
   transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  opacity: 0;
+  transform: rotateY(180deg);
+  pointer-events: none;
 
-  &.hidden {
-    transform: rotateY(180deg);
-    opacity: 0;
-    pointer-events: none;
+  &.active-card {
+    opacity: 1;
+    transform: rotateY(0deg);
+    pointer-events: auto;
   }
 }
 
@@ -98,8 +102,6 @@ h1 {
     margin: 0.5rem 0;
   }
 }
-
-
 
 .form-header {
   text-align: center;
@@ -230,6 +232,10 @@ h1 {
       color: rgba(255, 255, 255, 0.7);
       font-size: 0.9rem;
     }
+  }
+
+  .volver {
+    margin: 0 auto;
   }
 
   .forgot-password {
@@ -410,6 +416,24 @@ h1 {
   }
 }
 
+.success-message {
+  text-align: center;
+  padding: 2rem;
+  i {
+    font-size: 3rem;
+    color: #28a745; // Green color for success icon
+    margin-bottom: 1rem;
+  }
+  p {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  .small-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 1200px) {
   .login-content {
@@ -423,6 +447,10 @@ h1 {
     flex-direction: column;
     padding: 2rem;
     gap: 3rem;
+  }
+
+  .card-container {
+    max-width: none;
   }
 
   .brand-section {
@@ -440,11 +468,11 @@ h1 {
   }
 
   .card {
-    padding: 1rem;
+    padding: 2rem;
   }
 
   .cartaRegistro {
-    padding: 1rem;
+    padding: 1.5rem;
     .contenedor {
       gap: 0;
     }
