@@ -2,7 +2,7 @@ services:
   - type: web
     name: murales-backend
     env: node
-    buildCommand: npm install
+    buildCommand: npm ci --only=production
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -15,7 +15,17 @@ services:
         sync: false
       - key: DB_USER
         sync: false
-      - key: DB_PASSWORD
+      - key: DB_PASS
         sync: false
       - key: DB_NAME
+        sync: false
+      - key: EMAIL_SERVICE
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
         sync: false 
