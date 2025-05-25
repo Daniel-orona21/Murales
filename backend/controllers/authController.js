@@ -1,18 +1,10 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const mysql = require('mysql2/promise');
+const pool = require('../config/database');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
-
-// Configuración de la conexión a la base de datos
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME
-};
 
 // Configurar el transporte de correo electrónico
 const transporter = nodemailer.createTransport({
@@ -34,16 +26,13 @@ const registrar = async (req, res) => {
   const { nombre, email, contrasena } = req.body;
   
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Verificar si el email ya está registrado
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT * FROM usuarios WHERE email = ?', 
       [email]
     );
     
     if (usuarios.length > 0) {
-      await connection.end();
       return res.status(400).json({ mensaje: 'El usuario ya existe' });
     }
     
@@ -53,13 +42,13 @@ const registrar = async (req, res) => {
     
     // Crear nuevo usuario
     const fechaActual = new Date();
-    await connection.execute(
+    await pool.execute(
       'INSERT INTO usuarios (nombre, email, contrasena, fecha_registro, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
       [nombre, email, hashedPassword, fechaActual, fechaActual, fechaActual]
     );
     
     // Obtener el ID del usuario recién insertado
-    const [resultado] = await connection.execute(
+    const [resultado] = await pool.execute(
       'SELECT id_usuario FROM usuarios WHERE email = ?', 
       [email]
     );
@@ -83,7 +72,6 @@ const registrar = async (req, res) => {
       }
     );
     
-    await connection.end();
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error en el servidor' });
@@ -108,16 +96,13 @@ const iniciarSesion = async (req, res) => {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Buscar usuario por email
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT * FROM usuarios WHERE email = ?', 
       [email]
     );
     
     if (usuarios.length === 0) {
-      await connection.end();
       return res.status(400).json({ mensaje: 'Credenciales incorrectas' });
     }
     
@@ -125,7 +110,6 @@ const iniciarSesion = async (req, res) => {
     
     // Verificar si el usuario está bloqueado
     if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
-      await connection.end();
       return res.status(403).json({ 
         mensaje: `Cuenta bloqueada temporalmente. Intente nuevamente después de ${new Date(usuario.bloqueado_hasta).toLocaleString()}` 
       });
@@ -142,23 +126,21 @@ const iniciarSesion = async (req, res) => {
         const tiempoBloqueo = new Date();
         tiempoBloqueo.setMinutes(tiempoBloqueo.getMinutes() + 30);
         
-        await connection.execute(
+        await pool.execute(
           'UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id_usuario = ?', 
           [0, tiempoBloqueo, usuario.id_usuario]
         );
         
-        await connection.end();
         return res.status(403).json({ 
           mensaje: `Demasiados intentos fallidos. Cuenta bloqueada hasta ${tiempoBloqueo.toLocaleString()}` 
         });
       }
       
-      await connection.execute(
+      await pool.execute(
         'UPDATE usuarios SET intentos_fallidos = ? WHERE id_usuario = ?', 
         [nuevoIntentos, usuario.id_usuario]
       );
       
-      await connection.end();
       return res.status(400).json({ 
         mensaje: 'Credenciales incorrectas',
         intentosFallidos: nuevoIntentos,
@@ -168,7 +150,7 @@ const iniciarSesion = async (req, res) => {
     
     // Reset de intentos fallidos y actualización de último acceso
     const fechaActual = new Date();
-    await connection.execute(
+    await pool.execute(
       'UPDATE usuarios SET intentos_fallidos = 0, ultimo_acceso = ?, bloqueado_hasta = NULL WHERE id_usuario = ?', 
       [fechaActual, usuario.id_usuario]
     );
@@ -186,18 +168,16 @@ const iniciarSesion = async (req, res) => {
     
     // Crear nueva sesión
     const idSesion = uuidv4();
-    await connection.execute(
+    await pool.execute(
       'INSERT INTO sesiones_usuario (id_sesion, id_usuario, token, dispositivo) VALUES (?, ?, ?, ?)',
       [idSesion, usuario.id_usuario, token, dispositivo || 'Desconocido']
     );
     
     // Obtener todas las sesiones activas del usuario
-    const [sesiones] = await connection.execute(
+    const [sesiones] = await pool.execute(
       'SELECT id_sesion, dispositivo, fecha_creacion FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
       [usuario.id_usuario]
     );
-    
-    await connection.end();
     
     res.json({ 
       token,
@@ -220,21 +200,17 @@ const obtenerUsuario = async (req, res) => {
       return res.status(401).json({ mensaje: 'Usuario no autenticado' });
     }
 
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Obtener usuario desde la base de datos (excluyendo la contraseña)
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT id_usuario, nombre, email, avatar_url, fecha_registro, ultimo_acceso FROM usuarios WHERE id_usuario = ?', 
       [req.usuario.id]
     );
     
     if (usuarios.length === 0) {
-      await connection.end();
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
     
     res.json(usuarios[0]);
-    await connection.end();
   } catch (error) {
     console.error('Error en obtenerUsuario:', error);
     res.status(500).json({ mensaje: 'Error en el servidor' });
@@ -261,17 +237,14 @@ const solicitarResetPassword = async (req, res) => {
   }
   
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Verificar si el email existe
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT * FROM usuarios WHERE email = ?', 
       [email]
     );
     
     if (usuarios.length === 0) {
       // Por seguridad, no informamos al usuario que el email no existe
-      await connection.end();
       return res.status(200).json({ mensaje: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' });
     }
     
@@ -283,7 +256,7 @@ const solicitarResetPassword = async (req, res) => {
     expiracion.setHours(expiracion.getHours() + 1);
     
     // Guardar token en la base de datos
-    await connection.execute(
+    await pool.execute(
       'UPDATE usuarios SET token_recuperacion = ?, expiracion_token_recuperacion = ? WHERE id_usuario = ?', 
       [token, expiracion, usuarios[0].id_usuario]
     );
@@ -313,7 +286,6 @@ const solicitarResetPassword = async (req, res) => {
       }
     });
     
-    await connection.end();
     return res.status(200).json({ mensaje: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' });
     
   } catch (error) {
@@ -327,16 +299,13 @@ const verificarTokenReset = async (req, res) => {
   const { token } = req.params;
   
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Buscar usuario con el token
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT * FROM usuarios WHERE token_recuperacion = ?', 
       [token]
     );
     
     if (usuarios.length === 0) {
-      await connection.end();
       return res.status(400).json({ valido: false, mensaje: 'Token de restablecimiento inválido' });
     }
     
@@ -344,11 +313,9 @@ const verificarTokenReset = async (req, res) => {
     
     // Verificar si el token ha expirado
     if (!usuario.expiracion_token_recuperacion || new Date(usuario.expiracion_token_recuperacion) < new Date()) {
-      await connection.end();
       return res.status(400).json({ valido: false, mensaje: 'El token de restablecimiento ha expirado' });
     }
     
-    await connection.end();
     res.json({ valido: true, mensaje: 'Token válido' });
     
   } catch (error) {
@@ -367,16 +334,13 @@ const restablecerPassword = async (req, res) => {
   }
   
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Buscar usuario con el token
-    const [usuarios] = await connection.execute(
+    const [usuarios] = await pool.execute(
       'SELECT * FROM usuarios WHERE token_recuperacion = ?', 
       [token]
     );
     
     if (usuarios.length === 0) {
-      await connection.end();
       return res.status(400).json({ mensaje: 'Token de restablecimiento inválido' });
     }
     
@@ -384,7 +348,6 @@ const restablecerPassword = async (req, res) => {
     
     // Verificar si el token ha expirado
     if (!usuario.expiracion_token_recuperacion || new Date(usuario.expiracion_token_recuperacion) < new Date()) {
-      await connection.end();
       return res.status(400).json({ mensaje: 'El token de restablecimiento ha expirado' });
     }
     
@@ -394,12 +357,11 @@ const restablecerPassword = async (req, res) => {
     
     // Actualizar contraseña y limpiar token
     const fechaActual = new Date();
-    await connection.execute(
+    await pool.execute(
       'UPDATE usuarios SET contrasena = ?, token_recuperacion = NULL, expiracion_token_recuperacion = NULL, updated_at = ? WHERE id_usuario = ?', 
       [hashedPassword, fechaActual, usuario.id_usuario]
     );
     
-    await connection.end();
     res.json({ mensaje: 'Contraseña restablecida correctamente' });
     
   } catch (error) {
@@ -414,26 +376,22 @@ const cerrarSesion = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Verificar que la sesión pertenece al usuario
-    const [sesiones] = await connection.execute(
+    const [sesiones] = await pool.execute(
       'SELECT * FROM sesiones_usuario WHERE id_sesion = ? AND id_usuario = ?',
       [idSesion, userId]
     );
     
     if (sesiones.length === 0) {
-      await connection.end();
       return res.status(404).json({ mensaje: 'Sesión no encontrada' });
     }
     
     // Marcar la sesión como inactiva
-    await connection.execute(
+    await pool.execute(
       'UPDATE sesiones_usuario SET activa = FALSE WHERE id_sesion = ?',
       [idSesion]
     );
     
-    await connection.end();
     res.json({ mensaje: 'Sesión cerrada exitosamente' });
     
   } catch (error) {
@@ -447,25 +405,21 @@ const obtenerSesionesActivas = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
     // Verificar que el token de la sesión actual sea válido
-    const [sesionActual] = await connection.execute(
+    const [sesionActual] = await pool.execute(
       'SELECT * FROM sesiones_usuario WHERE id_usuario = ? AND token IS NOT NULL AND activa = TRUE',
       [userId]
     );
     
     if (sesionActual.length === 0) {
-      await connection.end();
       return res.status(401).json({ mensaje: 'Sesión inválida' });
     }
     
-    const [sesiones] = await connection.execute(
+    const [sesiones] = await pool.execute(
       'SELECT id_sesion, dispositivo, fecha_creacion, ultima_actividad FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
       [userId]
     );
     
-    await connection.end();
     res.json({ sesiones });
     
   } catch (error) {

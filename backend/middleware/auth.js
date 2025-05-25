@@ -1,13 +1,5 @@
 const jwt = require('jsonwebtoken');
-const mysql = require('mysql2/promise');
-
-// Configuración de la conexión a la base de datos
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME
-};
+const pool = require('../config/database');
 
 // Middleware para verificar token
 const verificarToken = async (req, res, next) => {
@@ -31,14 +23,11 @@ const verificarToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Token decodificado:', decoded);
     
-    // Verificar que el token esté asociado a una sesión activa
-    const connection = await mysql.createConnection(dbConfig);
-    const [sesiones] = await connection.execute(
+    // Verificar que el token esté asociado a una sesión activa usando el pool
+    const [sesiones] = await pool.execute(
       'SELECT * FROM sesiones_usuario WHERE id_usuario = ? AND token = ? AND activa = TRUE',
       [decoded.usuario.id, token]
     );
-    
-    await connection.end();
     
     if (sesiones.length === 0) {
       console.log('Token no asociado a una sesión activa');
