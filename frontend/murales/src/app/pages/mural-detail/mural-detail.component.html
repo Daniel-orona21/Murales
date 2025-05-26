@@ -331,7 +331,8 @@
             <span class="material-symbols-outlined">close</span>
           </button>
           <button class="boton confirmar" (click)="saveConfig()" *ngIf="isEditing">
-            <span class="material-symbols-outlined">check</span>
+            <span *ngIf="!cargando" class="material-symbols-outlined">check</span>
+            <span *ngIf="cargando" class="spinner-button"></span>
           </button>
         </div>
       </div>
