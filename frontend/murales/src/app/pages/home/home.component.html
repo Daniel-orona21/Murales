@@ -1,9 +1,9 @@
 <div class="home-container">
   <nav class="navbar">
-    <div class="nav-left">
+    <div class="nav-left" [class.search-expanded]="isSearchBarExpanded">
       <div class="logo">
         <!-- Contenedor para los títulos con transición -->
-        <div class="title-container" [style.width]="getTitleWidth()">
+        <div class="title-container">
           <!-- Mis murales -->
           <h1 class="title primary-title" 
               (click)="backToMuralesList()" 
@@ -44,8 +44,7 @@
       </div> -->
     </div>
     <div class="nav-right">
-      <div class="search-bar">
-        <i class="fas fa-search"></i>
+      <div class="search-bar" [class.expanded]="isSearchBarExpanded">
         <input
           type="text"
           [placeholder]="selectedMuralId ? 'Buscar publicaciones...' : 'Buscar murales...'"
@@ -54,6 +53,9 @@
         >
       </div>
       <div class="user-actions">
+        <button class="icon-button" (click)="toggleSearchBar($event)">
+          <i class="fas" [class.fa-search]="!isSearchBarExpanded" [class.fa-times]="isSearchBarExpanded"></i>
+        </button>
         <button class="icon-button notification-btn" (click)="toggleNotifications($event)">
           <i class="fas fa-bell"></i>
           <span class="notification-badge" *ngIf="unreadNotifications > 0">{{unreadNotifications}}</span>
@@ -67,7 +69,18 @@
 
   <main class="main-content">
     <ng-container *ngIf="loading; else content">
-      <div class="loading">Cargando...</div>
+      <div class="loading">
+        <div class="pyramid-loader">
+          <div class="wrapper">
+            <span class="side side1"></span>
+            <span class="side side2"></span>
+            <span class="side side3"></span>
+            <span class="side side4"></span>
+            <span class="shadow"></span>
+          </div>  
+        </div>
+        <div class="global-loading-text">Cargando murales...</div>
+      </div>
     </ng-container>
 
     <ng-template #content>
@@ -228,8 +241,9 @@
 
         <div class="form-actions">
           <button type="button" class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
-          <button type="submit" class="btn-primary" [disabled]="!muralForm.form.valid">
+          <button type="submit" class="btn-primary" [disabled]="!muralForm.form.valid || cargando">
             {{ editingMuralId ? 'Guardar cambios' : 'Crear mural' }}
+            <span *ngIf="cargando" class="spinner-button"></span>
           </button>
         </div>
       </form>

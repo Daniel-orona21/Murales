@@ -27,7 +27,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
   searchText: string = '';
   loading = true;
+  cargando = false;
   showCreateModal = false;
+  isSearchBarExpanded = false;
   newMural: CreateMuralData = {
     titulo: '',
     descripcion: '',
@@ -580,7 +582,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   createMural() {
+    this.cargando = true;
     if (!this.newMural.titulo || !this.newMural.descripcion) {
+      this.cargando = false;
       return;
     }
 
@@ -590,9 +594,11 @@ export class HomeComponent implements OnInit, OnDestroy {
           console.log('Mural actualizado:', response);
           this.closeCreateModal();
           this.loadMurals();
+          this.cargando = false;
         },
         error: (error) => {
           console.error('Error al actualizar mural:', error);
+          this.cargando = false;
         }
       });
     } else {
@@ -601,9 +607,11 @@ export class HomeComponent implements OnInit, OnDestroy {
           console.log('Mural creado:', response);
           this.closeCreateModal();
           this.loadMurals();
+          this.cargando = false;
         },
         error: (error) => {
           console.error('Error al crear mural:', error);
+          this.cargando = false;
         }
       });
     }
@@ -877,20 +885,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     return title.length > 25;
   }
 
-  // Método para calcular el ancho del contenedor del título
-  getTitleWidth(): string {
-    // Si hay un mural seleccionado, usamos un ancho basado en la longitud del título
-    if (this.selectedMuralId) {
-      const title = this.getMuralTitle();
-      // Calculamos un ancho responsivo basado en la longitud del título
-      // y lo limitamos entre un mínimo de 20vw y un máximo de 40vw
-      const baseWidth = Math.min(Math.max(title.length * 1.4 + 12, 50), 50);
-      return `${baseWidth}vw`;
-    }
-    
-    // Si no hay mural seleccionado, usamos un ancho relativo para "Mis murales"
-    return '12vw';
-  }
 
   // Método para manejar el clic en un mural
   onMuralClick(mural: MuralWithMenu, event: Event): void {
@@ -1172,5 +1166,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   onSearch(event: Event) {
     const input = event.target as HTMLInputElement;
     this.searchText = input.value;
+  }
+
+  toggleSearchBar(event: Event) {
+    event.stopPropagation();
+    this.isSearchBarExpanded = !this.isSearchBarExpanded;
+    if (!this.isSearchBarExpanded) {
+      this.searchText = '';
+      this.onSearch({ target: { value: '' } } as any);
+    }
   }
 } 
