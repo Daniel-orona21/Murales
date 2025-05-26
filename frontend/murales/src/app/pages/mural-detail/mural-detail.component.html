@@ -29,14 +29,18 @@
       <button class="retry-button" (click)="cargarPublicaciones()">Reintentar</button>
     </div>
     
+    <!-- Mensaje cuando no hay publicaciones en absoluto -->
     <div *ngIf="!cargando && !error && publicaciones.length === 0" class="empty-state">
       <p>No hay publicaciones en este mural.</p>
       <p>¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
     </div>
     
     <!-- Grid layout for publications -->
-    <ng-container *ngIf="filteredPublicaciones.length > 0; else noResults">
-      <div #masonryGrid class="publicaciones-grid" [class.loaded]="!isLoadingImages">
+    <ng-container *ngIf="publicaciones.length > 0">
+      <div *ngIf="filteredPublicaciones.length === 0 && searchText" class="empty-state">
+        <p>No hay coincidencias</p>
+      </div>
+      <div #masonryGrid class="publicaciones-grid" [class.loaded]="!isLoadingImages" *ngIf="filteredPublicaciones.length > 0">
         <div class="grid-sizer"></div>
         <div class="gutter-sizer"></div>
         <div class="publicacion-item" *ngFor="let publicacion of filteredPublicaciones; let i = index" (click)="openCarousel(i)">
@@ -164,11 +168,6 @@
         </div>
       </div>
     </ng-container>
-    <ng-template #noResults>
-      <div class="empty-state" *ngIf="!cargando && !isLoadingImages">
-        <p>No hay coincidencias</p>
-      </div>
-    </ng-template>
   </div>
 
   <!-- Carousel component -->
