@@ -277,20 +277,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     console.log(`Loaded ${this.loadedImages} of ${this.totalImages} images/videos`);
     
     if (this.loadedImages >= this.totalImages) {
-      setTimeout(() => {
-        this.isLoadingImages = false;
-        this.cdr.markForCheck();
-        
-        // Reinitialize Masonry after all images are loaded
-        this.initMasonry();
-        
-        // Layout again after a brief moment to ensure everything is in place
-        setTimeout(() => {
-          if (this.masonry?.layout) {
-            this.masonry.layout();
-          }
-        }, 500);
-      }, 300);
+      // Inicializar Masonry y esperar a que se complete el layout
+      this.initMasonry();
     }
   }
   
@@ -657,24 +645,61 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.masonry.destroy();
       }
       
+      // Asegurarnos de que todas las publicaciones estén ocultas inicialmente
+      const items = this.masonryGrid.nativeElement.querySelectorAll('.publicacion-item');
+      items.forEach((item: HTMLElement) => {
+        item.classList.remove('loaded');
+      });
+      
       this.masonry = new Masonry(this.masonryGrid.nativeElement, {
         itemSelector: '.publicacion-item',
         columnWidth: '.grid-sizer',
         gutter: '.gutter-sizer',
         percentPosition: true,
         transitionDuration: '0.2s',
-        initLayout: true,
+        initLayout: false,
         fitWidth: false,
         stagger: 30,
         resize: true
       });
 
-      // Forzar relayout después de un momento para asegurar que todo esté en su lugar
-      setTimeout(() => {
-        if (this.masonry?.layout) {
-          this.masonry.layout();
-        }
-      }, 1000);
+      // Realizar el layout inicial y mostrar las publicaciones cuando esté listo
+      const masonryInstance = this.masonry;
+      
+      if (masonryInstance && 
+          typeof masonryInstance.on === 'function' && 
+          typeof masonryInstance.off === 'function' && 
+          typeof masonryInstance.layout === 'function') {
+        
+        // Usar 'on' en lugar de 'once' ya que 'once' no está disponible en todos los tipos
+        const layoutCompleteHandler = () => {
+          // Mostrar las publicaciones una por una con un pequeño retraso
+          items.forEach((item: HTMLElement, index: number) => {
+            setTimeout(() => {
+              item.classList.add('loaded');
+            }, index * 50);
+          });
+
+          // Ocultar el loading spinner después de que todas las publicaciones estén visibles
+          setTimeout(() => {
+            this.isLoadingImages = false;
+            this.cdr.markForCheck();
+          }, items.length * 50);
+
+          // Remover el event listener después de la primera ejecución
+          if (masonryInstance && typeof masonryInstance.off === 'function') {
+            masonryInstance.off('layoutComplete', layoutCompleteHandler);
+          }
+        };
+
+        // Agregar el event listener y ejecutar el layout
+        masonryInstance.on('layoutComplete', layoutCompleteHandler);
+        masonryInstance.layout();
+      } else {
+        // Si no podemos usar Masonry correctamente, al menos mostrar el contenido
+        this.isLoadingImages = false;
+        this.cdr.markForCheck();
+      }
     }
   }
 

@@ -145,64 +145,41 @@
   width: 100%;
   margin: 0 auto;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+  visibility: hidden;
+  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
   position: relative;
   
   &.loaded {
     opacity: 1;
+    visibility: visible;
   }
 }
 
 /* Elementos para Masonry */
-.grid-sizer,
-.publicacion-item {
-  width: calc(20% - 16px); /* 5 columnas */
-}
 
-.gutter-sizer {
-  width: 16px;
-}
 
-@media (max-width: 1400px) {
-  .grid-sizer,
-  .publicacion-item {
-    width: calc(25% - 16px); /* 4 columnas */
-  }
-}
 
-@media (max-width: 1200px) {
-  .grid-sizer,
-  .publicacion-item {
-    width: calc(33.333% - 16px); /* 3 columnas */
-  }
-}
 
-@media (max-width: 900px) {
-  .grid-sizer,
-  .publicacion-item {
-    width: calc(50% - 16px); /* 2 columnas */
-  }
-}
 
-@media (max-width: 576px) {
-  .grid-sizer,
-  .publicacion-item {
-    width: calc(100% - 16px); /* 1 columna */
-  }
-}
 
 .publicacion-item {
-  position: absolute; /* Importante para el layout de Masonry */
+  position: absolute;
   background-color: #2f2f2f83;
   backdrop-filter: blur(50px);
   border-radius: 12px;
-  
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s;
   margin-bottom: 18px;
   break-inside: avoid;
   cursor: pointer;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &.loaded {
+    opacity: 1;
+    transform: translateY(0);
+  }
   
   &:hover {
     transform: translateY(-4px);
@@ -1153,7 +1130,7 @@
 
 // Button and tooltip styles
 .button-container {
-  position: absolute;
+  position: fixed;
   bottom: 30px;
   left: 30px;
   display: flex;
@@ -2083,5 +2060,102 @@
     margin: 0;
     font-weight: 400;
     letter-spacing: 0.02em;
+  }
+}
+
+
+.gutter-sizer {
+  width: 16px;
+}
+.grid-sizer,
+.publicacion-item {
+  width: calc(16.666% - 16px); /* 5 columnas */
+}
+
+@media (max-width: 1400px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(20% - 16px); /* 5 columnas */
+  }
+}
+
+@media (max-width: 1200px) {
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(25% - 16px); /* 4 columnas */
+  }
+}
+
+@media (max-width: 900px) {
+  .publicaciones-grid {
+    margin-left: 10px;
+  }
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(33.333% - 16px); /* 3 columnas */
+  }
+  .contenido-imagen, 
+  .contenido-enlace, 
+  .contenido-archivo {
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    padding: 6px;
+  }
+
+  .publicacion-header {
+    padding: 6px 6px 0px 6px;
+
+    h3 {
+      font-size: 14px;
+    }
+  }
+  .agregar-elemento {
+    width: 40px;
+    height: 40px;
+
+    span {
+      color: white;
+      font-size: 30px;
+      margin: 0;
+    }
+  }
+
+  .button-container {
+    &.config-button {
+      left: auto;
+      right: 30px;
+      span {
+        font-size: 30px;
+        font-weight: 200;
+      }
+      .tooltip {
+        left: auto;
+        right: 50px;
+  
+        &::before {
+          left: auto;
+          right: -6px;
+        }
+      }
+    }
+  }
+  .tooltip {
+    left: 50px;
+  }
+}
+
+@media (max-width: 576px) {
+
+  .publicaciones-grid {
+
+    
+  }
+  .grid-sizer,
+  .publicacion-item {
+    width: calc(50% - 16px); /* 2 columnas */
+  }
+  .mural-detail-container {
+    padding: 3rem 0;
   }
 }

@@ -450,7 +450,7 @@
     </div>
   </div>
 
-  <div class="button-container" style="position: fixed; bottom: 30px; left: 30px;" *ngIf="mural?.rol_usuario === 'administrador' || mural?.rol_usuario === 'editor'">
+  <div class="button-container" *ngIf="mural?.rol_usuario === 'administrador' || mural?.rol_usuario === 'editor'">
     <button class="agregar-elemento" (click)="toggleModal()" (mouseenter)="showTooltip = true" (mouseleave)="showTooltip = false">
       <span class="material-symbols-outlined">add</span>
     </button>
@@ -459,7 +459,7 @@
     </div>
   </div>
 
-  <div class="button-container config-button" style="position: fixed; bottom: 30px; right: 30px;" *ngIf="mural?.rol_usuario === 'administrador'">
+  <div class="button-container config-button"  *ngIf="mural?.rol_usuario === 'administrador'">
     <button class="agregar-elemento" (click)="openConfig()" (mouseenter)="showConfigTooltip = true" (mouseleave)="showConfigTooltip = false">
       <span class="material-symbols-outlined">settings</span>
     </button>
