@@ -7,16 +7,22 @@
           <!-- Mis murales -->
           <h1 class="title primary-title" 
               (click)="backToMuralesList()" 
-              [class.clickable]="selectedMuralId">
+              [class.clickable]="selectedMuralId"
+              [class.slide-up]="selectedMuralId">
             Mis murales
           </h1>
           <!-- Separador mural -->
-          <span class="breadcrumb-separator" [class.slide-up]="selectedMuralId">
+          <span class="breadcrumb-separator" 
+                [class.slide-up]="selectedMuralId"
+                [class.post-selected]="selectedPost"
+                [class.mobile-back]="selectedMuralId"
+                (click)="isMobile && backToMuralesList()">
             <i class="fas fa-chevron-right"></i>
           </span>
           <!-- Título del mural -->
           <h1 class="title mural-title" 
               [class.slide-up]="selectedMuralId"
+              [class.post-selected]="selectedPost"
               (click)="backToMural()"
               [class.clickable]="selectedPost"
               [class.active]="selectedMuralId && !selectedPost"
@@ -24,7 +30,10 @@
             {{ getMuralTitle() }}
           </h1>
           <!-- Separador publicación -->
-          <span class="breadcrumb-separator" [class.slide-up]="selectedPost">
+          <span class="breadcrumb-separator" 
+                [class.slide-up]="selectedPost"
+                [class.mobile-back]="selectedPost"
+                (click)="isMobile && selectedPost && backToMural()">
             <i class="fas fa-chevron-right"></i>
           </span>
           <!-- Título de la publicación -->

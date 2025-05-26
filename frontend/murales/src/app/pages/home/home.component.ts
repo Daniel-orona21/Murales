@@ -30,6 +30,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   cargando = false;
   showCreateModal = false;
   isSearchBarExpanded = false;
+  isMobile: boolean = false;
   newMural: CreateMuralData = {
     titulo: '',
     descripcion: '',
@@ -94,7 +95,17 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.checkScreenSize();
+  }
+
+  private checkScreenSize() {
+    this.isMobile = window.innerWidth <= 500;
+  }
+
   ngOnInit() {
+    this.checkScreenSize(); // Verificar tamaño inicial
     this.loadMurals();
     this.loadNotifications();
     this.loadUserData();
