@@ -1034,7 +1034,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.toggleConfigModal();
             this.cargando = false;
             this.cdr.markForCheck();
-            this.router.navigate(['/']);
           }
         });
       },
