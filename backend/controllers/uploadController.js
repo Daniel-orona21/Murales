@@ -15,7 +15,7 @@ const uploadController = {
       const id_usuario = req.user.id;
       
       // Obtener la URL del archivo
-      const serverUrl = `${req.protocol}://${req.get('host')}`;
+      const serverUrl = `${req.protocol}://${req.get('host')}/api`;
       const fileUrl = `${serverUrl}/uploads/${req.file.filename}`;
       
       // Determinar el tipo de contenido basado en la extensión

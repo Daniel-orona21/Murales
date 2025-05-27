@@ -43,7 +43,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // Servir archivos estáticos desde la carpeta uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Aplicar limitador de tasa a todas las solicitudes de la API
 app.use('/api', apiLimiter);
