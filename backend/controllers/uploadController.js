@@ -1,5 +1,6 @@
 const path = require('path');
 const db = require('../config/database');
+const cloudinary = require('../config/cloudinary');
 const fs = require('fs').promises;
 
 const uploadController = {
@@ -14,9 +15,14 @@ const uploadController = {
       const { id_publicacion } = req.params;
       const id_usuario = req.user.id;
       
-      // Obtener la URL del archivo
-      const serverUrl = `${req.protocol}://${req.get('host')}/api`;
-      const fileUrl = `${serverUrl}/uploads/${req.file.filename}`;
+      // Subir archivo a Cloudinary
+      const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: "auto",
+        folder: "murales",
+      });
+
+      // Eliminar el archivo temporal
+      await fs.unlink(req.file.path);
       
       // Determinar el tipo de contenido basado en la extensión
       const extension = path.extname(req.file.originalname).toLowerCase();
@@ -64,14 +70,15 @@ const uploadController = {
 
       // Si hay contenido anterior, eliminarlo
       if (contenidoAnterior && contenidoAnterior.length > 0) {
-        // Eliminar el archivo físico si existe
+        // Eliminar el archivo de Cloudinary si existe
         for (const contenido of contenidoAnterior) {
           if (contenido.url_contenido) {
-            const filePath = path.join(__dirname, '..', 'uploads', path.basename(contenido.url_contenido));
             try {
-              await fs.unlink(filePath);
+              // Extraer el public_id del URL de Cloudinary
+              const publicId = contenido.url_contenido.split('/').slice(-1)[0].split('.')[0];
+              await cloudinary.uploader.destroy(publicId);
             } catch (error) {
-              console.error('Error al eliminar archivo físico:', error);
+              console.error('Error al eliminar archivo de Cloudinary:', error);
             }
           }
         }
@@ -88,19 +95,19 @@ const uploadController = {
         ) VALUES (?, ?, ?, ?, ?, NOW())
       `;
       
-      const [result] = await db.query(insertQuery, [
+      const [dbResult] = await db.query(insertQuery, [
         id_publicacion,
         tipo_contenido,
-        fileUrl,
+        cloudinaryResult.secure_url, // Usar la URL segura de Cloudinary
         req.file.originalname,
         req.file.size
       ]);
       
       res.status(201).json({
-        id_contenido: result.insertId,
+        id_contenido: dbResult.insertId,
         id_publicacion,
         tipo_contenido,
-        url_contenido: fileUrl,
+        url_contenido: cloudinaryResult.secure_url,
         nombre_archivo: req.file.originalname,
         tamano_archivo: req.file.size,
         mensaje: 'Archivo actualizado exitosamente'
