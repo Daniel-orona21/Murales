@@ -69,7 +69,7 @@ const customRateLimit = (options = {}) => {
 // Configuraciones específicas para diferentes rutas
 const loginLimiter = customRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5,
+  max: 20, 
   message: 'Demasiados intentos de inicio de sesión. Por favor, intente de nuevo después de 15 minutos.'
 });
 
