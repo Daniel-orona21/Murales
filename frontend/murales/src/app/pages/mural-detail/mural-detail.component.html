@@ -192,8 +192,8 @@
   </app-publicacion-carousel>
 
   <!-- Modal para agregar elementos -->
-  <div class="modal-sidebar" [class.show]="showModal">
-    <div class="modal-header">
+  <div class="modal-sidebar sinpadding" [class.show]="showModal">
+    <div class="modal-header añadir">
       <h2>Agregar contenido</h2>
     </div>
     <div class="modal-content">
@@ -206,7 +206,7 @@
       
       <div class="form-group">
         <label for="descripcion">Descripción</label>
-        <textarea id="descripcion" [(ngModel)]="nuevoElemento.descripcion" rows="3" placeholder="Añade una descripción"></textarea>
+        <textarea id="descripcion" [(ngModel)]="nuevoElemento.descripcion" rows="1" placeholder="Añade una descripción"></textarea>
       </div>
       
       <div class="form-group">
@@ -243,7 +243,7 @@
             <textarea 
               id="note-content" 
               [(ngModel)]="nuevoElemento.nota" 
-              rows="6" 
+              rows="3" 
               placeholder="Escribe tu nota aquí..."
               class="note-textarea"></textarea>
           </div>
@@ -320,8 +320,8 @@
 
   <!-- Modal de configuración -->
   <div class="modal-sidebar config-modal" [class.show]="showConfigModal">
-    <div class="modal-header">
-      <div class="contenedorHeader">
+    <div class="modal-header headerConfig">
+      <div class="contenedorHeader headerConfig2">
         <h2>Configuración</h2>
         <div class="botonera">
           <button class="boton editar" (click)="toggleEditMode()" *ngIf="!isEditing">
