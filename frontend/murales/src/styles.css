@@ -8,15 +8,27 @@
   box-sizing: border-box;
 }
 
+html {
+  height: -webkit-fill-available;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #1a1a1a;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
   max-height: 100vh !important;
   overflow-x: hidden;
   color: #ffffff;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  @media (max-width: 500px) {
+    position: fixed;
+    width: 100%;
+    height: var(--vh, 100vh);
+  }
 }
 
 body::-webkit-scrollbar{

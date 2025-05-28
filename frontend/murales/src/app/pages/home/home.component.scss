@@ -1,5 +1,13 @@
+:host {
+  display: block;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  background-color: #1a1a1a;
+} 
 .home-container {
-  min-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   background: black;
   color: #ffffff;
   display: flex;
@@ -605,18 +613,30 @@
 
 // Modal styles
 .modal-overlay {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.113);
-  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  
+  @media (max-width: 500px) {
+    // align-items: flex-start; 
+    padding: 1rem; 
+    
+    // Cuando el teclado está abierto
+    &.keyboard-open {
+      position: absolute !important; // Cambiar a absolute cuando el teclado está abierto
+      min-height: 100%; // Asegurar que cubre todo el contenido
+      height: auto; // Permitir que crezca según el contenido
+    }
+  }
 }
 
 .modal-content {
@@ -629,6 +649,21 @@
   overflow-y: auto;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: slideIn 0.3s ease;
+  z-index: 9999999999999999 !important;
+  pointer-events: all !important;
+  position: relative !important;
+
+  @media (max-width: 500px) {
+    margin: 1rem 0;
+    max-height: none; // Eliminar max-height en móvil
+    height: auto; // Altura automática
+    width: 100%; // Ancho completo en móvil
+    
+    // Cuando el teclado está abierto
+    &.keyboard-open {
+      margin-bottom: 50vh; // Espacio extra para el teclado
+    }
+  }
 
   &::-webkit-scrollbar {
     width: 8px;

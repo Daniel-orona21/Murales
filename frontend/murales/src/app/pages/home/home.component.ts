@@ -63,6 +63,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('muralDetail') muralDetailComponent: any;
 
+  isKeyboardOpen = false;
+  private initialViewportHeight = window.innerHeight;
+
   constructor(
     public router: Router,
     private muralService: MuralService,
@@ -95,16 +98,46 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize() {
     this.checkScreenSize();
+    this.checkKeyboard();
+    this.setViewportHeight();
   }
 
   private checkScreenSize() {
     this.isMobile = window.innerWidth <= 500;
   }
 
+  private checkKeyboard() {
+    if (!this.isMobile) return;
+    
+    const currentViewportHeight = window.innerHeight;
+    this.isKeyboardOpen = currentViewportHeight < this.initialViewportHeight * 0.8;
+    
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const modalContent = document.querySelector('.modal-content');
+    
+    if (modalOverlay && modalContent) {
+      if (this.isKeyboardOpen) {
+        modalOverlay.classList.add('keyboard-open');
+        modalContent.classList.add('keyboard-open');
+      } else {
+        modalOverlay.classList.remove('keyboard-open');
+        modalContent.classList.remove('keyboard-open');
+      }
+    }
+  }
+
+  private setViewportHeight() {
+    // First we get the viewport height and we multiply it by 1% to get a value for a vh unit
+    const vh = window.innerHeight * 0.01;
+    // Then we set the value in the --vh custom property to the root of the document
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+
   ngOnInit() {
+    this.setViewportHeight(); // Set initial viewport height
     this.checkScreenSize(); // Verificar tamaño inicial
     this.loadMurals();
     this.loadNotifications();

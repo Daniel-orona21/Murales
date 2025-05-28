@@ -1,5 +1,6 @@
 :host {
   display: block;
-  min-height: 100vh;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
   background-color: #1a1a1a;
-} 
+}

@@ -205,8 +205,8 @@
   </main>
 
   <!-- Modal de creación -->
-  <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()" [class.keyboard-open]="isKeyboardOpen">
+    <div class="modal-content" (click)="$event.stopPropagation()" [class.keyboard-open]="isKeyboardOpen">
       <div class="modal-header">
         <h2>{{ editingMuralId ? 'Editar mural' : 'Crear nuevo mural' }}</h2>
         <button class="close-button" (click)="closeCreateModal()">&times;</button>
