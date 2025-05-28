@@ -897,12 +897,12 @@
     color: #ffffff;
     border-radius: 8px;
     caret-color: #ffffff;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease,  box-shadow 0.2s ease;
 
     &:focus {
       outline: none; // Remove default blue outline
       border-color: rgba(255, 255, 255, 0.5); // Subtle white/grey focus border
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1); // Optional subtle glow
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1); //  Optional subtle glow
     }
 
     // Hide spinner buttons on number inputs in some browsers
@@ -949,7 +949,7 @@
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+  // box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
   
   &.active {
     right: 0;
@@ -1542,7 +1542,7 @@
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+  // box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
 
   
   
