@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { ScrollService } from '../../services/scroll.service';
 
 interface NuevoElemento {
   titulo: string;
@@ -104,21 +105,24 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   
   private apiUrl = environment.apiUrl;
   
+  private scrollContainer: HTMLElement | null = null;
+  
   constructor(
     private muralService: MuralService, 
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private scrollService: ScrollService
   ) {}
 
   ngOnInit(): void {
     if (this.muralId) {
+      this.scrollService.saveSelectedMuralId(this.muralId);
       this.loadMural();
       this.cargarPublicaciones();
       this.loadMuralUsers();
-      // Obtener el ID del usuario actual del servicio de autenticación
       this.muralService.getCurrentUserId().subscribe({
         next: (userId) => {
           this.currentUserId = userId;
@@ -144,6 +148,13 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     
     // Initialize video previews
     this.initVideoPreviews();
+
+    // Get scroll container and restore position
+    this.scrollContainer = document.querySelector('.mural-detail-container');
+    if (this.scrollContainer) {
+      const savedPosition = this.scrollService.getScrollPosition();
+      this.scrollContainer.scrollTop = savedPosition;
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -630,6 +641,14 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     }, 100);
   }
 
+  @HostListener('scroll', ['$event'])
+  onScroll(event: Event) {
+    if (this.scrollContainer) {
+      const position = this.scrollContainer.scrollTop;
+      this.scrollService.saveScrollPosition(position);
+    }
+  }
+
   ngOnDestroy(): void {
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
@@ -637,6 +656,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.masonry?.destroy) {
       this.masonry.destroy();
     }
+    
+    // Clear scroll position when leaving the component
+    this.scrollService.clearSavedData();
   }
 
   initMasonry(): void {

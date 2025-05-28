@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
 import { AuthService } from '../../services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ScrollService } from '../../services/scroll.service';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -70,7 +71,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     public router: Router,
     private muralService: MuralService,
     private notificationService: NotificationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,
+    private scrollService: ScrollService
   ) {}
 
   @HostListener('document:click', ['$event'])
@@ -155,6 +158,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       console.log('Access to mural approved, reloading murals...');
       this.loadMurals();
     });
+
+    // Restore selected mural if exists
+    const savedMuralId = this.scrollService.getSelectedMuralId();
+    if (savedMuralId) {
+      this.selectedMuralId = savedMuralId;
+      this.cdr.detectChanges();
+    }
   }
 
   ngOnDestroy() {
@@ -932,23 +942,21 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Método para manejar el clic en un mural
   onMuralClick(mural: MuralWithMenu, event: Event): void {
-    // Evitar navegación si se hizo clic en menú o sus opciones
-    if (
-      (event.target as HTMLElement).closest('.menu-trigger') || 
-      (event.target as HTMLElement).closest('.menu-options')
-    ) {
+    if (event.target instanceof Element && 
+        (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
       return;
     }
-    // Cambiar directamente al mural seleccionado
     this.selectedMuralId = mural.id_mural;
-    this.searchText = '';
+    this.scrollService.saveSelectedMuralId(mural.id_mural);
+    this.cdr.detectChanges();
   }
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
     this.selectedMuralId = null;
     this.selectedPost = null;
-    this.searchText = '';
+    this.scrollService.saveSelectedMuralId(null);
+    this.cdr.detectChanges();
   }
 
   toggleProfileMenu(event: Event) {
