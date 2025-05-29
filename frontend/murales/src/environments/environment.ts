@@ -15,6 +15,6 @@ export const environment = {
   },
   github: {
     clientId: "Ov23liJXVJuQCN0HEwx8", // Reemplaza con tu Client ID de GitHub
-    redirectUri: "http://dannielorona-murales.verce.app/auth/github/callback" // Ajusta según tu configuración
+    redirectUri: "https://dannielorona-murales.vercel.app/auth/github/callback" // Ajusta según tu configuración
   }
 }; 
