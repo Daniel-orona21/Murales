@@ -51,4 +51,8 @@ router.post('/restablecer-password/:token', [
   check('contrasena', 'La nueva contraseña debe tener al menos 6 caracteres').isLength({ min: 6 })
 ], authController.restablecerPassword);
 
+// Ruta para autenticación con Google
+// POST /api/auth/google
+router.post('/google', authController.autenticarConGoogle);
+
 module.exports = router; 

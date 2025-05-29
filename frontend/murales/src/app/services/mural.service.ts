@@ -116,7 +116,7 @@ export class MuralService {
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     console.log('Auth token presente:', !!token);
-    return new HttpHeaders().set('x-auth-token', token || '');
+    return new HttpHeaders().set('Authorization', `Bearer ${token || ''}`);
   }
 
   getMuralesByUsuario(): Observable<Mural[]> {

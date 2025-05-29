@@ -441,4 +441,29 @@ export class LoginComponent {
       }
     });
   }
+
+  async signInWithGoogle() {
+    this.cargando = true;
+    try {
+      await this.authService.signInWithGoogle();
+      this.cargando = false;
+      Swal.fire({
+        title: '¡Bienvenido!',
+        text: 'Inicio de sesión con Google exitoso',
+        icon: 'success',
+        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+        confirmButtonText: 'Continuar',
+        customClass: {
+          popup: 'custom-swal-popup',
+          confirmButton: 'custom-confirm-button'
+        }
+      }).then(() => {
+        this.router.navigate(['/home']);
+      });
+    } catch (error) {
+      this.cargando = false;
+      console.error('Error al iniciar sesión con Google:', error);
+      this.showError(typeof error === 'string' ? error : 'Error al iniciar sesión con Google');
+    }
+  }
 } 

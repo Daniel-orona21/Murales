@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
 import { tap, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { Auth, GoogleAuthProvider, signInWithPopup } from '@angular/fire/auth';
 
 interface RegisterData {
   nombre: string;
@@ -18,6 +19,12 @@ interface Session {
   ultima_actividad?: string;
 }
 
+interface GoogleAuthResponse {
+  token: string;
+  idSesion: string;
+  sesionesActivas: Session[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -31,7 +38,10 @@ export class AuthService {
   public isAuthenticated$ = this.authSubject.asObservable();
   public sessions$ = this.sessionsSubject.asObservable();
   
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private auth: Auth
+  ) {
     this.checkToken();
   }
 
@@ -334,5 +344,76 @@ export class AuthService {
     }
 
     return throwError(() => errorMessage);
+  }
+
+  async signInWithGoogle() {
+    try {
+      console.log('Iniciando autenticación con Google...');
+      const provider = new GoogleAuthProvider();
+      console.log('Provider creado:', provider);
+      
+      // Forzar selección de cuenta
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      console.log('Intentando iniciar popup de autenticación...');
+      const result = await signInWithPopup(this.auth, provider);
+      console.log('Autenticación con Google exitosa:', result.user);
+      const user = result.user;
+      
+      console.log('Enviando datos al backend...');
+      // Aquí enviamos los datos del usuario de Google a nuestro backend
+      const response = await this.http.post<GoogleAuthResponse>(`${this.apiUrl}/auth/google`, {
+        email: user.email,
+        nombre: user.displayName,
+        uid: user.uid,
+        photoURL: user.photoURL,
+        dispositivo: this.getDeviceInfo()
+      }).toPromise();
+
+      if (!response) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
+      console.log('Respuesta del backend:', response);
+      sessionStorage.setItem(this.tokenKey, response.token);
+      sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+      this.authSubject.next(true);
+      this.sessionsSubject.next(response.sesionesActivas);
+      console.log('Token guardado:', response.token);
+      console.log('Sesión guardada:', response.idSesion);
+
+      return response;
+    } catch (error: any) {
+      console.error('Error detallado en autenticación con Google:', {
+        code: error.code,
+        message: error.message,
+        fullError: error
+      });
+      
+      let errorMessage = 'Error al autenticar con Google';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/configuration-not-found':
+            errorMessage = 'Error de configuración de Firebase. Por favor, verifica la configuración del proyecto.';
+            break;
+          case 'auth/popup-blocked':
+            errorMessage = 'El popup fue bloqueado por el navegador. Por favor, permite ventanas emergentes para este sitio.';
+            break;
+          case 'auth/popup-closed-by-user':
+            errorMessage = 'El proceso de inicio de sesión fue cancelado.';
+            break;
+          case 'auth/cancelled-popup-request':
+            errorMessage = 'La solicitud de inicio de sesión fue cancelada.';
+            break;
+          default:
+            errorMessage = `Error de autenticación: ${error.message}`;
+        }
+      }
+      
+      throw errorMessage;
+    }
   }
 } 

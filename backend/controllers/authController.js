@@ -428,6 +428,72 @@ const obtenerSesionesActivas = async (req, res) => {
   }
 };
 
+// Autenticación con Google
+const autenticarConGoogle = async (req, res) => {
+  const { email, nombre, uid, photoURL, dispositivo } = req.body;
+  
+  try {
+    // Verificar si el usuario ya existe
+    const [usuarios] = await pool.execute(
+      'SELECT * FROM usuarios WHERE email = ?', 
+      [email]
+    );
+    
+    let userId;
+    const fechaActual = new Date();
+    
+    if (usuarios.length === 0) {
+      // Crear nuevo usuario
+      const [resultado] = await pool.execute(
+        'INSERT INTO usuarios (nombre, email, google_id, avatar_url, fecha_registro, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [nombre, email, uid, photoURL, fechaActual, fechaActual, fechaActual]
+      );
+      userId = resultado.insertId;
+    } else {
+      // Actualizar usuario existente
+      userId = usuarios[0].id_usuario;
+      await pool.execute(
+        'UPDATE usuarios SET google_id = ?, avatar_url = ?, updated_at = ? WHERE id_usuario = ?',
+        [uid, photoURL, fechaActual, userId]
+      );
+    }
+    
+    // Crear token JWT
+    const payload = {
+      usuario: {
+        id: userId,
+        nombre: nombre,
+        email: email
+      }
+    };
+    
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    
+    // Crear nueva sesión
+    const idSesion = uuidv4();
+    await pool.execute(
+      'INSERT INTO sesiones_usuario (id_sesion, id_usuario, token, dispositivo) VALUES (?, ?, ?, ?)',
+      [idSesion, userId, token, dispositivo || 'Desconocido']
+    );
+    
+    // Obtener todas las sesiones activas del usuario
+    const [sesiones] = await pool.execute(
+      'SELECT id_sesion, dispositivo, fecha_creacion FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
+      [userId]
+    );
+    
+    res.json({ 
+      token,
+      idSesion,
+      sesionesActivas: sesiones
+    });
+    
+  } catch (error) {
+    console.error('Error en autenticarConGoogle:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor', error: error.message });
+  }
+};
+
 module.exports = {
   registrar,
   iniciarSesion,
@@ -437,5 +503,6 @@ module.exports = {
   verificarTokenReset,
   restablecerPassword,
   cerrarSesion,
-  obtenerSesionesActivas
+  obtenerSesionesActivas,
+  autenticarConGoogle
 }; 

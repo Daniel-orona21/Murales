@@ -152,7 +152,7 @@ export class NotificationService {
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     console.log('Auth token presente en notificaciones:', !!token);
-    return new HttpHeaders().set('x-auth-token', token || '');
+    return new HttpHeaders().set('Authorization', `Bearer ${token || ''}`);
   }
 
   // Obtener todas las notificaciones del usuario actual
