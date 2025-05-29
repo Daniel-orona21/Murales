@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const pool = require('../config/database');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 require('dotenv').config();
 
 // Configurar el transporte de correo electrónico
@@ -494,6 +495,107 @@ const autenticarConGoogle = async (req, res) => {
   }
 };
 
+// Autenticación con GitHub
+const autenticarConGithub = async (req, res) => {
+  const { code, dispositivo } = req.body;
+  
+  try {
+    // Intercambiar el código por un token de acceso
+    const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      code: code
+    }, {
+      headers: {
+        Accept: 'application/json'
+      }
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+    
+    // Obtener información del usuario
+    const userResponse = await axios.get('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const githubUser = userResponse.data;
+    
+    // Obtener el email del usuario
+    const emailResponse = await axios.get('https://api.github.com/user/emails', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const primaryEmail = emailResponse.data.find(email => email.primary)?.email || emailResponse.data[0]?.email;
+    
+    if (!primaryEmail) {
+      return res.status(400).json({ mensaje: 'No se pudo obtener el email del usuario' });
+    }
+
+    // Verificar si el usuario ya existe
+    const [usuarios] = await pool.execute(
+      'SELECT * FROM usuarios WHERE email = ?', 
+      [primaryEmail]
+    );
+    
+    let userId;
+    const fechaActual = new Date();
+    
+    if (usuarios.length === 0) {
+      // Crear nuevo usuario
+      const [resultado] = await pool.execute(
+        'INSERT INTO usuarios (nombre, email, github_id, avatar_url, fecha_registro, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [githubUser.name || githubUser.login, primaryEmail, githubUser.id.toString(), githubUser.avatar_url, fechaActual, fechaActual, fechaActual]
+      );
+      userId = resultado.insertId;
+    } else {
+      // Actualizar usuario existente
+      userId = usuarios[0].id_usuario;
+      await pool.execute(
+        'UPDATE usuarios SET github_id = ?, avatar_url = ?, updated_at = ? WHERE id_usuario = ?',
+        [githubUser.id.toString(), githubUser.avatar_url, fechaActual, userId]
+      );
+    }
+    
+    // Crear token JWT
+    const payload = {
+      usuario: {
+        id: userId,
+        nombre: githubUser.name || githubUser.login,
+        email: primaryEmail
+      }
+    };
+    
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    
+    // Crear nueva sesión
+    const idSesion = uuidv4();
+    await pool.execute(
+      'INSERT INTO sesiones_usuario (id_sesion, id_usuario, token, dispositivo) VALUES (?, ?, ?, ?)',
+      [idSesion, userId, token, dispositivo || 'Desconocido']
+    );
+    
+    // Obtener todas las sesiones activas del usuario
+    const [sesiones] = await pool.execute(
+      'SELECT id_sesion, dispositivo, fecha_creacion FROM sesiones_usuario WHERE id_usuario = ? AND activa = TRUE',
+      [userId]
+    );
+    
+    res.json({ 
+      token,
+      idSesion,
+      sesionesActivas: sesiones
+    });
+    
+  } catch (error) {
+    console.error('Error en autenticarConGithub:', error);
+    res.status(500).json({ mensaje: 'Error en el servidor', error: error.message });
+  }
+};
+
 module.exports = {
   registrar,
   iniciarSesion,
@@ -504,5 +606,6 @@ module.exports = {
   restablecerPassword,
   cerrarSesion,
   obtenerSesionesActivas,
-  autenticarConGoogle
+  autenticarConGoogle,
+  autenticarConGithub
 }; 

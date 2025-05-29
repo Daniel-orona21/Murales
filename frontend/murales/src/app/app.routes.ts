@@ -16,7 +16,10 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent)
   },
-
+  {
+    path: 'auth/github/callback',
+    loadComponent: () => import('./pages/github-callback/github-callback.component').then(m => m.GithubCallbackComponent)
+  },
   {
     path: 'reset-password/:token',
     loadComponent: () => import('./pages/reset-password/reset-password.component').then(m => m.ResetPasswordComponent)

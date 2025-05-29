@@ -59,7 +59,7 @@
         <div class="social-login">
           <p>Ó continúa con</p>
           <div class="social-buttons">
-            <button class="social-btn github">
+            <button class="social-btn github" (click)="signInWithGithub()">
               <i class="fab fa-github"></i>
             </button>
             <button class="social-btn google" (click)="signInWithGoogle()">
@@ -168,7 +168,7 @@
         <div class="social-login">
           <p>O registrate con</p>
           <div class="social-buttons">
-            <button class="social-btn github">
+            <button class="social-btn github" (click)="signInWithGithub()">
               <i class="fab fa-github"></i>
             </button>
             <button class="social-btn google" (click)="signInWithGoogle()">

@@ -10,6 +10,10 @@ export const environment = {
     messagingSenderId: "609508651478",
     appId: "1:609508651478:web:28e6e504a5687a17907477",
     measurementId: "G-G8334G4M78"
+  },
+  github: {
+    clientId: "Ov23liJXVJuQCN0HEwx8", // Reemplaza con tu Client ID de GitHub
+    redirectUri: "http://dannielorona-murales.verce.app/auth/github/callback" // Ajusta según tu configuración
   }
   // apiUrl: 'https://murales.onrender.com/api',
   // socketUrl: 'https://murales.onrender.com'

@@ -466,4 +466,16 @@ export class LoginComponent {
       this.showError(typeof error === 'string' ? error : 'Error al iniciar sesión con Google');
     }
   }
+
+  async signInWithGithub() {
+    this.cargando = true;
+    try {
+      await this.authService.signInWithGithub();
+      // No necesitamos manejar la redirección aquí ya que se hace en el servicio
+    } catch (error) {
+      this.cargando = false;
+      console.error('Error al iniciar sesión con GitHub:', error);
+      this.showError(typeof error === 'string' ? error : 'Error al iniciar sesión con GitHub');
+    }
+  }
 } 

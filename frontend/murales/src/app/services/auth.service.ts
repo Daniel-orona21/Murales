@@ -25,6 +25,12 @@ interface GoogleAuthResponse {
   sesionesActivas: Session[];
 }
 
+interface GithubAuthResponse {
+  token: string;
+  idSesion: string;
+  sesionesActivas: Session[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -414,6 +420,53 @@ export class AuthService {
       }
       
       throw errorMessage;
+    }
+  }
+
+  async signInWithGithub() {
+    try {
+      console.log('Iniciando autenticación con GitHub...');
+      
+      // Guardar la URL actual para redirigir después de la autenticación
+      const currentUrl = window.location.href;
+      sessionStorage.setItem('auth_redirect', currentUrl);
+      
+      // Construir la URL de autorización de GitHub
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${environment.github.clientId}&redirect_uri=${encodeURIComponent(environment.github.redirectUri)}&scope=user:email`;
+      
+      // Redirigir a GitHub para autenticación
+      window.location.href = githubAuthUrl;
+    } catch (error) {
+      console.error('Error al iniciar autenticación con GitHub:', error);
+      throw 'Error al iniciar autenticación con GitHub';
+    }
+  }
+
+  // Método para manejar el callback de GitHub
+  async handleGithubCallback(code: string): Promise<GithubAuthResponse> {
+    try {
+      console.log('Procesando callback de GitHub...');
+      
+      // Enviar el código al backend para obtener el token
+      const response = await this.http.post<GithubAuthResponse>(`${this.apiUrl}/auth/github/callback`, {
+        code,
+        dispositivo: this.getDeviceInfo()
+      }).toPromise();
+
+      if (!response) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
+      console.log('Respuesta del backend:', response);
+      sessionStorage.setItem(this.tokenKey, response.token);
+      sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+      this.authSubject.next(true);
+      this.sessionsSubject.next(response.sesionesActivas);
+
+      return response;
+    } catch (error) {
+      console.error('Error en callback de GitHub:', error);
+      throw 'Error al procesar la autenticación con GitHub';
     }
   }
 } 

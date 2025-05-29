@@ -55,4 +55,8 @@ router.post('/restablecer-password/:token', [
 // POST /api/auth/google
 router.post('/google', authController.autenticarConGoogle);
 
+// Ruta para autenticación con GitHub
+// POST /api/auth/github/callback
+router.post('/github/callback', authController.autenticarConGithub);
+
 module.exports = router; 

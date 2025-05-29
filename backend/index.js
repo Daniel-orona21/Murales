@@ -108,8 +108,8 @@ app.use((err, req, res, next) => {
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor en puerto ${PORT} con WebSockets activos`));
+// server.listen(PORT, () => console.log(`Servidor en puerto ${PORT} con WebSockets activos`));
 
-// server.listen(PORT, '192.168.1.12', () => {
-//   console.log(`Servidor disponible en red local: http://192.168.1.12:${PORT}`);
-// });
+server.listen(PORT, '192.168.1.5', () => {
+  console.log(`Servidor disponible en red local: http://192.168.1.5:${PORT}`);
+});
