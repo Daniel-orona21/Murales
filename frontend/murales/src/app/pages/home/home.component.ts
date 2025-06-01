@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
 import { MuralService, Mural, CreateMuralData } from '../../services/mural.service';
 import { NotificationService, Notification } from '../../services/notification.service';
 import { HttpClientModule } from '@angular/common/http';
@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
 import { AuthService } from '../../services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MuralStateService } from '../../services/mural-state.service';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -21,7 +22,7 @@ interface MuralWithMenu extends Mural {
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, MuralDetailComponent]
+  imports: [CommonModule, FormsModule, HttpClientModule, MuralDetailComponent, RouterOutlet]
 })
 export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
@@ -49,6 +50,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Suscripciones
   private notificationsSubscription?: Subscription;
   private muralAccessSubscription?: Subscription;
+  private muralStateSubscription?: Subscription;
 
   showProfileMenu = false;
   user: any = null;
@@ -68,9 +70,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(
     public router: Router,
+    private route: ActivatedRoute,
     private muralService: MuralService,
     private notificationService: NotificationService,
     private authService: AuthService,
+    private muralStateService: MuralStateService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -138,8 +142,29 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.setViewportHeight(); // Set initial viewport height
-    this.checkScreenSize(); // Verificar tamaño inicial
+    this.setViewportHeight();
+    this.checkScreenSize();
+    
+    // Check if we're already on a mural route
+    const muralId = this.route.firstChild?.snapshot.params['id'];
+    if (muralId) {
+      this.selectedMuralId = +muralId;
+    }
+    
+    // Subscribe to mural state changes
+    this.muralStateSubscription = this.muralStateService.currentMural$.subscribe(mural => {
+      if (mural) {
+        this.selectedMuralId = mural.id_mural;
+        // Update the mural in the list if it exists
+        const idx = this.murals.findIndex(m => m.id_mural === mural.id_mural);
+        if (idx !== -1) {
+          this.murals[idx] = { ...this.murals[idx], ...mural };
+        }
+      }
+      this.cdr.detectChanges();
+    });
+    
+    // Load initial data
     this.loadMurals();
     this.loadNotifications();
     this.loadUserData();
@@ -166,6 +191,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     
     if (this.muralAccessSubscription) {
       this.muralAccessSubscription.unsubscribe();
+    }
+
+    if (this.muralStateSubscription) {
+      this.muralStateSubscription.unsubscribe();
     }
   }
 
@@ -937,14 +966,20 @@ export class HomeComponent implements OnInit, OnDestroy {
         (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
       return;
     }
+    if (this.selectedMuralId === mural.id_mural) return; // Evitar navegación innecesaria
+    
     this.selectedMuralId = mural.id_mural;
+    this.router.navigate(['home', 'mural', mural.id_mural]);
     this.cdr.detectChanges();
   }
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
+    if (!this.selectedMuralId) return; // Evitar navegación innecesaria
+    
     this.selectedMuralId = null;
     this.selectedPost = null;
+    this.router.navigate(['home']);
     this.cdr.detectChanges();
   }
 
