@@ -5,13 +5,7 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
-    canActivate: [AuthGuard],
-    children: [
-      {
-        path: 'mural/:id',
-        loadComponent: () => import('./pages/mural-detail/mural-detail.component').then(m => m.MuralDetailComponent)
-      }
-    ]
+    canActivate: [AuthGuard]
   },
   {
     path: 'sessions',

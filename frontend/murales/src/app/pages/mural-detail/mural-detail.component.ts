@@ -2,7 +2,6 @@ import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, View
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MuralService, CreatePublicacionData, CreateContenidoData, Publicacion, Mural, MuralUser } from '../../services/mural.service';
-import { MuralStateService } from '../../services/mural-state.service';
 import Masonry from 'masonry-layout';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicacionCarouselComponent } from './publicacion-carousel/publicacion-carousel.component';
@@ -11,7 +10,7 @@ import Swal from 'sweetalert2';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 
 interface NuevoElemento {
   titulo: string;
@@ -32,13 +31,9 @@ type ContentType = 'archivo' | 'link' | 'nota';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
-  @Input() searchText: string = '';
-  @Output() postSelected = new EventEmitter<any>();
-  @Output() postClosed = new EventEmitter<void>();
-  @Output() muralUpdated = new EventEmitter<any>();
-
-  private muralId: number | null = null;
+  @Input() muralId: number | null = null;
   @Input() forceClosePost: boolean = false;
+  @Input() searchText: string = '';
   isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
@@ -85,6 +80,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   
   videoThumbnails: { [key: string]: string } = {};
   
+  @Output() postSelected = new EventEmitter<any>();
+  @Output() postClosed = new EventEmitter<void>();
+  
   @ViewChild('carousel') carouselComponent: any;
   
   configData = {
@@ -96,6 +94,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     codigo_acceso: ''
   };
   
+  @Output() muralUpdated = new EventEmitter<Mural>();
+  
   muralUsers: MuralUser[] = [];
   loadingUsers = false;
   showUsersList = false;
@@ -105,66 +105,29 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   private apiUrl = environment.apiUrl;
   
   constructor(
-    private muralService: MuralService,
-    private muralStateService: MuralStateService,
+    private muralService: MuralService, 
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
     private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute
+    private router: Router
   ) {}
 
   ngOnInit(): void {
-    const muralId = this.route.snapshot.params['id'];
-    if (muralId) {
-      this.muralId = +muralId;
-      this.loadInitialData();
+    if (this.muralId) {
+      this.loadMural();
+      this.cargarPublicaciones();
+      this.loadMuralUsers();
+      this.muralService.getCurrentUserId().subscribe({
+        next: (userId) => {
+          this.currentUserId = userId;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Error al obtener el ID del usuario:', error);
+        }
+      });
     }
-  }
-
-  private loadInitialData(): void {
-    if (!this.muralId) return;
-
-    // Load mural data first
-    this.muralService.getMuralById(this.muralId).subscribe({
-      next: (mural) => {
-        this.mural = mural;
-        this.selectedTheme = mural.tema || 1;
-        this.customColor = mural.color_personalizado || '#808080';
-        if (mural.color_personalizado) {
-          document.documentElement.style.setProperty('--custom-color', this.customColor);
-        }
-        this.isAdmin = mural.rol_usuario === 'administrador';
-        this.muralUpdated.emit(mural);
-        this.muralStateService.updateCurrentMural(mural);
-        this.cdr.markForCheck();
-
-        // Only after successful mural load, load the rest
-        this.cargarPublicaciones();
-        this.loadMuralUsers();
-        this.loadCurrentUser();
-      },
-      error: (error) => {
-        console.error('Error al cargar el mural:', error);
-        if (error.status === 404 || error.status === 403) {
-          this.muralStateService.updateCurrentMural(null);
-          this.router.navigate(['/home']);
-        }
-      }
-    });
-  }
-
-  private loadCurrentUser(): void {
-    this.muralService.getCurrentUserId().subscribe({
-      next: (userId) => {
-        this.currentUserId = userId;
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Error al obtener el ID del usuario:', error);
-      }
-    });
   }
 
   ngAfterViewInit(): void {
@@ -214,14 +177,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           document.documentElement.style.setProperty('--custom-color', this.customColor);
         }
         this.isAdmin = mural.rol_usuario === 'administrador';
-        this.muralUpdated.emit(mural); // Emit the mural data to update the parent component
         this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error al cargar el mural:', error);
         this.error = 'Error al cargar el mural';
-        // If there's an error loading the mural (e.g., not found or no permissions), navigate back to home
-        this.router.navigate(['/home']);
       }
     });
   }
@@ -1069,7 +1029,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.mural = muralCompleto;
             this.isAdmin = muralCompleto.rol_usuario === 'administrador';
             this.muralUpdated.emit(muralCompleto);
-            this.muralStateService.updateCurrentMural(muralCompleto);
             this.isEditing = false;
             this.toggleConfigModal();
             this.cargando = false;

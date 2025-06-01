@@ -30,7 +30,7 @@
     </div>
     
     <!-- Mensaje cuando no hay publicaciones en absoluto -->
-    <div *ngIf="!cargando && !error && !isLoadingImages && publicaciones.length === 0" class="empty-state">
+    <div *ngIf="!cargando && !error && publicaciones.length === 0" class="empty-state">
       <p>No hay publicaciones en este mural.</p>
       <p>¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
     </div>
