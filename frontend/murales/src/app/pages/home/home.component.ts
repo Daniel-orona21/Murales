@@ -11,7 +11,6 @@ import Swal from 'sweetalert2';
 import { MuralDetailComponent } from '../mural-detail/mural-detail.component';
 import { AuthService } from '../../services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ScrollService } from '../../services/scroll.service';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
@@ -72,8 +71,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private muralService: MuralService,
     private notificationService: NotificationService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef,
-    private scrollService: ScrollService
+    private cdr: ChangeDetectorRef
   ) {}
 
   @HostListener('document:click', ['$event'])
@@ -158,13 +156,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       console.log('Access to mural approved, reloading murals...');
       this.loadMurals();
     });
-
-    // Restore selected mural if exists
-    const savedMuralId = this.scrollService.getSelectedMuralId();
-    if (savedMuralId) {
-      this.selectedMuralId = savedMuralId;
-      this.cdr.detectChanges();
-    }
   }
 
   ngOnDestroy() {
@@ -947,7 +938,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedMuralId = mural.id_mural;
-    this.scrollService.saveSelectedMuralId(mural.id_mural);
     this.cdr.detectChanges();
   }
   
@@ -955,7 +945,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   backToMuralesList(): void {
     this.selectedMuralId = null;
     this.selectedPost = null;
-    this.scrollService.saveSelectedMuralId(null);
     this.cdr.detectChanges();
   }
 
