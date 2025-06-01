@@ -1,9 +1,11 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://murales.onrender.com/api',
-  socketUrl: 'https://murales.onrender.com',
+  // apiUrl: 'https://murales.onrender.com/api',
+  // socketUrl: 'https://murales.onrender.com',
   // apiUrl: 'http://192.168.1.5:3000/api',
   // socketUrl: 'http://192.168.1.5:3000',
+  apiUrl: 'http://localhost:3000/api',
+  socketUrl: 'http://localhost:3000',
   firebase: {
     apiKey: "AIzaSyAlQ2jnFGsvyhUQHzIzVM0j7r6l73l9p2o",
     authDomain: "authentication-c70fd.firebaseapp.com",
