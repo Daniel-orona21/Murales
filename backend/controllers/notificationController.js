@@ -1,4 +1,4 @@
-const { pool } = require('../config/db');
+const pool = require('../config/database');
 
 // Crear una nueva notificación
 exports.createNotification = async (req, res) => {

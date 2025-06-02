@@ -1,5 +1,5 @@
 const path = require('path');
-const db = require('../config/database');
+const pool = require('../config/database');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs').promises;
 
@@ -47,7 +47,7 @@ const uploadController = {
         WHERE p.id_publicacion = ?
       `;
       
-      const [publicacion] = await db.query(checkQuery, [id_usuario, id_publicacion]);
+      const [publicacion] = await pool.query(checkQuery, [id_usuario, id_publicacion]);
       
       if (!publicacion || publicacion.length === 0) {
         return res.status(404).json({ error: 'Publicación no encontrada' });
@@ -63,7 +63,7 @@ const uploadController = {
       }
 
       // Obtener el contenido anterior
-      const [contenidoAnterior] = await db.query(
+      const [contenidoAnterior] = await pool.query(
         'SELECT * FROM contenido WHERE id_publicacion = ?',
         [id_publicacion]
       );
@@ -84,7 +84,7 @@ const uploadController = {
         }
 
         // Eliminar registros de la base de datos
-        await db.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+        await pool.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
       }
       
       // Insertar el nuevo contenido
@@ -95,7 +95,7 @@ const uploadController = {
         ) VALUES (?, ?, ?, ?, ?, NOW())
       `;
       
-      const [dbResult] = await db.query(insertQuery, [
+      const [dbResult] = await pool.query(insertQuery, [
         id_publicacion,
         tipo_contenido,
         cloudinaryResult.secure_url, // Usar la URL segura de Cloudinary

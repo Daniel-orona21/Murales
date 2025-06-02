@@ -1,5 +1,4 @@
-const db = require('../config/database');
-const { pool } = require('../config/db');
+const pool = require('../config/database');
 const { verificarToken } = require('../middleware/auth');
 
 const muralController = {
@@ -24,7 +23,7 @@ const muralController = {
         ORDER BY m.fecha_creacion DESC
       `;
 
-      const [murales] = await db.query(query, [userId, userId, userId, userId]);
+      const [murales] = await pool.query(query, [userId, userId, userId, userId]);
       
       if (!murales) {
         return res.status(404).json({ error: 'No se encontraron murales para este usuario' });
@@ -53,7 +52,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
 
-      const [mural] = await db.query(query, [userId, userId, id, userId, userId]);
+      const [mural] = await pool.query(query, [userId, userId, id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(404).json({ error: 'Mural no encontrado' });
@@ -84,7 +83,7 @@ const muralController = {
       let codeExists = true;
       while (codeExists) {
         codigoAcceso = Math.floor(1000 + Math.random() * 9000).toString(); // Generates 1000-9999
-        const [existingCode] = await db.query(
+        const [existingCode] = await pool.query(
           'SELECT id_mural FROM murales WHERE codigo_acceso = ?',
           [codigoAcceso]
         );
@@ -98,7 +97,7 @@ const muralController = {
         VALUES (?, ?, ?, ?, ?, NOW(), NOW(), 1)
       `;
 
-      const [result] = await db.query(query, [titulo, descripcion, userId, privacidad, codigoAcceso]);
+      const [result] = await pool.query(query, [titulo, descripcion, userId, privacidad, codigoAcceso]);
 
       // Crear el rol de administrador para el creador
       const rolQuery = `
@@ -106,7 +105,7 @@ const muralController = {
         VALUES (?, ?, 'administrador', NOW())
       `;
 
-      await db.query(rolQuery, [userId, result.insertId]);
+      await pool.query(rolQuery, [userId, result.insertId]);
 
       res.status(201).json({
         id_mural: result.insertId,
@@ -135,7 +134,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
       `;
 
-      const [mural] = await db.query(checkQuery, [id, userId, userId]);
+      const [mural] = await pool.query(checkQuery, [id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para editar este mural' });
@@ -147,7 +146,7 @@ const muralController = {
         WHERE id_mural = ?
       `;
 
-      await db.query(updateQuery, [titulo, descripcion, privacidad, id]);
+      await pool.query(updateQuery, [titulo, descripcion, privacidad, id]);
 
       res.json({ 
         mensaje: 'Mural actualizado exitosamente',
@@ -174,17 +173,17 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol = 'administrador'))
       `;
 
-      const [mural] = await db.query(checkQuery, [id, userId, userId]);
+      const [mural] = await pool.query(checkQuery, [id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para eliminar este mural' });
       }
 
       // Eliminar roles asociados
-      await db.query('DELETE FROM roles_mural WHERE id_mural = ?', [id]);
+      await pool.query('DELETE FROM roles_mural WHERE id_mural = ?', [id]);
       
       // Eliminar mural
-      await db.query('DELETE FROM murales WHERE id_mural = ?', [id]);
+      await pool.query('DELETE FROM murales WHERE id_mural = ?', [id]);
 
       res.json({ mensaje: 'Mural eliminado exitosamente' });
     } catch (error) {
@@ -205,7 +204,7 @@ const muralController = {
       }
 
       // Verificar si el mural existe y obtener su privacidad
-      const [mural] = await db.query(
+      const [mural] = await pool.query(
         'SELECT id_mural, titulo, id_creador, privacidad FROM murales WHERE codigo_acceso = ?',
         [codigo]
       );
@@ -222,7 +221,7 @@ const muralController = {
       const esPrivado = mural[0].privacidad === 'privado';
 
       // Verificar si el usuario ya está asociado al mural
-      const [existingRole] = await db.query(
+      const [existingRole] = await pool.query(
         'SELECT id_rol FROM roles_mural WHERE id_usuario = ? AND id_mural = ?',
         [userId, muralId]
       );
@@ -234,7 +233,7 @@ const muralController = {
       }
 
       // Obtener nombre del usuario que solicita acceso
-      const [userData] = await db.query(
+      const [userData] = await pool.query(
         'SELECT nombre FROM usuarios WHERE id_usuario = ?',
         [userId]
       );
@@ -250,7 +249,7 @@ const muralController = {
         console.log(`Mural público: acceso inmediato para ${userName} al mural ${muralTitle}`);
 
       // Agregar al usuario con rol de lector
-        await db.query(
+        await pool.query(
           'INSERT INTO roles_mural (id_usuario, id_mural, rol, fecha_asignacion) VALUES (?, ?, "lector", NOW())',
           [userId, muralId]
         );
@@ -337,7 +336,7 @@ const muralController = {
       // Si llegamos aquí, el mural es privado y requiere aprobación
       
       // Verificar si ya existe una solicitud pendiente
-      const [existingRequest] = await db.query(
+      const [existingRequest] = await pool.query(
         `SELECT id_notificacion FROM notificaciones 
          WHERE id_emisor = ? AND id_mural = ? AND tipo = 'solicitud_acceso' AND estado_solicitud = 'pendiente'`,
         [userId, muralId]
@@ -447,7 +446,7 @@ const muralController = {
       const userId = req.user.id;
 
       // Verificar si el usuario es el creador del mural
-      const [mural] = await db.query(
+      const [mural] = await pool.query(
         'SELECT id_creador FROM murales WHERE id_mural = ?',
         [id]
       );
@@ -459,7 +458,7 @@ const muralController = {
       }
 
       // Eliminar el rol del usuario para este mural
-      const [result] = await db.query(
+      const [result] = await pool.query(
         'DELETE FROM roles_mural WHERE id_usuario = ? AND id_mural = ?',
         [userId, id]
       );
@@ -490,7 +489,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
       
-      const [mural] = await db.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
+      const [mural] = await pool.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
       
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
@@ -513,7 +512,7 @@ const muralController = {
         ) VALUES (?, ?, ?, ?, NOW(), NOW(), ?, ?, 1)
       `;
       
-      const [result] = await db.query(insertQuery, [
+      const [result] = await pool.query(insertQuery, [
         id_mural, id_usuario, titulo, descripcion, 
         posicion_x || 0, posicion_y || 0
       ]);
@@ -551,7 +550,7 @@ const muralController = {
         WHERE p.id_publicacion = ?
       `;
       
-      const [publicacion] = await db.query(checkQuery, [id_usuario, id_publicacion]);
+      const [publicacion] = await pool.query(checkQuery, [id_usuario, id_publicacion]);
       
       if (!publicacion || publicacion.length === 0) {
         return res.status(404).json({ error: 'Publicación no encontrada' });
@@ -580,7 +579,7 @@ const muralController = {
         ) VALUES (?, ?, ?, ?, ?, ?, NOW())
       `;
       
-      const [result] = await db.query(insertQuery, [
+      const [result] = await pool.query(insertQuery, [
         id_publicacion, tipo_contenido, url_contenido,
         texto, nombre_archivo, tamano_archivo
       ]);
@@ -616,7 +615,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
       
-      const [mural] = await db.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
+      const [mural] = await pool.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
       
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
@@ -631,7 +630,7 @@ const muralController = {
         ORDER BY p.fecha_creacion DESC
       `;
       
-      const [publicaciones] = await db.query(query, [id_mural]);
+      const [publicaciones] = await pool.query(query, [id_mural]);
       
       // Obtener el contenido para cada publicación
       for (let i = 0; i < publicaciones.length; i++) {
@@ -641,7 +640,7 @@ const muralController = {
           ORDER BY fecha_subida DESC
         `;
         
-        const [contenido] = await db.query(contenidoQuery, [publicaciones[i].id_publicacion]);
+        const [contenido] = await pool.query(contenidoQuery, [publicaciones[i].id_publicacion]);
         publicaciones[i].contenido = contenido;
       }
       
@@ -669,7 +668,7 @@ const muralController = {
         WHERE p.id_publicacion = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
       
-      const [publicacion] = await db.query(query, [id_usuario, id_publicacion, id_usuario, id_usuario]);
+      const [publicacion] = await pool.query(query, [id_usuario, id_publicacion, id_usuario, id_usuario]);
       
       if (!publicacion || publicacion.length === 0) {
         return res.status(404).json({ error: 'Publicación no encontrada o no tienes permisos para verla' });
@@ -682,7 +681,7 @@ const muralController = {
         ORDER BY fecha_subida DESC
       `;
       
-      const [contenido] = await db.query(contenidoQuery, [id_publicacion]);
+      const [contenido] = await pool.query(contenidoQuery, [id_publicacion]);
       publicacion[0].contenido = contenido;
       
       res.json(publicacion[0]);
@@ -708,7 +707,7 @@ const muralController = {
         WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
       `;
 
-      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+      const [publicacion] = await pool.query(checkQuery, [userId, id_publicacion, userId, userId]);
 
       if (!publicacion || publicacion.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
@@ -720,7 +719,7 @@ const muralController = {
         WHERE id_publicacion = ?
       `;
 
-      await db.query(updateQuery, [titulo, descripcion, id_publicacion]);
+      await pool.query(updateQuery, [titulo, descripcion, id_publicacion]);
 
       res.json({ 
         mensaje: 'Publicación actualizada exitosamente',
@@ -749,14 +748,14 @@ const muralController = {
         WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
       `;
 
-      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+      const [publicacion] = await pool.query(checkQuery, [userId, id_publicacion, userId, userId]);
 
       if (!publicacion || publicacion.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
       }
 
       // Obtener el contenido actual
-      const [contenidoActual] = await db.query(
+      const [contenidoActual] = await pool.query(
         'SELECT id_contenido FROM contenido WHERE id_publicacion = ?',
         [id_publicacion]
       );
@@ -777,7 +776,7 @@ const muralController = {
         WHERE id_contenido = ?
       `;
 
-      await db.query(updateQuery, [tipo_contenido, url_contenido, texto, id_contenido]);
+      await pool.query(updateQuery, [tipo_contenido, url_contenido, texto, id_contenido]);
 
       res.json({ 
         mensaje: 'Contenido actualizado exitosamente',
@@ -806,14 +805,14 @@ const muralController = {
         WHERE p.id_publicacion = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol IN ('administrador', 'editor')))
       `;
 
-      const [publicacion] = await db.query(checkQuery, [userId, id_publicacion, userId, userId]);
+      const [publicacion] = await pool.query(checkQuery, [userId, id_publicacion, userId, userId]);
 
       if (!publicacion || publicacion.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para eliminar esta publicación' });
       }
 
       // Eliminar la publicación
-      await db.query('DELETE FROM publicaciones WHERE id_publicacion = ?', [id_publicacion]);
+      await pool.query('DELETE FROM publicaciones WHERE id_publicacion = ?', [id_publicacion]);
 
       res.json({ mensaje: 'Publicación eliminada exitosamente' });
     } catch (error) {
@@ -836,7 +835,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
 
-      const [mural] = await db.query(checkQuery, [userId, id, userId, userId]);
+      const [mural] = await pool.query(checkQuery, [userId, id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
@@ -867,7 +866,7 @@ const muralController = {
           u.nombre ASC
       `;
 
-      const [usuarios] = await db.query(query, [id]);
+      const [usuarios] = await pool.query(query, [id]);
 
       res.json(usuarios);
     } catch (error) {
@@ -897,14 +896,14 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol = 'administrador'))
       `;
 
-      const [mural] = await db.query(checkQuery, [userId, id_mural, userId, userId]);
+      const [mural] = await pool.query(checkQuery, [userId, id_mural, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(403).json({ error: 'No tienes permisos para modificar roles en este mural' });
       }
 
       // Verificar que el usuario a modificar exista en el mural
-      const [usuarioMural] = await db.query(
+      const [usuarioMural] = await pool.query(
         'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
         [id_mural, id_usuario]
       );
@@ -925,10 +924,10 @@ const muralController = {
         WHERE id_mural = ? AND id_usuario = ?
       `;
 
-      await db.query(updateQuery, [rol, id_mural, id_usuario]);
+      await pool.query(updateQuery, [rol, id_mural, id_usuario]);
 
       // Obtener el nombre del usuario que recibe el nuevo rol
-      const [userData] = await db.query(
+      const [userData] = await pool.query(
         'SELECT nombre FROM usuarios WHERE id_usuario = ?',
         [id_usuario]
       );
@@ -997,7 +996,7 @@ const muralController = {
         WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
       `;
 
-      const [mural] = await db.query(checkQuery, [userId, userId, id, userId, userId]);
+      const [mural] = await pool.query(checkQuery, [userId, userId, id, userId, userId]);
 
       if (!mural || mural.length === 0) {
         return res.status(404).json({ mensaje: 'Mural no encontrado' });
@@ -1013,7 +1012,7 @@ const muralController = {
       if (color_personalizado !== undefined) updateData.color_personalizado = color_personalizado;
       updateData.fecha_actualizacion = new Date();
 
-      await db.query(
+      await pool.query(
         `UPDATE murales 
          SET ? 
          WHERE id_mural = ?`,
@@ -1034,7 +1033,7 @@ const muralController = {
       const userId = req.user.id;
 
       // Primero verificar si el mural existe
-      const [muralExists] = await db.query(
+      const [muralExists] = await pool.query(
         'SELECT * FROM murales WHERE id_mural = ?',
         [id]
       );
@@ -1044,7 +1043,7 @@ const muralController = {
       }
 
       // Verificar que el usuario actual es el creador del mural
-      const [mural] = await db.query(
+      const [mural] = await pool.query(
         'SELECT * FROM murales WHERE id_mural = ? AND id_creador = ?',
         [id, userId]
       );
@@ -1057,7 +1056,7 @@ const muralController = {
       }
 
       // Verificar que el nuevo propietario existe y es un usuario del mural
-      const [usuario] = await db.query(
+      const [usuario] = await pool.query(
         'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
         [id, id_nuevo_propietario]
       );
@@ -1067,23 +1066,23 @@ const muralController = {
       }
 
       // Iniciar transacción
-      await db.query('START TRANSACTION');
+      await pool.query('START TRANSACTION');
 
       try {
         // Actualizar el creador del mural
-        await db.query(
+        await pool.query(
           'UPDATE murales SET id_creador = ? WHERE id_mural = ?',
           [id_nuevo_propietario, id]
         );
 
         // Eliminar el rol de administrador del creador actual
-        await db.query(
+        await pool.query(
           'DELETE FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
           [id, userId]
         );
 
         // Crear notificación para el nuevo propietario
-        const [notificationResult] = await db.query(
+        const [notificationResult] = await pool.query(
           `INSERT INTO notificaciones 
            (id_emisor, id_receptor, id_mural, tipo, mensaje) 
            VALUES (?, ?, ?, 'otro', ?)`,
@@ -1096,7 +1095,7 @@ const muralController = {
         );
 
         // Obtener la notificación completa para emitir por WebSocket
-        const [notification] = await db.query(
+        const [notification] = await pool.query(
           `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
            FROM notificaciones n
            LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -1113,10 +1112,10 @@ const muralController = {
           io.to(`user:${id_nuevo_propietario}`).emit('notification', notification[0]);
         }
 
-        await db.query('COMMIT');
+        await pool.query('COMMIT');
         res.json({ mensaje: 'Propiedad transferida exitosamente' });
       } catch (error) {
-        await db.query('ROLLBACK');
+        await pool.query('ROLLBACK');
         throw error;
       }
     } catch (error) {

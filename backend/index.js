@@ -7,7 +7,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Importar la configuración de base de datos
-const { conectarDB } = require('./config/db');
+const pool = require('./config/database');
 
 // Importar middleware de limitación de tasa
 const { apiLimiter } = require('./middleware/rateLimit');
@@ -56,8 +56,16 @@ app.use('/api/notificaciones', require('./routes/notificaciones'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/comentarios', require('./routes/comentarios'));
 
-// Conectar a la base de datos
-conectarDB();
+// Verificar conexión a la base de datos
+pool.getConnection()
+  .then(connection => {
+    console.log('Conexión a MySQL establecida correctamente');
+    connection.release();
+  })
+  .catch(error => {
+    console.error('Error al conectar a MySQL:', error.message);
+    process.exit(1);
+  });
 
 // Configurar Socket.IO
 io.on('connection', (socket) => {
