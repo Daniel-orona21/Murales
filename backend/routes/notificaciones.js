@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const verificarToken = require('../middleware/auth');
 const notificationController = require('../controllers/notificationController');
-const { verificarToken } = require('../middleware/auth');
 
 // Todas las rutas de este archivo requieren autenticación
 router.use(verificarToken);

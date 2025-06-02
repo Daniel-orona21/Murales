@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const upload = require('../middleware/upload');
-const { verificarToken } = require('../middleware/auth');
+const verificarToken = require('../middleware/auth');
+const multer = require('multer');
 
 // Subir archivo y asociarlo a una publicación
 router.post(

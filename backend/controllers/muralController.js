@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const { verificarToken } = require('../middleware/auth');
 
 const muralController = {
   getMuralesByUsuario: async (req, res) => {

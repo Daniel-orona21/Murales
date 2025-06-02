@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const verificarToken = require('../middleware/auth');
 const pool = require('../config/database');
-const { verificarToken } = require('../middleware/auth');
 
 // Toggle like (add/remove)
 router.post('/toggle/:publicacionId', verificarToken, async (req, res) => {

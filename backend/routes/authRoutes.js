@@ -2,7 +2,7 @@ const express = require('express');
 const { check } = require('express-validator');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { verificarToken } = require('../middleware/auth');
+const verificarToken = require('../middleware/auth');
 const { loginLimiter, recuperarPasswordLimiter, registroLimiter } = require('../middleware/rateLimit');
 const verifyRecaptcha = require('../middleware/recaptcha');
 

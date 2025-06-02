@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const verificarToken = require('../middleware/auth');
 const pool = require('../config/database');
-const { verificarToken } = require('../middleware/auth');
 
 // Obtener comentarios de una publicación
 router.get('/publicacion/:id', async (req, res) => {

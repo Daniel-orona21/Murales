@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const verificarToken = require('../middleware/auth');
 const muralController = require('../controllers/muralController');
-const { verificarToken } = require('../middleware/auth');
 
 // Get user's murals
 router.get('/usuario', verificarToken, muralController.getMuralesByUsuario);
