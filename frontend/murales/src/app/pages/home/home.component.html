@@ -55,6 +55,7 @@
     <div class="nav-right">
       <div class="search-bar" [class.expanded]="isSearchBarExpanded">
         <input
+          #searchInput
           type="text"
           [placeholder]="selectedMuralId ? 'Buscar publicaciones...' : 'Buscar murales...'"
           (input)="onSearch($event)"

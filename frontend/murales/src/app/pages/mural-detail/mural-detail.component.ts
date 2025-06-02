@@ -156,8 +156,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
       this.closeCarousel();
     }
-    if (changes['searchText'] && !changes['searchText'].firstChange) {
-      this.relayoutMasonry();
+    if (changes['searchText']) {
+      // Esperar a que el DOM se actualice antes de hacer el relayout
+      requestAnimationFrame(() => {
+        this.relayoutMasonry();
+      });
     }
   }
 
@@ -1763,17 +1766,33 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   // Getter para las publicaciones filtradas
   get filteredPublicaciones(): Publicacion[] {
-    if (!this.searchText || !this.searchText.trim()) return this.publicaciones;
+    const searchTrimmed = this.searchText?.trim().toLowerCase() || '';
+    if (!searchTrimmed) {
+      return this.publicaciones;
+    }
+    
     return this.publicaciones.filter(publicacion =>
-      publicacion.titulo.toLowerCase().includes(this.searchText.toLowerCase().trim())
+      publicacion.titulo.toLowerCase().includes(searchTrimmed) ||
+      publicacion.descripcion?.toLowerCase().includes(searchTrimmed)
     );
   }
 
   private relayoutMasonry() {
-    setTimeout(() => {
+    // Usar requestAnimationFrame para asegurar que el DOM se ha actualizado
+    requestAnimationFrame(() => {
       if (this.masonry && typeof this.masonry.layout === 'function') {
+        // Forzar un reflow antes del layout
+        this.masonryGrid?.nativeElement.offsetHeight;
         this.masonry.layout();
+        
+        // Asegurar que las publicaciones sean visibles
+        const items = this.masonryGrid?.nativeElement.querySelectorAll('.publicacion-item');
+        if (items) {
+          items.forEach((item: HTMLElement) => {
+            item.classList.add('loaded');
+          });
+        }
       }
-    }, 0);
+    });
   }
 }

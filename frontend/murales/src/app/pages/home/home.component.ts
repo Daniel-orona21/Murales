@@ -67,6 +67,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   isKeyboardOpen = false;
   private initialViewportHeight = window.innerHeight;
 
+  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+
   constructor(
     public router: Router,
     private muralService: MuralService,
@@ -954,6 +956,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
       return;
     }
+    // Limpiar el texto de búsqueda al seleccionar un mural
+    this.searchText = '';
     this.muralService.setSelectedMural(mural.id_mural);
     this.selectedMuralTitle = mural.titulo;
     this.cdr.detectChanges();
@@ -961,6 +965,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
+    // Limpiar el texto de búsqueda al volver a la lista de murales
+    this.searchText = '';
     this.muralService.setSelectedMural(null);
     this.selectedPost = null;
     this.cdr.detectChanges();
@@ -1178,6 +1184,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Método para volver al mural (deseleccionar publicación)
   backToMural() {
+    // Limpiar el texto de búsqueda al volver al mural
+    this.searchText = '';
     this.selectedPost = null;
     this.forceClosePost = true;
     if (this.muralDetailComponent && this.muralDetailComponent.forceCloseCarousel) {
@@ -1233,6 +1241,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.isSearchBarExpanded) {
       this.searchText = '';
       this.onSearch({ target: { value: '' } } as any);
+    } else {
+      // Esperar a que el input esté visible antes de enfocarlo
+      setTimeout(() => {
+        this.searchInput?.nativeElement?.focus();
+      }, 100);
     }
   }
 } 
