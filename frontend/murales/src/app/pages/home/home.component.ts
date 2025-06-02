@@ -49,6 +49,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   cargandoAprobar: { [key: number]: boolean } = {};
   cargandoRechazar: { [key: number]: boolean } = {}; 
   cargandoAbandonar: { [key: number]: boolean } = {};
+  cargandoRecuperarPassword: boolean = false;
   // Suscripciones
   private notificationsSubscription?: Subscription;
   private muralAccessSubscription?: Subscription;
@@ -1154,11 +1155,15 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   toggleRecoveryForm() {
     this.showRecoveryForm = !this.showRecoveryForm;
+    if (this.showRecoveryForm && this.user?.email) {
+      this.recoveryEmail = this.user.email;
+    }
   }
 
   requestPasswordRecovery() {
     if (!this.recoveryEmail) return;
 
+    this.cargandoRecuperarPassword = true;
     this.authService.requestPasswordReset(this.recoveryEmail).subscribe({
       next: () => {
         Swal.fire({
@@ -1172,6 +1177,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             confirmButton: 'custom-confirm-button'
           }
         });
+        this.cargandoRecuperarPassword = false;
         this.recoveryEmail = '';
         this.showRecoveryForm = false;
       },
@@ -1188,6 +1194,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             confirmButton: 'custom-confirm-button'
           }
         });
+        this.cargandoRecuperarPassword = false;
       }
     });
   }

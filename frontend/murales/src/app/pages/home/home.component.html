@@ -388,7 +388,8 @@
               >
             </div>
             <button type="submit" class="recovery-button" [disabled]="!recoveryForm.form.valid">
-              <i class="fas fa-paper-plane"></i>
+              <i *ngIf="!cargandoRecuperarPassword" class="fas fa-paper-plane"></i>
+              <span *ngIf="cargandoRecuperarPassword" class="spinner-button dark"></span>
               Enviar
             </button>
           </form>

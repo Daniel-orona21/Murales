@@ -163,10 +163,17 @@ export class LoginComponent {
       this.forgotPasswordMessage = '';
       this.forgotPasswordError = false;
     } else if (formToShow === 'forgotPassword') {
+      // Si hay un email en el formulario de login, usarlo para el formulario de recuperación
+      const loginEmail = this.loginForm.get('email')?.value;
       this.loginForm.reset();
       this.registerForm.reset();
       this.resetFormErrors(this.loginForm);
       this.resetFormErrors(this.registerForm);
+      if (loginEmail) {
+        this.forgotPasswordForm.patchValue({
+          email: loginEmail
+        });
+      }
       // Do not reset forgotPasswordSubmitted and message here as they are part of its own flow
     }
   }
