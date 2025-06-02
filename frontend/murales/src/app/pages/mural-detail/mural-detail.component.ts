@@ -902,13 +902,44 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.muralService.uploadFile(publicacionId, data.content).subscribe({
             next: (response: any) => {
               console.log('Archivo actualizado:', response);
+              // Primero recargamos las publicaciones
               this.cargarPublicaciones();
-              this.cargando = false;
+              // Notificamos al componente hijo que puede cerrar el modo edición
+              if (this.carouselComponent) {
+                this.carouselComponent.isEditing = false;
+                this.carouselComponent.cargandoEdit = false;
+              }
+              // Mostramos la alerta de éxito
+              // Swal.fire({
+              //   title: '¡Guardado!',
+              //   text: 'La publicación se actualizó correctamente.',
+              //   icon: 'success',
+              //   confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              //   confirmButtonText: 'Aceptar',
+              //   customClass: {
+              //     popup: 'custom-swal-popup',
+              //     confirmButton: 'custom-confirm-button'
+              //   }
+              // });
             },
             error: (error: any) => {
               console.error('Error al actualizar archivo:', error);
               this.error = 'No se pudo actualizar el archivo';
               this.cargando = false;
+              if (this.carouselComponent) {
+                this.carouselComponent.cargandoEdit = false;
+              }
+              Swal.fire({
+                title: 'Error',
+                text: 'No se pudo actualizar el archivo',
+                icon: 'error',
+                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                confirmButtonText: 'Aceptar',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button'
+                }
+              });
             }
           });
         }
@@ -921,13 +952,44 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.muralService.updateContenido(publicacionId, contenidoData).subscribe({
             next: (contenido: any) => {
               console.log('Enlace actualizado:', contenido);
+              // Primero recargamos las publicaciones
               this.cargarPublicaciones();
-              this.cargando = false;
+              // Notificamos al componente hijo que puede cerrar el modo edición
+              if (this.carouselComponent) {
+                this.carouselComponent.isEditing = false;
+                this.carouselComponent.cargandoEdit = false;
+              }
+              // Mostramos la alerta de éxito
+              // Swal.fire({
+              //   title: '¡Guardado!',
+              //   text: 'La publicación se actualizó correctamente.',
+              //   icon: 'success',
+              //   confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              //   confirmButtonText: 'Aceptar',
+              //   customClass: {
+              //     popup: 'custom-swal-popup',
+              //     confirmButton: 'custom-confirm-button'
+              //   }
+              // });
             },
             error: (error: any) => {
               console.error('Error al actualizar enlace:', error);
               this.error = 'No se pudo actualizar el enlace';
               this.cargando = false;
+              if (this.carouselComponent) {
+                this.carouselComponent.cargandoEdit = false;
+              }
+              Swal.fire({
+                title: 'Error',
+                text: 'No se pudo actualizar el enlace',
+                icon: 'error',
+                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                confirmButtonText: 'Aceptar',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button'
+                }
+              });
             }
           });
         }
@@ -940,25 +1002,86 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           this.muralService.updateContenido(publicacionId, contenidoData).subscribe({
             next: (contenido: any) => {
               console.log('Nota actualizada:', contenido);
+              // Primero recargamos las publicaciones
               this.cargarPublicaciones();
-              this.cargando = false;
+              // Notificamos al componente hijo que puede cerrar el modo edición
+              if (this.carouselComponent) {
+                this.carouselComponent.isEditing = false;
+                this.carouselComponent.cargandoEdit = false;
+              }
+              // Mostramos la alerta de éxito
+              // Swal.fire({
+              //   title: '¡Guardado!',
+              //   text: 'La publicación se actualizó correctamente.',
+              //   icon: 'success',
+              //   confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              //   confirmButtonText: 'Aceptar',
+              //   customClass: {
+              //     popup: 'custom-swal-popup',
+              //     confirmButton: 'custom-confirm-button'
+              //   }
+              // });
             },
             error: (error: any) => {
               console.error('Error al actualizar nota:', error);
               this.error = 'No se pudo actualizar la nota';
               this.cargando = false;
+              if (this.carouselComponent) {
+                this.carouselComponent.cargandoEdit = false;
+              }
+              Swal.fire({
+                title: 'Error',
+                text: 'No se pudo actualizar la nota',
+                icon: 'error',
+                confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+                confirmButtonText: 'Aceptar',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  confirmButton: 'custom-confirm-button'
+                }
+              });
             }
           });
         } else {
           // Si no hay nuevo contenido, solo recargar las publicaciones
           this.cargarPublicaciones();
-          this.cargando = false;
+          // Notificamos al componente hijo que puede cerrar el modo edición
+          if (this.carouselComponent) {
+            this.carouselComponent.isEditing = false;
+            this.carouselComponent.cargandoEdit = false;
+          }
+          // Mostramos la alerta de éxito
+          // Swal.fire({
+          //   title: '¡Guardado!',
+          //   text: 'La publicación se actualizó correctamente.',
+          //   icon: 'success',
+          //   confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          //   confirmButtonText: 'Aceptar',
+          //   customClass: {
+          //     popup: 'custom-swal-popup',
+          //     confirmButton: 'custom-confirm-button'
+          //   }
+          // });
         }
       },
       error: (error: any) => {
         console.error('Error al actualizar publicación:', error);
         this.error = 'No se pudo actualizar la publicación';
         this.cargando = false;
+        if (this.carouselComponent) {
+          this.carouselComponent.cargandoEdit = false;
+        }
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo actualizar la publicación',
+          icon: 'error',
+          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+          confirmButtonText: 'Aceptar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
       }
     });
   }

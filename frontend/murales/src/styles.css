@@ -194,7 +194,7 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 99;
   flex-direction: column;
 }
 

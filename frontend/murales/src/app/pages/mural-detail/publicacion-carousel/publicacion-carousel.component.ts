@@ -39,6 +39,8 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   private youtubeEmbedCache: { [key: string]: SafeResourceUrl } = {};
   showOptionsMenu: boolean = false;
   isEditing: boolean = false;
+  enviarComentario: boolean = false;
+  cargandoEdit: boolean = false;
   contentType: ContentType = 'nota';
   isDragging: boolean = false;
   error: string | null = null;
@@ -137,6 +139,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   
   addComment() {
     if (this.newComment.trim()) {
+      this.enviarComentario = true;
       this.comentarioService.agregarComentario(
         this.currentPublicacion.id_publicacion,
         this.newComment.trim()
@@ -151,6 +154,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
             publicacionId: this.currentPublicacion.id_publicacion,
             comment: nuevoComentario.contenido
           });
+          this.enviarComentario = false;
         },
         error: (error) => {
           console.error('Error al agregar comentario:', error);
@@ -161,6 +165,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
             confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
             confirmButtonText: 'Aceptar'
           });
+          this.enviarComentario = false;
         }
       });
     }
@@ -285,6 +290,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
   onSaveEdit(): void {
     if (!this.editedContent.titulo.trim() || !this.editedContent.descripcion.trim()) return;
     
+    this.cargandoEdit = true;
     const editData = {
       titulo: this.editedContent.titulo,
       descripcion: this.editedContent.descripcion,
@@ -299,19 +305,8 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
         publicacionId: this.currentPublicacion.id_publicacion,
         data: editData
       });
-      Swal.fire({
-        title: '¡Guardado!',
-        text: 'La publicación se actualizó correctamente.',
-        icon: 'success',
-        confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-        confirmButtonText: 'Aceptar',
-        customClass: {
-          popup: 'custom-swal-popup',
-          confirmButton: 'custom-confirm-button'
-        }
-      });
-      this.isEditing = false;
     } catch (error) {
+      this.cargandoEdit = false;
       Swal.fire({
         title: 'Error',
         text: 'Ocurrió un error al guardar la publicación.',
@@ -328,6 +323,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
 
   onCancelEdit(): void {
     this.isEditing = false;
+    this.cargandoEdit = false;
     this.cancelEdit.emit();
   }
 

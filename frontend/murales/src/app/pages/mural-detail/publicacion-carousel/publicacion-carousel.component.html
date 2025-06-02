@@ -6,7 +6,8 @@
     <div class="botonera">
       <div class="edicion">
         <button class="options-button confirmar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onSaveEdit()">
-          <span class="material-symbols-outlined">check</span>
+          <span *ngIf="!cargandoEdit" class="material-symbols-outlined">check</span>
+          <span *ngIf="cargandoEdit" class="spinner-button"></span>
         </button>
         <button class="options-button cancelar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onCancelEdit()">
           <span class="material-symbols-outlined">close</span>
@@ -299,7 +300,8 @@
                 class="enviar-comentario"
                 [disabled]="!newComment.trim()"
                 (click)="addComment()">
-                <span class="material-symbols-outlined">send</span>
+                <span *ngIf="!enviarComentario" class="material-symbols-outlined">send</span>
+                <span *ngIf="enviarComentario" class="spinner-button"></span>
               </button>
             </div>
           </div>

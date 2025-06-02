@@ -27,6 +27,7 @@
   overflow: hidden;
   position: relative;
   animation: fadeIn 0.2s;
+  z-index: 9999;
 }
 
 
@@ -949,3 +950,19 @@
   margin-top: 8px;
   text-align: center;
 } 
+
+.spinner-button {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(189, 189, 189, 0.406);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
