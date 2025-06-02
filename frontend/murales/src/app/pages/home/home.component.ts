@@ -1043,7 +1043,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   closeSession(sessionId: string, event: Event) {
     event.stopPropagation();
-    event.preventDefault(); // Prevenir el comportamiento por defecto
+    event.preventDefault();
     
     Swal.fire({
       title: '¿Cerrar sesión?',
@@ -1068,12 +1068,14 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (result.isConfirmed) {
         this.authService.closeSession(sessionId).subscribe({
           next: () => {
-            // Si es la sesión actual, cerrar sesión
+            // Remover la sesión de la lista local
+            this.sessions = this.sessions.filter(session => session.id_sesion !== sessionId);
+            this.cdr.detectChanges(); // Forzar actualización de la vista
+            
+            // Si es la sesión actual, hacer logout y redirigir
             if (sessionId === this.currentSessionId) {
-              this.logout();
-            } else {
-              // Recargar la lista de sesiones
-              this.loadSessions();
+              this.authService.logout();
+              this.router.navigate(['/login']);
             }
           },
           error: (error) => {
@@ -1087,10 +1089,7 @@ export class HomeComponent implements OnInit, OnDestroy {
               customClass: {
                 popup: 'custom-swal-popup',
                 confirmButton: 'custom-confirm-button'
-              },
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              stopKeydownPropagation: true
+              }
             });
           }
         });
@@ -1117,7 +1116,32 @@ export class HomeComponent implements OnInit, OnDestroy {
       allowEscapeKey: false,
       stopKeydownPropagation: true
     }).then((result) => {
-      if (result.isConfirmed) {
+      if (result.isConfirmed && this.currentSessionId) {
+        // Cerrar la sesión actual en el servidor
+        this.authService.closeSession(this.currentSessionId).subscribe({
+          next: () => {
+            // Remover la sesión de la lista local
+            this.sessions = this.sessions.filter(session => session.id_sesion !== this.currentSessionId);
+            this.cdr.detectChanges(); // Forzar actualización de la vista
+            
+            // Hacer logout y redirigir
+            this.authService.logout();
+            this.router.navigate(['/login']);
+          },
+          error: (error) => {
+            console.error('Error closing session:', error);
+            // Aún así hacer logout y redirigir en caso de error
+            this.authService.logout();
+            this.router.navigate(['/login']);
+          },
+          complete: () => {
+            // Asegurarse de que la sesión se elimine de la lista local
+            this.sessions = this.sessions.filter(session => session.id_sesion !== this.currentSessionId);
+            this.cdr.detectChanges();
+          }
+        });
+      } else if (result.isConfirmed) {
+        // Si no hay ID de sesión, simplemente hacer logout
         this.authService.logout();
         this.router.navigate(['/login']);
       }

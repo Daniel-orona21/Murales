@@ -247,22 +247,22 @@ export class AuthService {
       return throwError(() => 'No hay token disponible');
     }
 
-    // Si es la sesión actual, solo limpiar el estado local
-    if (sessionId === this.getSessionId()) {
-      sessionStorage.removeItem(this.tokenKey);
-      sessionStorage.removeItem(this.sessionIdKey);
-      this.authSubject.next(false);
-      this.sessionsSubject.next([]);
-      return of({ success: true });
-    }
-
-    // Si no es la sesión actual, cerrarla en el servidor
+    // Siempre enviar la petición al servidor para cerrar la sesión
     return this.http.post(`${this.apiUrl}/auth/logout/${sessionId}`, {}, { 
       headers: new HttpHeaders().set('Authorization', `Bearer ${token}`)
     }).pipe(
       tap(() => {
-        const currentSessions = this.sessionsSubject.value;
-        this.sessionsSubject.next(currentSessions.filter(s => s.id_sesion !== sessionId));
+        // Si es la sesión actual, limpiar el estado local
+        if (sessionId === this.getSessionId()) {
+          sessionStorage.removeItem(this.tokenKey);
+          sessionStorage.removeItem(this.sessionIdKey);
+          this.authSubject.next(false);
+          this.sessionsSubject.next([]);
+        } else {
+          // Si no es la sesión actual, solo actualizar la lista de sesiones
+          const currentSessions = this.sessionsSubject.value;
+          this.sessionsSubject.next(currentSessions.filter(s => s.id_sesion !== sessionId));
+        }
       }),
       catchError((error) => {
         console.error('AuthService - closeSession - Error al cerrar sesión:', error);
