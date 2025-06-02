@@ -45,6 +45,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   showNotifications = false;
   unreadNotifications = 0;
   loadingNotifications = false;
+  cargandoNotificacion: { [key: number]: boolean } = {}; // Objeto para rastrear el estado de carga por ID
+  cargandoAprobar: { [key: number]: boolean } = {}; // Estado de carga para aprobar
+  cargandoRechazar: { [key: number]: boolean } = {}; // Estado de carga para rechazar
 
   // Suscripciones
   private notificationsSubscription?: Subscription;
@@ -854,24 +857,20 @@ export class HomeComponent implements OnInit, OnDestroy {
   markAsRead(notification: Notification, event: Event) {
     event.stopPropagation();
     
-    // If it's an access request, automatically reject it when marking as read
-    if (notification.tipo === 'solicitud_acceso') {
-      this.notificationService.processAccessRequest(notification.id_notificacion, false).subscribe({
-        next: () => {
-          console.log('Access request automatically rejected when marked as read');
-        },
-        error: (error) => {
-          console.error('Error al rechazar solicitud de acceso:', error);
-        }
-      });
-    }
+    // Marcar esta notificación específica como cargando
+    this.cargandoNotificacion[notification.id_notificacion] = true;
     
     this.notificationService.markAsRead(notification.id_notificacion).subscribe({
       next: () => {
-        console.log('Notification successfully marked as read and deleted');
+        // Remover el estado de carga para esta notificación
+        delete this.cargandoNotificacion[notification.id_notificacion];
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error al marcar/eliminar notificación:', error);
+        console.error('Error marking notification as read:', error);
+        // Remover el estado de carga en caso de error
+        delete this.cargandoNotificacion[notification.id_notificacion];
+        this.cdr.detectChanges();
       }
     });
   }
@@ -895,10 +894,20 @@ export class HomeComponent implements OnInit, OnDestroy {
   processAccessRequest(notification: Notification, approved: boolean, event: Event) {
     event.stopPropagation();
     
-    // No need to remove from UI here, the service will handle it via notifications$ subscription
+    if (approved) {
+      this.cargandoAprobar[notification.id_notificacion] = true;
+    } else {
+      this.cargandoRechazar[notification.id_notificacion] = true;
+    }
     
     this.notificationService.processAccessRequest(notification.id_notificacion, approved).subscribe({
       next: () => {
+        if (approved) {
+          delete this.cargandoAprobar[notification.id_notificacion];
+        } else {
+          delete this.cargandoRechazar[notification.id_notificacion];
+        }
+        this.cdr.detectChanges();
         // Show success message without waiting for the backend
         Swal.fire({
           title: approved ? 'Acceso Aprobado' : 'Acceso Rechazado',
@@ -914,7 +923,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error al procesar solicitud de acceso:', error);
-        
+        if (approved) {
+          delete this.cargandoAprobar[notification.id_notificacion];
+        } else {
+          delete this.cargandoRechazar[notification.id_notificacion];
+        }
+        this.cdr.detectChanges();
         Swal.fire({
           title: 'Error',
           text: 'No se pudo procesar la solicitud. Intenta de nuevo más tarde.',

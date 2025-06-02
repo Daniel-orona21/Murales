@@ -210,3 +210,24 @@ button {
 body.carousel-open .navbar {
   /* display: none !important; */
 } 
+
+.dark {
+  border: 2px solid rgba(0, 0, 0, 0.2) !important;
+  border-top-color: #000 !important;
+}
+
+.spinner-button {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(189, 189, 189, 0.406);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spiner 1s linear infinite;
+}
+
+@keyframes spiner {
+  to {
+    transform: rotate(360deg);
+  }
+}

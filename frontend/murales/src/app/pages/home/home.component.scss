@@ -798,21 +798,6 @@
             opacity: 0.5;
             cursor: not-allowed;
           }
-          .spinner-button {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-top-color: #000;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
         }
 
         &.btn-secondary {
@@ -1012,12 +997,25 @@
         color: rgba(255, 255, 255, 0.7);
         margin: 0;
       }
+      
     }
-    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
     .notification-item {
       display: flex;
       flex-direction: column;
-      padding: 1rem;
+      padding: 1rem 1.5rem 1rem 1rem;
       background: rgba(242, 242, 242, 0.095) !important;
       border-radius: 20px;
       margin-bottom: 1rem;

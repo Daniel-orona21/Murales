@@ -253,7 +253,7 @@
           <button type="button" class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
           <button type="submit" class="btn-primary" [disabled]="!muralForm.form.valid || cargando">
             {{ editingMuralId ? 'Guardar cambios' : 'Crear mural' }}
-            <span *ngIf="cargando" class="spinner-button"></span>
+            <span *ngIf="cargando" class="spinner-button dark"></span>
           </button>
         </div>
       </form>
@@ -288,10 +288,12 @@
             <!-- Botones de aprobación/rechazo para solicitudes de acceso pendientes -->
             <div class="notification-actions" *ngIf="notification.tipo === 'solicitud_acceso' && notification.estado_solicitud === 'pendiente'">
               <button class="action-btn approve" (click)="processAccessRequest(notification, true, $event)" title="Aprobar">
-                <i class="fas fa-check"></i> Aprobar
+                <i *ngIf="!cargandoAprobar[notification.id_notificacion]" class="fas fa-check"></i> Aprobar
+                <span *ngIf="cargandoAprobar[notification.id_notificacion]" class="spinner-button dark"></span>
               </button>
               <button class="action-btn reject" (click)="processAccessRequest(notification, false, $event)" title="Rechazar">
-                <i class="fas fa-times"></i> Rechazar
+                <i *ngIf="!cargandoRechazar[notification.id_notificacion]" class="fas fa-times"></i> Rechazar
+                <span *ngIf="cargandoRechazar[notification.id_notificacion]" class="spinner-button"></span>
               </button>
             </div>
             
@@ -304,7 +306,8 @@
             </div>
           </div>
           <button class="mark-read-btn" *ngIf="!notification.leido" (click)="markAsRead(notification, $event)">
-            <i class="fas fa-check"></i>
+            <i *ngIf="!cargandoNotificacion[notification.id_notificacion]" class="fas fa-check"></i>
+            <span *ngIf="cargandoNotificacion[notification.id_notificacion]" class="spinner-button"></span>
           </button>
         </div>
       </ng-container>

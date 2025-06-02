@@ -310,7 +310,7 @@
       <div class="form-actions">
         <button class="cancel-button" (click)="toggleModal()">Cancelar</button>
         <button class="save-button" (click)="guardarElemento()" [disabled]="!formValid || cargando">
-          <span *ngIf="cargando" class="spinner-button"></span>
+          <span *ngIf="cargando" class="spinner-button dark"></span>
           <span *ngIf="!cargando">Guardar</span>
         </button>
       </div>
