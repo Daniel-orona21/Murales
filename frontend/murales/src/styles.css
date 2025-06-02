@@ -216,6 +216,11 @@ body.carousel-open .navbar {
   border-top-color: #000 !important;
 }
 
+.red {
+  border: 2px solid rgba(255, 0, 0, 0.2) !important;
+  border-top-color: #db1414 !important;
+}
+
 .spinner-button {
   display: inline-block;
   width: 16px;

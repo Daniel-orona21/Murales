@@ -45,10 +45,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   showNotifications = false;
   unreadNotifications = 0;
   loadingNotifications = false;
-  cargandoNotificacion: { [key: number]: boolean } = {}; // Objeto para rastrear el estado de carga por ID
-  cargandoAprobar: { [key: number]: boolean } = {}; // Estado de carga para aprobar
-  cargandoRechazar: { [key: number]: boolean } = {}; // Estado de carga para rechazar
-
+  cargandoNotificacion: { [key: number]: boolean } = {}; 
+  cargandoAprobar: { [key: number]: boolean } = {};
+  cargandoRechazar: { [key: number]: boolean } = {}; 
+  cargandoAbandonar: { [key: number]: boolean } = {};
   // Suscripciones
   private notificationsSubscription?: Subscription;
   private muralAccessSubscription?: Subscription;
@@ -316,6 +316,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   abandonarMural(mural: MuralWithMenu) {
+    this.cargandoAbandonar[mural.id_mural] = true;
     this.muralService.getCurrentUserId().subscribe(currentUserId => {
       if (mural.id_creador === currentUserId) {
         // Si es el creador, mostrar opciones de transferir o eliminar
@@ -378,6 +379,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                                   confirmButton: 'custom-confirm-button'
                                 }
                               });
+                              this.cargandoAbandonar[mural.id_mural] = false;
                               this.loadMurals();
                             },
                             error: (error) => {
@@ -392,6 +394,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                                   confirmButton: 'custom-confirm-button'
                                 }
                               });
+                              this.cargandoAbandonar[mural.id_mural] = false;
                             }
                           });
                         },
@@ -407,6 +410,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                               confirmButton: 'custom-confirm-button'
                             }
                           });
+                          this.cargandoAbandonar[mural.id_mural] = false;
                         }
                       });
                     }
@@ -427,6 +431,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                   }).then((result) => {
                     if (result.isConfirmed) {
                       this.deleteMural(mural);
+                      this.cargandoAbandonar[mural.id_mural] = false;
                     }
                   });
                 }
@@ -444,10 +449,15 @@ export class HomeComponent implements OnInit, OnDestroy {
                     confirmButton: 'custom-confirm-button'
                   }
                 });
+                this.cargandoAbandonar[mural.id_mural] = false;
               }
             });
           } else if (result.isDenied) {
             this.deleteMural(mural);
+            this.cargandoAbandonar[mural.id_mural] = false;
+          } else {
+            // Si el usuario cancela
+            this.cargandoAbandonar[mural.id_mural] = false;
           }
         });
       } else {
@@ -464,6 +474,8 @@ export class HomeComponent implements OnInit, OnDestroy {
                 popup: 'custom-swal-popup',
                 confirmButton: 'custom-confirm-button'
               }
+            }).then(() => {
+              this.cargandoAbandonar[mural.id_mural] = false;
             });
             this.loadMurals();
           },
@@ -599,6 +611,10 @@ export class HomeComponent implements OnInit, OnDestroy {
                   });
                 } else if (result.isDenied) {
                   this.deleteMural(mural);
+                  this.cargandoAbandonar[mural.id_mural] = false;
+                } else {
+                  // Si el usuario cancela
+                  this.cargandoAbandonar[mural.id_mural] = false;
                 }
               });
             } else {
@@ -612,6 +628,8 @@ export class HomeComponent implements OnInit, OnDestroy {
                   popup: 'custom-swal-popup',
                   confirmButton: 'custom-confirm-button'
                 }
+              }).then(() => {
+                this.cargandoAbandonar[mural.id_mural] = false;
               });
             }
           }

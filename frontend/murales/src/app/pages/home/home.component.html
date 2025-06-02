@@ -151,7 +151,8 @@
                         </button>
                         
                         <button class="menu-item delete" (click)="abandonarMural(mural)">
-                          <i class="fas fa-sign-out-alt"></i>
+                          <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
+                          <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
                           Abandonar
                         </button>
                       </ng-container>
@@ -159,7 +160,8 @@
                       <!-- Solo para lectores (no creadores) -->
                       <ng-container *ngIf="mural.rol_usuario === 'lector'">
                         <button class="menu-item delete" (click)="abandonarMural(mural)">
-                          <i class="fas fa-sign-out-alt"></i>
+                          <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
+                          <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
                           Abandonar
                         </button>
                       </ng-container>
