@@ -176,10 +176,13 @@ export class AuthService {
     );
   }
 
-  logout() {
-    // Limpiar el token y el ID de sesión
-    sessionStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.sessionIdKey);
+  logout(): void {
+    // Limpiar el token
+    localStorage.removeItem('token');
+    // Limpiar el ID de sesión
+    localStorage.removeItem('sessionId');
+    // Limpiar el mural seleccionado
+    localStorage.removeItem('selectedMuralId');
     
     // Limpiar los subjects
     this.authSubject.next(false);

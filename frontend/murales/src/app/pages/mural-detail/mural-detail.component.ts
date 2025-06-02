@@ -147,9 +147,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['muralId'] && !changes['muralId'].firstChange) {
-      this.resetImageLoading();
-      this.loadMural();
-      this.cargarPublicaciones();
+      if (this.muralId) {
+        this.loadMural();
+        this.cargarPublicaciones();
+        this.loadMuralUsers();
+      }
     }
     if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
       this.closeCarousel();
@@ -855,7 +857,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                 confirmButton: 'custom-confirm-button'
               }
             });
-            // this.router.navigate(['/']);
           },
           error: (error) => {
             console.error('Error al eliminar publicación:', error);
@@ -1264,6 +1265,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     return adminCount === 1 && user.rol === 'administrador';
   }
 
+  private navigateToHome(): void {
+    this.muralService.setSelectedMural(null);
+    this.router.navigate(['/']);
+  }
+
   abandonarMural(): void {
     if (!this.mural) return;
     this.muralService.getCurrentUserId().subscribe(currentUserId => {
@@ -1330,7 +1336,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                               });
                               this.loadMural();
                               this.loadMuralUsers();
-                              this.router.navigate(['/']);
+                              this.navigateToHome();
                             },
                             error: (error) => {
                               Swal.fire({
@@ -1419,7 +1425,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             });
             this.loadMural();
             this.loadMuralUsers();
-            this.router.navigate(['/']);
+            this.navigateToHome();
           },
           error: (error) => {
             if (error.status === 403) {
@@ -1485,7 +1491,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                                     });
                                     this.loadMural();
                                     this.loadMuralUsers();
-                                    this.router.navigate(['/']);
+                                    this.navigateToHome();
                                   },
                                   error: (error) => {
                                     Swal.fire({
@@ -1612,7 +1618,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             this.mural = null;
             this.muralUsers = [];
             this.cdr.markForCheck();
-            this.router.navigate(['/']);
+            this.navigateToHome();
           },
           error: (error) => {
             Swal.fire({

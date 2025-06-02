@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { map } from 'rxjs/operators';
@@ -107,11 +107,35 @@ export interface UpdateThemeData {
 export class MuralService {
   private apiUrl = `${environment.apiUrl}/murales`;
   private uploadUrl = `${environment.apiUrl}/uploads`;
+  private selectedMuralId = new BehaviorSubject<number | null>(null);
+  selectedMural$ = this.selectedMuralId.asObservable();
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
-  ) { }
+  ) {
+    // Intentar recuperar el mural seleccionado del localStorage al iniciar
+    const savedMuralId = localStorage.getItem('selectedMuralId');
+    const token = this.authService.getToken();
+    
+    // Solo cargar el mural guardado si hay un token válido (sesión activa)
+    if (savedMuralId && token) {
+      this.selectedMuralId.next(Number(savedMuralId));
+    }
+  }
+
+  setSelectedMural(muralId: number | null) {
+    if (muralId) {
+      localStorage.setItem('selectedMuralId', muralId.toString());
+    } else {
+      localStorage.removeItem('selectedMuralId');
+    }
+    this.selectedMuralId.next(muralId);
+  }
+
+  getSelectedMuralId(): number | null {
+    return this.selectedMuralId.value;
+  }
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();

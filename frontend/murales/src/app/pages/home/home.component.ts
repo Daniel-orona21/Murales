@@ -49,6 +49,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Suscripciones
   private notificationsSubscription?: Subscription;
   private muralAccessSubscription?: Subscription;
+  private muralSubscription: Subscription | null = null;
 
   showProfileMenu = false;
   user: any = null;
@@ -156,6 +157,18 @@ export class HomeComponent implements OnInit, OnDestroy {
       console.log('Access to mural approved, reloading murals...');
       this.loadMurals();
     });
+
+    // Suscribirse al mural seleccionado
+    this.muralSubscription = this.muralService.selectedMural$.subscribe(muralId => {
+      this.selectedMuralId = muralId;
+      if (muralId) {
+        const mural = this.murals.find(m => m.id_mural === muralId);
+        if (mural) {
+          this.selectedMuralTitle = mural.titulo;
+        }
+      }
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy() {
@@ -166,6 +179,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     
     if (this.muralAccessSubscription) {
       this.muralAccessSubscription.unsubscribe();
+    }
+
+    if (this.muralSubscription) {
+      this.muralSubscription.unsubscribe();
     }
   }
 
@@ -937,13 +954,14 @@ export class HomeComponent implements OnInit, OnDestroy {
         (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
       return;
     }
-    this.selectedMuralId = mural.id_mural;
+    this.muralService.setSelectedMural(mural.id_mural);
+    this.selectedMuralTitle = mural.titulo;
     this.cdr.detectChanges();
   }
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
-    this.selectedMuralId = null;
+    this.muralService.setSelectedMural(null);
     this.selectedPost = null;
     this.cdr.detectChanges();
   }
