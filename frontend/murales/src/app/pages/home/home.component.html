@@ -334,7 +334,7 @@
     <div class="profile-content">
       <div class="user-info">
         <div class="avatar">
-          <i class="fas fa-user"></i>
+          <img class="avatar-img" [src]="user?.avatar_url || '/images/default-avatar2.jpeg'" [alt]="user?.nombre">
         </div>
         <div class="user-details">
           <h3>{{ user?.nombre }}</h3>
