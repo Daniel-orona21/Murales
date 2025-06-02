@@ -199,6 +199,9 @@
                   placeholder="Correo electrónico" 
                   class="form-control">
               </div>
+              <div *ngIf="forgotPasswordError" class="error-message">
+                <small>{{ forgotPasswordMessage }}</small>
+              </div>
               <div class="error-message" *ngIf="forgotPasswordEmail?.invalid && (forgotPasswordEmail?.touched || forgotPasswordEmail?.dirty)">
                 <small *ngIf="forgotPasswordEmail?.errors?.['required']">El correo electrónico es requerido</small>
                 <small *ngIf="forgotPasswordEmail?.errors?.['email']">Ingresa un correo electrónico válido</small>
@@ -213,9 +216,7 @@
             </button>
           </form>
 
-          <div *ngIf="forgotPasswordError" class="error-message">
-            <small>{{ forgotPasswordMessage }}</small>
-          </div>
+          
         </div>
 
         <div *ngIf="forgotPasswordSubmitted" class="success-message">
