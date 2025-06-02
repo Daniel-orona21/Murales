@@ -182,7 +182,7 @@ export class AuthService {
     // Limpiar el ID de sesión
     localStorage.removeItem('sessionId');
     // Limpiar el mural seleccionado
-    localStorage.removeItem('selectedMuralId');
+    sessionStorage.removeItem('selectedMuralId');
     
     // Limpiar los subjects
     this.authSubject.next(false);

@@ -114,8 +114,8 @@ export class MuralService {
     private http: HttpClient,
     private authService: AuthService
   ) {
-    // Intentar recuperar el mural seleccionado del localStorage al iniciar
-    const savedMuralId = localStorage.getItem('selectedMuralId');
+    // Intentar recuperar el mural seleccionado del sessionStorage al iniciar
+    const savedMuralId = sessionStorage.getItem('selectedMuralId');
     const token = this.authService.getToken();
     
     // Solo cargar el mural guardado si hay un token válido (sesión activa)
@@ -126,9 +126,9 @@ export class MuralService {
 
   setSelectedMural(muralId: number | null) {
     if (muralId) {
-      localStorage.setItem('selectedMuralId', muralId.toString());
+      sessionStorage.setItem('selectedMuralId', muralId.toString());
     } else {
-      localStorage.removeItem('selectedMuralId');
+      sessionStorage.removeItem('selectedMuralId');
     }
     this.selectedMuralId.next(muralId);
   }
