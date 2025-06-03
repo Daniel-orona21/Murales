@@ -1693,7 +1693,7 @@
 
           option {
             background-color: #1a1a1a;
-            color: #fff;
+            color: white;
           }
         }
       }
@@ -2222,15 +2222,14 @@
     align-items: center;
     padding: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.2);
+    margin: 8px 0;
+    border-radius: 8px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-
-      .expel-button {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateY(-1px);
     }
 
     .user-info {
@@ -2239,14 +2238,55 @@
       width: 100%;
       gap: 12px;
 
+      .creator-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
+
+        .creator-star {
+          color: #ffd700;
+          font-size: 20px;
+          font-variation-settings:
+            'FILL' 1,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+
+        .user-name {
+          color: rgba(255, 255, 255, 0.9);
+          font-weight: 500;
+          font-size: 14px;
+        }
+      }
+
+      .user-container {
+        flex: 1;
+        
+        .user-name {
+          color: rgba(255, 255, 255, 0.9);
+          font-weight: 500;
+          font-size: 14px;
+          
+          &.truncate {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+          }
+        }
+      }
+
       .expel-button {
-        background: none;
+        background: rgba(255, 68, 68, 0.1);
         border: none;
         color: #ff4444;
         padding: 8px;
         cursor: pointer;
-        opacity: 0;
-        transform: translateX(-10px);
+        opacity: 1;
         transition: all 0.3s ease;
         border-radius: 50%;
         display: flex;
@@ -2254,73 +2294,102 @@
         justify-content: center;
         min-width: 32px;
         height: 32px;
+        margin-right: 8px;
 
         &:hover {
-          background-color: rgba(255, 68, 68, 0.1);
+          background-color: rgba(255, 68, 68, 0.2);
           color: #ff6666;
+          transform: scale(1.1);
         }
 
         &:active {
-          background-color: rgba(255, 68, 68, 0.2);
+          background-color: rgba(255, 68, 68, 0.3);
           transform: scale(0.95);
         }
 
         i {
-          font-size: 16px;
+          font-size: 14px;
         }
       }
 
-      .user-name {
-        flex: 1;
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.9);
-      }
-
       .role-select {
-        background-color: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        appearance: none;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
         color: rgba(255, 255, 255, 0.9);
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 12px;
+        padding: 8px 32px 8px 12px;
+        font-size: 13px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
+        min-width: 120px;
+        flex-shrink: 0;
+        position: relative;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(255, 255, 255, 0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 16px;
 
         &:hover {
-          background-color: rgba(255, 255, 255, 0.15);
+          background-color: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
         }
 
         &:focus {
           outline: none;
           border-color: rgba(255, 255, 255, 0.3);
+          box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
         }
 
         option {
-          background-color: #2a2a2a;
+          background-color: #1a1a1a;
           color: white;
+          padding: 8px;
         }
-      }
-
-      .role-badge {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        text-transform: capitalize;
 
         &.role-lector {
-          background-color: rgba(52, 152, 219, 0.2);
+          border-color: rgba(52, 152, 219, 0.3);
           color: #3498db;
         }
 
         &.role-editor {
-          background-color: rgba(46, 204, 113, 0.2);
+          border-color: rgba(46, 204, 113, 0.3);
           color: #2ecc71;
         }
 
         &.role-administrador {
-          background-color: rgba(155, 89, 182, 0.2);
+          border-color: rgba(155, 89, 182, 0.3);
           color: #9b59b6;
+        }
+      }
+
+      .role-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: capitalize;
+        letter-spacing: 0.3px;
+        flex-shrink: 0;
+        min-width: 120px;
+        text-align: center;
+
+        &.role-lector {
+          background-color: rgba(52, 152, 219, 0.1);
+          color: #3498db;
+          border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+
+        &.role-editor {
+          background-color: rgba(46, 204, 113, 0.1);
+          color: #2ecc71;
+          border: 1px solid rgba(46, 204, 113, 0.2);
+        }
+
+        &.role-administrador {
+          background-color: rgba(155, 89, 182, 0.1);
+          color: #9b59b6;
+          border: 1px solid rgba(155, 89, 182, 0.2);
         }
       }
     }

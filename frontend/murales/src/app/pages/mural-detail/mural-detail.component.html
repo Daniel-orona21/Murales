@@ -418,22 +418,27 @@
               <div class="users-list" *ngIf="showUsersList">
                 <div class="user-item" *ngFor="let user of muralUsers">
                   <div class="user-info">
-                    <!-- Botón de expulsar (solo visible para administradores y no para el creador) -->
                     <button *ngIf="isAdmin && mural?.id_creador !== user.id_usuario" 
                             class="expel-button" 
-                            (click)="expulsarUsuario(user)"
-                            [title]="'Expulsar a ' + user.nombre">
+                            (click)="expulsarUsuario(user)">
                       <i class="fas fa-times"></i>
                     </button>
                     
-                    <!-- Nombre del usuario -->
-                    <span class="user-name">{{ user.nombre }}</span>
-                    
-                    <!-- Selector de rol -->
-                    <select *ngIf="isAdmin && !isOnlyAdmin(user)"
+                    <!-- Contenedor especial para el creador -->
+                    <div *ngIf="mural?.id_creador === user.id_usuario" class="creator-container">
+                      <span class="material-symbols-outlined creator-star">star</span>
+                      <span class="user-name">{{ user.nombre }}</span>
+                    </div>
+
+                    <!-- Contenedor para usuarios no creadores -->
+                    <div *ngIf="mural?.id_creador !== user.id_usuario" class="user-container">
+                      <span class="user-name truncate">{{ user.nombre }}</span>
+                    </div>
+
+                    <!-- Selector de rol solo para administradores que no son el creador original -->
+                    <select *ngIf="isAdmin && !isOnlyAdmin(user) && mural?.id_creador !== user.id_usuario"
                             [ngModel]="user.rol"
                             (ngModelChange)="onRoleChange(user, $event, $event)"
-                            [disabled]="mural?.id_creador === user.id_usuario"
                             class="role-select"
                             [ngClass]="getRoleBadgeClass(user.rol)">
                       <option value="lector">Lector</option>
@@ -441,8 +446,8 @@
                       <option value="administrador">Administrador</option>
                     </select>
                     
-                    <!-- Badge de rol para no administradores -->
-                    <span *ngIf="!isAdmin" 
+                    <!-- Badge de rol para no administradores y no creador -->
+                    <span *ngIf="(!isAdmin || mural?.id_creador === user.id_usuario) && mural?.id_creador !== user.id_usuario" 
                           class="role-badge" 
                           [ngClass]="getRoleBadgeClass(user.rol)">
                       {{ user.rol }}
