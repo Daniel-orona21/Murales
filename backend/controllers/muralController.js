@@ -1105,7 +1105,7 @@ const muralController = {
         SELECT m.*, 
                CASE 
                  WHEN m.id_creador = ? THEN 'administrador'
-                 ELSE COALESCE(rm.rol, 'lector') 
+                 ELSE COALESCE(rm.rol, 'administrador') 
                END as rol_usuario
         FROM murales m
         LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
@@ -1135,7 +1135,30 @@ const muralController = {
         [updateData, id]
       );
 
-      res.json({ mensaje: 'Tema actualizado correctamente' });
+      // Obtener todos los usuarios con acceso al mural para notificarles del cambio
+      const [usuarios] = await pool.query(
+        `SELECT DISTINCT u.id_usuario
+         FROM usuarios u
+         LEFT JOIN roles_mural rm ON u.id_usuario = rm.id_usuario
+         WHERE rm.id_mural = ? OR u.id_usuario = (SELECT id_creador FROM murales WHERE id_mural = ?)`,
+        [id, id]
+      );
+
+      // Obtener el objeto io de Express
+      const io = req.app.get('io');
+
+      // Emitir el evento de actualización de tema a todos los usuarios con acceso
+      const themeUpdate = {
+        id_mural: parseInt(id),
+        tema: parseInt(tema),
+        color_personalizado
+      };
+
+      usuarios.forEach(usuario => {
+        io.to(`user:${usuario.id_usuario}`).emit('mural_theme_update', themeUpdate);
+      });
+
+      res.json({ mensaje: 'Tema actualizado correctamente', ...themeUpdate });
     } catch (error) {
       console.error('Error al actualizar tema:', error);
       res.status(500).json({ mensaje: 'Error al actualizar el tema' });

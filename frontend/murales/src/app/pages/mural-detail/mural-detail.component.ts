@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 interface NuevoElemento {
   titulo: string;
@@ -104,6 +105,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   
   private apiUrl = environment.apiUrl;
   
+  private themeSubscription: Subscription | null = null;
+  
   constructor(
     private muralService: MuralService, 
     private sanitizer: DomSanitizer,
@@ -128,6 +131,26 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         }
       });
     }
+    
+    // Suscribirse a actualizaciones de tema
+    this.themeSubscription = this.muralService.themeUpdate$.subscribe(update => {
+      console.log('Recibida actualización de tema:', update);
+      if (update.id_mural === this.muralId) {
+        console.log('Actualizando tema del mural:', update);
+        this.selectedTheme = update.tema;
+        if (update.color_personalizado) {
+          this.customColor = update.color_personalizado;
+          document.documentElement.style.setProperty('--custom-color', update.color_personalizado);
+        }
+        // Actualizar el mural local con los nuevos valores
+        if (this.mural) {
+          this.mural.tema = update.tema;
+          this.mural.color_personalizado = update.color_personalizado;
+        }
+        // Forzar la detección de cambios
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -640,6 +663,9 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     }
     if (this.masonry?.destroy) {
       this.masonry.destroy();
+    }
+    if (this.themeSubscription) {
+      this.themeSubscription.unsubscribe();
     }
   }
 
@@ -1348,26 +1374,37 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       ...(color && { color_personalizado: color })
     };
 
+    // Aplicar los cambios localmente antes de la respuesta del servidor
+    this.selectedTheme = theme;
+    if (color) {
+      this.customColor = color;
+      document.documentElement.style.setProperty('--custom-color', color);
+    }
+    
+    // Actualizar el mural local con los nuevos valores
+    if (this.mural) {
+      this.mural.tema = theme;
+      if (color) {
+        this.mural.color_personalizado = color;
+      }
+    }
+    
+    // Forzar la detección de cambios
+    this.cdr.detectChanges();
+
     this.muralService.updateMuralTheme(muralId, themeData).subscribe({
       next: (response: any) => {
-        console.log('Tema actualizado correctamente');
-        // Actualizar el mural local con los nuevos valores
-        if (this.mural) {
-          this.mural.tema = theme;
-          if (color) {
-            this.mural.color_personalizado = color;
-            // Asegurar que el color se aplique
-            document.documentElement.style.setProperty('--custom-color', color);
-          }
-        }
+        console.log('Tema actualizado correctamente', response);
       },
       error: (error) => {
         console.error('Error al actualizar el tema:', error);
         // Revertir el cambio en caso de error
-        this.selectedTheme = this.mural?.tema || 1;
-        if (this.mural?.color_personalizado) {
-          this.customColor = this.mural.color_personalizado;
-          document.documentElement.style.setProperty('--custom-color', this.mural.color_personalizado);
+        if (this.mural) {
+          this.selectedTheme = this.mural.tema || 1;
+          if (this.mural.color_personalizado) {
+            this.customColor = this.mural.color_personalizado;
+            document.documentElement.style.setProperty('--custom-color', this.mural.color_personalizado);
+          }
         }
         // Mostrar mensaje de error al usuario
         Swal.fire({
@@ -1381,7 +1418,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             confirmButton: 'custom-confirm-button'
           }
         });
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       }
     });
   }

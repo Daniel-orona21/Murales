@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { map } from 'rxjs/operators';
+import { io, Socket } from 'socket.io-client';
 
 export interface Mural {
   id_mural: number;
@@ -101,6 +102,12 @@ export interface UpdateThemeData {
   color_personalizado?: string;
 }
 
+interface ThemeUpdate {
+  id_mural: number;
+  tema: number;
+  color_personalizado?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -109,6 +116,9 @@ export class MuralService {
   private uploadUrl = `${environment.apiUrl}/uploads`;
   private selectedMuralId = new BehaviorSubject<number | null>(null);
   selectedMural$ = this.selectedMuralId.asObservable();
+  private socket: Socket | null = null;
+  private themeUpdateSubject = new Subject<ThemeUpdate>();
+  themeUpdate$ = this.themeUpdateSubject.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -121,6 +131,94 @@ export class MuralService {
     // Solo cargar el mural guardado si hay un token válido (sesión activa)
     if (savedMuralId && token) {
       this.selectedMuralId.next(Number(savedMuralId));
+    }
+
+    // Inicializar socket y escuchar eventos de tema
+    this.initializeSocket();
+
+    // Re-initialize socket when auth state changes
+    this.authService.isAuthenticated$.subscribe((isAuthenticated: boolean) => {
+      if (isAuthenticated) {
+        this.initializeSocket();
+      } else {
+        this.disconnectSocket();
+      }
+    });
+  }
+
+  private initializeSocket() {
+    // Desconectar socket existente si hay alguno
+    this.disconnectSocket();
+    
+    const token = this.authService.getToken();
+    if (!token) return;
+    
+    // Conectar al servidor de socket
+    this.socket = io(environment.socketUrl, {
+      transports: ['websocket'],
+      auth: {
+        token
+      }
+    });
+    
+    // Manejar eventos de conexión
+    this.socket.on('connect', () => {
+      console.log('Socket connected, authenticating...');
+      this.socket?.emit('authenticate', token);
+    });
+    
+    // Manejar respuesta de autenticación
+    this.socket.on('authenticated', (response) => {
+      console.log('Socket authentication response:', response);
+      if (response.success) {
+        console.log('Socket authenticated successfully');
+        this.setupSocketListeners();
+      } else {
+        console.error('Socket authentication failed:', response.error);
+        // Intentar reconectar en caso de fallo
+        setTimeout(() => this.initializeSocket(), 5000);
+      }
+    });
+    
+    // Manejar desconexión
+    this.socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      // Intentar reconectar automáticamente
+      setTimeout(() => this.initializeSocket(), 5000);
+    });
+    
+    // Manejar errores de conexión
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      // Intentar reconectar en caso de error
+      setTimeout(() => this.initializeSocket(), 5000);
+    });
+  }
+
+  private setupSocketListeners() {
+    if (!this.socket) return;
+
+    // Remover listeners anteriores para evitar duplicados
+    this.socket.removeAllListeners('mural_theme_update');
+
+    // Escuchar eventos de actualización de tema
+    this.socket.on('mural_theme_update', (update: ThemeUpdate) => {
+      console.log('Theme update received:', update);
+      // Asegurarse de que los tipos de datos sean correctos
+      const normalizedUpdate: ThemeUpdate = {
+        id_mural: parseInt(update.id_mural.toString()),
+        tema: parseInt(update.tema.toString()),
+        color_personalizado: update.color_personalizado
+      };
+      this.themeUpdateSubject.next(normalizedUpdate);
+    });
+  }
+
+  private disconnectSocket() {
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
     }
   }
 
@@ -290,6 +388,16 @@ export class MuralService {
   // Método para actualizar el tema del mural
   updateMuralTheme(muralId: number, themeData: UpdateThemeData): Observable<any> {
     const headers = this.getHeaders();
-    return this.http.put(`${this.apiUrl}/${muralId}/tema`, themeData, { headers });
+    return this.http.put(`${this.apiUrl}/${muralId}/tema`, themeData, { headers }).pipe(
+      map(response => {
+        // Emitir el evento localmente también para asegurar la actualización inmediata
+        this.themeUpdateSubject.next({
+          id_mural: muralId,
+          tema: themeData.tema,
+          color_personalizado: themeData.color_personalizado
+        });
+        return response;
+      })
+    );
   }
 } 
