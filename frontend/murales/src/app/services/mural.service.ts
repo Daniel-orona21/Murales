@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { io, Socket } from 'socket.io-client';
 
 export interface Mural {
@@ -119,6 +119,8 @@ export class MuralService {
   private socket: Socket | null = null;
   private themeUpdateSubject = new Subject<ThemeUpdate>();
   themeUpdate$ = this.themeUpdateSubject.asObservable();
+  private muralesUpdateSubject = new Subject<void>();
+  muralesUpdate$ = this.muralesUpdateSubject.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -200,6 +202,7 @@ export class MuralService {
 
     // Remover listeners anteriores para evitar duplicados
     this.socket.removeAllListeners('mural_theme_update');
+    this.socket.removeAllListeners('user_expelled');
 
     // Escuchar eventos de actualización de tema
     this.socket.on('mural_theme_update', (update: ThemeUpdate) => {
@@ -211,6 +214,20 @@ export class MuralService {
         color_personalizado: update.color_personalizado
       };
       this.themeUpdateSubject.next(normalizedUpdate);
+    });
+
+    // Escuchar eventos de expulsión
+    this.socket.on('user_expelled', (data: { id_mural: number, mensaje: string }) => {
+      console.log('User expelled event received:', data);
+      // Si el usuario es expulsado del mural actual, redirigir al home
+      const currentMuralId = this.getSelectedMuralId();
+      if (currentMuralId === data.id_mural) {
+        this.setSelectedMural(null);
+        // Emitir evento para que los componentes puedan reaccionar
+        this.themeUpdateSubject.next({ id_mural: data.id_mural, tema: -1 });
+      }
+      // Emitir evento para actualizar la lista de murales
+      this.muralesUpdateSubject.next();
     });
   }
 
@@ -397,6 +414,17 @@ export class MuralService {
           color_personalizado: themeData.color_personalizado
         });
         return response;
+      })
+    );
+  }
+
+  // Método para expulsar a un usuario del mural
+  expulsarUsuario(muralId: number, userId: number): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.delete(`${this.apiUrl}/${muralId}/usuarios/${userId}/expulsar`, { headers }).pipe(
+      tap(() => {
+        // Emitir evento para actualizar la lista de murales
+        this.muralesUpdateSubject.next();
       })
     );
   }

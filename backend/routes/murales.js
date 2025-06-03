@@ -15,6 +15,9 @@ router.get('/:id/usuarios', verificarToken, muralController.getUsuariosByMural);
 // Update user role in mural
 router.put('/:id_mural/usuarios/:id_usuario/rol', verificarToken, muralController.actualizarRolUsuario);
 
+// Expulsar usuario del mural
+router.delete('/:id_mural/usuarios/:id_usuario/expulsar', verificarToken, muralController.expulsarUsuario);
+
 // Update mural theme
 router.put('/:id/tema', verificarToken, muralController.updateMuralTheme);
 

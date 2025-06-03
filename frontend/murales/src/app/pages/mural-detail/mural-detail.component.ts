@@ -1832,4 +1832,61 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       }
     });
   }
+
+  expulsarUsuario(user: MuralUser): void {
+    if (!this.muralId || !this.isAdmin) return;
+
+    Swal.fire({
+      title: '¿Expulsar usuario?',
+      text: `¿Estás seguro de que deseas expulsar a ${user.nombre} del mural?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, expulsar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.muralService.expulsarUsuario(this.muralId!, user.id_usuario).subscribe({
+          next: () => {
+            // Eliminar el usuario de la lista local
+            this.muralUsers = this.muralUsers.filter(u => u.id_usuario !== user.id_usuario);
+            this.cdr.detectChanges();
+
+            // Mostrar mensaje de éxito
+            Swal.fire({
+              title: '¡Usuario expulsado!',
+              text: `${user.nombre} ha sido expulsado del mural`,
+              icon: 'success',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error al expulsar usuario:', error);
+            Swal.fire({
+              title: 'Error',
+              text: error.error?.error || 'No se pudo expulsar al usuario',
+              icon: 'error',
+              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
+              confirmButtonText: 'Aceptar',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      }
+    });
+  }
 }

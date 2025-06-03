@@ -31,6 +31,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   showCreateModal = false;
   isSearchBarExpanded = false;
   isMobile: boolean = false;
+  private needsUpdate = false;
   newMural: CreateMuralData = {
     titulo: '',
     descripcion: '',
@@ -72,6 +73,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private initialViewportHeight = window.innerHeight;
 
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+
+  private subscriptions: Subscription[] = [];
 
   constructor(
     public router: Router,
@@ -145,8 +148,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.setViewportHeight(); // Set initial viewport height
-    this.checkScreenSize(); // Verificar tamaño inicial
+    this.setViewportHeight();
+    this.checkScreenSize();
     this.loadMurals();
     this.loadNotifications();
     this.loadUserData();
@@ -161,7 +164,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Suscribirse a eventos de aprobación de acceso a murales
     this.muralAccessSubscription = this.notificationService.muralAccessApproved$.subscribe(muralId => {
       console.log('Access to mural approved, reloading murals...');
-      this.loadMurals();
+      if (!this.selectedMuralId) {
+        this.loadMurals();
+      } else {
+        this.needsUpdate = true;
+      }
     });
 
     // Suscribirse al mural seleccionado
@@ -175,6 +182,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
       this.cdr.detectChanges();
     });
+
+    // Suscribirse a eventos de actualización de murales
+    this.subscriptions.push(
+      this.muralService.muralesUpdate$.subscribe(() => {
+        console.log('Actualización de murales recibida...');
+        if (!this.selectedMuralId) {
+          console.log('No hay mural seleccionado, actualizando lista...');
+          this.loadMurals();
+        } else {
+          console.log('Hay un mural seleccionado, marcando para actualización posterior...');
+          this.needsUpdate = true;
+        }
+      })
+    );
   }
 
   ngOnDestroy() {
@@ -190,6 +211,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.muralSubscription) {
       this.muralSubscription.unsubscribe();
     }
+
+    // Desuscribirse de todos los observables
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   loadMurals() {
@@ -998,10 +1022,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
-    // Limpiar el texto de búsqueda al volver a la lista de murales
     this.searchText = '';
     this.muralService.setSelectedMural(null);
     this.selectedPost = null;
+    
+    // Si hay una actualización pendiente, cargar los murales
+    if (this.needsUpdate) {
+      console.log('Actualizando lista de murales después de volver...');
+      this.loadMurals();
+      this.needsUpdate = false;
+    }
+    
     this.cdr.detectChanges();
   }
 

@@ -1261,6 +1261,95 @@ const muralController = {
       console.error('Error al transferir propiedad del mural:', error);
       res.status(500).json({ error: 'Error al transferir propiedad del mural' });
     }
+  },
+
+  // Función para expulsar a un usuario del mural
+  expulsarUsuario: async (req, res) => {
+    try {
+      const { id_mural, id_usuario } = req.params;
+      const adminId = req.user.id;
+
+      // Verificar si el usuario que hace la petición es administrador
+      const checkQuery = `
+        SELECT m.*, rm.rol, m.titulo
+        FROM murales m
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.id_mural = ? AND (m.id_creador = ? OR (rm.id_usuario = ? AND rm.rol = 'administrador'))
+      `;
+
+      const [mural] = await pool.query(checkQuery, [adminId, id_mural, adminId, adminId]);
+
+      if (!mural || mural.length === 0) {
+        return res.status(403).json({ error: 'No tienes permisos para expulsar usuarios de este mural' });
+      }
+
+      // Verificar que el usuario a expulsar no sea el creador del mural
+      if (mural[0].id_creador == id_usuario) {
+        return res.status(403).json({ error: 'No se puede expulsar al creador del mural' });
+      }
+
+      // Obtener el nombre del usuario a expulsar
+      const [userData] = await pool.query(
+        'SELECT nombre FROM usuarios WHERE id_usuario = ?',
+        [id_usuario]
+      );
+
+      if (!userData || userData.length === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Eliminar el rol del usuario en el mural
+      await pool.query(
+        'DELETE FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id_mural, id_usuario]
+      );
+
+      // Crear notificación para el usuario expulsado
+      const [notificationResult] = await pool.query(
+        `INSERT INTO notificaciones 
+         (id_emisor, id_receptor, id_mural, tipo, mensaje) 
+         VALUES (?, ?, ?, 'otro', ?)`,
+        [
+          adminId,
+          id_usuario,
+          id_mural,
+          `Has sido expulsado del mural "${mural[0].titulo}"`
+        ]
+      );
+
+      // Obtener la notificación completa para emitir por WebSocket
+      const [notification] = await pool.query(
+        `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+         FROM notificaciones n
+         LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+         LEFT JOIN murales m ON n.id_mural = m.id_mural
+         WHERE n.id_notificacion = ?`,
+        [notificationResult.insertId]
+      );
+
+      if (notification.length > 0) {
+        // Obtener el objeto io de Express
+        const io = req.app.get('io');
+        
+        // Emitir la notificación al usuario expulsado
+        io.to(`user:${id_usuario}`).emit('notification', notification[0]);
+        
+        // Emitir evento de expulsión
+        io.to(`user:${id_usuario}`).emit('user_expelled', {
+          id_mural: parseInt(id_mural),
+          mensaje: `Has sido expulsado del mural "${mural[0].titulo}"`
+        });
+      }
+
+      res.json({ 
+        mensaje: `Usuario ${userData[0].nombre} expulsado exitosamente del mural`,
+        id_usuario,
+        id_mural
+      });
+    } catch (error) {
+      console.error('Error al expulsar usuario:', error);
+      res.status(500).json({ error: 'Error al expulsar al usuario del mural' });
+    }
   }
 };
 
