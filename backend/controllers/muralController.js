@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const cloudinary = require('../config/cloudinary');
 
 const muralController = {
   getMuralesByUsuario: async (req, res) => {
@@ -753,40 +754,60 @@ const muralController = {
         return res.status(403).json({ error: 'No tienes permisos para editar esta publicación' });
       }
 
-      // Obtener el contenido actual
-      const [contenidoActual] = await pool.query(
-        'SELECT id_contenido FROM contenido WHERE id_publicacion = ?',
-        [id_publicacion]
-      );
+      // Iniciar transacción
+      await pool.query('START TRANSACTION');
 
-      if (!contenidoActual || contenidoActual.length === 0) {
-        return res.status(404).json({ error: 'No se encontró contenido para actualizar' });
+      try {
+        // Primero, eliminar TODO el contenido existente de la publicación
+        await pool.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+
+        // Verificar que se haya eliminado correctamente
+        const [verificacion] = await pool.query(
+          'SELECT COUNT(*) as count FROM contenido WHERE id_publicacion = ?',
+          [id_publicacion]
+        );
+
+        if (verificacion[0].count > 0) {
+          throw new Error('No se pudo eliminar el contenido anterior');
+        }
+
+        // Insertar el nuevo contenido
+        const insertQuery = `
+          INSERT INTO contenido (id_publicacion, tipo_contenido, url_contenido, texto, fecha_subida)
+          VALUES (?, ?, ?, ?, NOW())
+        `;
+
+        const [result] = await pool.query(insertQuery, [id_publicacion, tipo_contenido, url_contenido, texto]);
+
+        // Verificar que solo exista un contenido
+        const [verificacionFinal] = await pool.query(
+          'SELECT COUNT(*) as count FROM contenido WHERE id_publicacion = ?',
+          [id_publicacion]
+        );
+
+        if (verificacionFinal[0].count !== 1) {
+          throw new Error('Se detectaron múltiples contenidos');
+        }
+
+        // Confirmar la transacción
+        await pool.query('COMMIT');
+
+        res.json({ 
+          mensaje: 'Contenido actualizado exitosamente',
+          id_contenido: result.insertId,
+          tipo_contenido,
+          url_contenido,
+          texto
+        });
+      } catch (error) {
+        // Si hay error, revertir los cambios
+        await pool.query('ROLLBACK');
+        console.error('Error en la transacción:', error);
+        throw error;
       }
-
-      const id_contenido = contenidoActual[0].id_contenido;
-
-      // Actualizar el contenido
-      const updateQuery = `
-        UPDATE contenido 
-        SET tipo_contenido = ?, 
-            url_contenido = ?, 
-            texto = ?,
-            fecha_subida = NOW()
-        WHERE id_contenido = ?
-      `;
-
-      await pool.query(updateQuery, [tipo_contenido, url_contenido, texto, id_contenido]);
-
-      res.json({ 
-        mensaje: 'Contenido actualizado exitosamente',
-        id_contenido,
-        tipo_contenido,
-        url_contenido,
-        texto
-      });
     } catch (error) {
       console.error('Error al actualizar contenido:', error);
-      res.status(500).json({ error: 'Error al actualizar el contenido' });
+      res.status(500).json({ error: 'Error al actualizar el contenido: ' + error.message });
     }
   },
 
@@ -810,8 +831,44 @@ const muralController = {
         return res.status(403).json({ error: 'No tienes permisos para eliminar esta publicación' });
       }
 
-      // Eliminar la publicación
-      await pool.query('DELETE FROM publicaciones WHERE id_publicacion = ?', [id_publicacion]);
+      // Obtener todos los contenidos de la publicación
+      const [contenidos] = await pool.query('SELECT * FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+
+      // Eliminar imágenes de Cloudinary
+      for (const contenido of contenidos) {
+        if ((contenido.tipo_contenido === 'imagen' || contenido.tipo_contenido === 'video') && contenido.url_contenido) {
+          try {
+            // Extraer el public_id de la URL de Cloudinary
+            const urlParts = contenido.url_contenido.split('/');
+            const fileName = urlParts[urlParts.length - 1];
+            const publicId = `murales/${fileName.split('.')[0]}`;
+            
+            // Eliminar el recurso de Cloudinary
+            await cloudinary.uploader.destroy(publicId);
+          } catch (cloudinaryError) {
+            console.error('Error al eliminar archivo de Cloudinary:', cloudinaryError);
+            // Continuamos con la eliminación aunque falle Cloudinary
+          }
+        }
+      }
+
+      // Iniciar transacción para asegurar que todo se elimine correctamente
+      await pool.query('START TRANSACTION');
+
+      try {
+        // Primero eliminar todos los contenidos asociados
+        await pool.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+        
+        // Luego eliminar la publicación
+        await pool.query('DELETE FROM publicaciones WHERE id_publicacion = ?', [id_publicacion]);
+        
+        // Si todo sale bien, confirmar la transacción
+        await pool.query('COMMIT');
+      } catch (error) {
+        // Si hay algún error, revertir los cambios
+        await pool.query('ROLLBACK');
+        throw error;
+      }
 
       res.json({ mensaje: 'Publicación eliminada exitosamente' });
     } catch (error) {
