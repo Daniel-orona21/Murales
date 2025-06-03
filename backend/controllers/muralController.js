@@ -179,16 +179,76 @@ const muralController = {
         return res.status(403).json({ error: 'No tienes permisos para eliminar este mural' });
       }
 
-      // Eliminar roles asociados
-      await pool.query('DELETE FROM roles_mural WHERE id_mural = ?', [id]);
-      
-      // Eliminar mural
-      await pool.query('DELETE FROM murales WHERE id_mural = ?', [id]);
+      // Iniciar transacción
+      await pool.query('START TRANSACTION');
 
-      res.json({ mensaje: 'Mural eliminado exitosamente' });
+      try {
+        // 1. Obtener todas las publicaciones del mural
+        const [publicaciones] = await pool.query(
+          'SELECT id_publicacion FROM publicaciones WHERE id_mural = ?',
+          [id]
+        );
+
+        // 2. Para cada publicación, eliminar su contenido relacionado
+        for (const publicacion of publicaciones) {
+          const id_publicacion = publicacion.id_publicacion;
+
+          // 2.1 Obtener y eliminar contenido multimedia de Cloudinary
+          const [contenidos] = await pool.query(
+            'SELECT * FROM contenido WHERE id_publicacion = ?',
+            [id_publicacion]
+          );
+
+          for (const contenido of contenidos) {
+            if ((contenido.tipo_contenido === 'imagen' || contenido.tipo_contenido === 'video') && 
+                contenido.url_contenido) {
+              try {
+                const urlParts = contenido.url_contenido.split('/');
+                const fileName = urlParts[urlParts.length - 1];
+                const publicId = `murales/${fileName.split('.')[0]}`;
+                await cloudinary.uploader.destroy(publicId);
+              } catch (cloudinaryError) {
+                console.error('Error al eliminar archivo de Cloudinary:', cloudinaryError);
+                // Continuamos con la eliminación aunque falle Cloudinary
+              }
+            }
+          }
+
+          // 2.2 Eliminar likes de la publicación
+          await pool.query('DELETE FROM likes WHERE id_publicacion = ?', [id_publicacion]);
+
+          // 2.3 Eliminar comentarios de la publicación
+          await pool.query('DELETE FROM comentarios WHERE id_publicacion = ?', [id_publicacion]);
+
+          // 2.4 Eliminar contenido de la publicación
+          await pool.query('DELETE FROM contenido WHERE id_publicacion = ?', [id_publicacion]);
+        }
+
+        // 3. Eliminar todas las publicaciones del mural
+        await pool.query('DELETE FROM publicaciones WHERE id_mural = ?', [id]);
+
+        // 4. Eliminar notificaciones relacionadas con el mural
+        await pool.query('DELETE FROM notificaciones WHERE id_mural = ?', [id]);
+
+        // 5. Eliminar roles asociados al mural
+        await pool.query('DELETE FROM roles_mural WHERE id_mural = ?', [id]);
+        
+        // 6. Finalmente, eliminar el mural
+        await pool.query('DELETE FROM murales WHERE id_mural = ?', [id]);
+
+        // Confirmar la transacción
+        await pool.query('COMMIT');
+
+        res.json({ mensaje: 'Mural y todo su contenido eliminado exitosamente' });
+      } catch (error) {
+        // Si hay error, revertir los cambios
+        await pool.query('ROLLBACK');
+        console.error('Error en la transacción:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error al eliminar mural:', error);
-      res.status(500).json({ error: 'Error al eliminar el mural' });
+      res.status(500).json({ error: 'Error al eliminar el mural: ' + error.message });
     }
   },
 
