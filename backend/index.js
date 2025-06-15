@@ -22,7 +22,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://dannielorona-murales.vercel.app'] // Dominio correcto de Vercel
+      ? ['https://murales.vercel.app'] // Dominio correcto de Vercel
       : '*',
     methods: ['GET', 'POST']
   }
@@ -34,7 +34,7 @@ app.set('io', io);
 // Configurar CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://dannielorona-murales.vercel.app'] // Dominio correcto de Vercel
+    ? ['https://murales.vercel.app'] // Dominio correcto de Vercel
     : '*',
   credentials: true
 }));
@@ -116,8 +116,9 @@ app.use((err, req, res, next) => {
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor en puerto ${PORT} con WebSockets activos`));
+const IP = process.env.IP || 'localhost';
+// server.listen(PORT, () => console.log(`Servidor en puerto ${PORT} con WebSockets activos`));
 
-// server.listen(PORT, '192.168.1.5', () => {
-//   console.log(`Servidor disponible en red local: http://192.168.1.5:${PORT}`);
-// });
+server.listen(PORT, IP, () => {
+  console.log(`Servidor disponible en red local: http://${IP}:${PORT}`);
+});

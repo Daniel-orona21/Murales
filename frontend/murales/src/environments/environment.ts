@@ -2,8 +2,8 @@ export const environment = {
   production: false,
   apiUrl: 'https://murales.onrender.com/api',
   socketUrl: 'https://murales.onrender.com',
-  // apiUrl: 'http://192.168.1.5:3000/api',
-  // socketUrl: 'http://192.168.1.5:3000',
+  // apiUrl: 'http://192.168.1.9:3000/api',
+  // socketUrl: 'http://192.168.1.9:3000',
   // apiUrl: 'http://localhost:3000/api',
   // socketUrl: 'http://localhost:3000',
   firebase: {
@@ -16,7 +16,7 @@ export const environment = {
     measurementId: "G-G8334G4M78"
   },
   github: {
-    clientId: "Ov23liJXVJuQCN0HEwx8", // Reemplaza con tu Client ID de GitHub
-    redirectUri: "https://dannielorona-murales.vercel.app/auth/github/callback" // Ajusta según tu configuración
+    clientId: "Ov23liJXVJuQCN0HEwx8",
+    redirectUri: "https://murales.vercel.app/auth/github/callback" 
   }
 }; 
