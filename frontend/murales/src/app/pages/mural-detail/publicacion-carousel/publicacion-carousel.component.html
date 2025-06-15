@@ -121,17 +121,43 @@
                 <span class="publicacion-fecha">{{ currentPublicacion.fecha_creacion | timeAgo:true }}</span>
               </div>
             </div>
-            <div class="like-container">
-              <label class="container">
-                <input type="checkbox" 
-                [checked]="userLikes[currentPublicacion.id_publicacion]"
-                [disabled]="likesLoading[currentPublicacion.id_publicacion]"
-                (change)="onLikeToggle(currentPublicacion.id_publicacion)">
-                <svg id="Layer_1" version="1.0" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M16.4,4C14.6,4,13,4.9,12,6.3C11,4.9,9.4,4,7.6,4C4.5,4,2,6.5,2,9.6C2,14,12,22,12,22s10-8,10-12.4C22,6.5,19.5,4,16.4,4z"></path></svg>
-              </label>
-              <span class="likes-count" *ngIf="likesCount[currentPublicacion.id_publicacion] > 0">
-                {{ likesCount[currentPublicacion.id_publicacion] }}
-              </span>
+            <div class="contenedor-botonera">
+              <div class="botonera">
+                <div class="edicion">
+                  <button class="options-button confirmar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onSaveEdit()">
+                    <span *ngIf="!cargandoEdit" class="material-symbols-outlined">check</span>
+                    <span *ngIf="cargandoEdit" class="spinner-button"></span>
+                  </button>
+                  <button class="options-button cancelar" *ngIf="(isAdmin || isEditor) && isEditing" (click)="onCancelEdit()">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <button class="options-button" *ngIf="(isAdmin || isEditor) && !isEditing" (click)="toggleOptionsMenu($event)">
+                  <span class="material-symbols-outlined">more_vert</span>
+                </button>
+                <div class="options-menu" *ngIf="showOptionsMenu" (click)="$event.stopPropagation()">
+                  <button class="menu-item" (click)="onEdit()">
+                    <span class="material-symbols-outlined">edit</span>
+                    Editar
+                  </button>
+                  <button class="menu-item delete" (click)="onDelete()">
+                    <span class="material-symbols-outlined">delete</span>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+              <div class="like-container">
+                <label class="container">
+                  <input type="checkbox" 
+                  [checked]="userLikes[currentPublicacion.id_publicacion]"
+                  [disabled]="likesLoading[currentPublicacion.id_publicacion]"
+                  (change)="onLikeToggle(currentPublicacion.id_publicacion)">
+                  <svg id="Layer_1" version="1.0" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M16.4,4C14.6,4,13,4.9,12,6.3C11,4.9,9.4,4,7.6,4C4.5,4,2,6.5,2,9.6C2,14,12,22,12,22s10-8,10-12.4C22,6.5,19.5,4,16.4,4z"></path></svg>
+                </label>
+                <span class="likes-count" *ngIf="likesCount[currentPublicacion.id_publicacion] > 0">
+                  {{ likesCount[currentPublicacion.id_publicacion] }}
+                </span>
+              </div>
             </div>
           </div>
           
