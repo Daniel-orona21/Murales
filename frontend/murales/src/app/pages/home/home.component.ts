@@ -120,7 +120,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private checkScreenSize() {
-    this.isMobile = window.innerWidth <= 500;
+    this.isMobile = window.innerWidth <= 900;
   }
 
   private checkKeyboard() {
@@ -340,7 +340,13 @@ export class HomeComponent implements OnInit, OnDestroy {
               });
               Toast.fire({
                 icon: 'success',
-                title: 'Código copiado'
+                title: 'Código copiado',
+                background: 'rgba(0, 0, 0, 0.95)',
+                color: '#ffffff',
+                customClass: {
+                  popup: 'custom-swal-popup',
+                  title: 'custom-swal-title'
+                }
               });
             })
             .catch(err => console.error('Error al copiar el código:', err));
@@ -409,13 +415,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (mural.id_creador === currentUserId) {
         // Si es el creador, mostrar opciones de transferir o eliminar
         Swal.fire({
-          title: 'No puedes abandonar este mural',
-          text: 'Como creador, debes transferir la propiedad o eliminar el mural.',
+          title: 'No puedes abandonar este muro',
+          text: 'Como creador, debes transferir la propiedad o eliminar el muro.',
           icon: 'warning',
           showDenyButton: true,
           showCancelButton: true,
           confirmButtonText: 'Transferir propiedad',
-          denyButtonText: 'Eliminar mural',
+          denyButtonText: 'Eliminar muro',
           cancelButtonText: 'Cancelar',
           customClass: {
             popup: 'custom-swal-popup',
@@ -437,7 +443,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                   }));
                   Swal.fire({
                     title: 'Transferir propiedad',
-                    text: 'Selecciona el nuevo propietario del mural:',
+                    text: 'Selecciona el nuevo propietario del muro:',
                     input: 'select',
                     inputOptions: Object.fromEntries(userOptions.map(opt => [opt.id, opt.text])),
                     showCancelButton: true,
@@ -458,7 +464,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                             next: () => {
                               Swal.fire({
                                 title: '¡Completado!',
-                                text: 'La propiedad del mural ha sido transferida exitosamente.',
+                                text: 'La propiedad del muro ha sido transferida exitosamente.',
                                 icon: 'success',
                                 confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
                                 confirmButtonText: 'Continuar',
@@ -473,7 +479,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                             error: (error) => {
                               Swal.fire({
                                 title: 'Error',
-                                text: error.error?.error || 'No se pudo transferir la propiedad del mural.',
+                                text: error.error?.error || 'No se pudo transferir la propiedad del muro.',
                                 icon: 'error',
                                 confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
                                 confirmButtonText: 'Aceptar',
@@ -506,10 +512,10 @@ export class HomeComponent implements OnInit, OnDestroy {
                 } else {
                   Swal.fire({
                     title: 'No hay otros usuarios',
-                    text: 'No hay otros usuarios a los que transferir el mural. Debes eliminarlo.',
+                    text: 'No hay otros usuarios a los que transferir el muro. Debes eliminarlo.',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Eliminar mural',
+                    confirmButtonText: 'Eliminar muro',
                     cancelButtonText: 'Cancelar',
                     customClass: {
                       popup: 'custom-swal-popup',
@@ -528,7 +534,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 console.error('Error al obtener usuarios del mural:', error);
                 Swal.fire({
                   title: 'Error',
-                  text: 'No se pudieron obtener los usuarios del mural.',
+                  text: 'No se pudieron obtener los usuarios del muro.',
                   icon: 'error',
                   confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
                   confirmButtonText: 'Aceptar',
@@ -599,7 +605,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                         }));
                         Swal.fire({
                           title: 'Transferir propiedad',
-                          text: 'Selecciona el nuevo propietario del mural:',
+                          text: 'Selecciona el nuevo propietario del muro:',
                           input: 'select',
                           inputOptions: Object.fromEntries(userOptions.map(opt => [opt.id, opt.text])),
                           showCancelButton: true,
@@ -665,10 +671,10 @@ export class HomeComponent implements OnInit, OnDestroy {
                       } else {
                         Swal.fire({
                           title: 'No hay otros usuarios',
-                          text: 'No hay otros usuarios a los que transferir el mural. Debes eliminarlo.',
+                          text: 'No hay otros usuarios a los que transferir el muro. Debes eliminarlo.',
                           icon: 'warning',
                           showCancelButton: true,
-                          confirmButtonText: 'Eliminar mural',
+                          confirmButtonText: 'Eliminar muro',
                           cancelButtonText: 'Cancelar',
                           customClass: {
                             popup: 'custom-swal-popup',
@@ -1414,7 +1420,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   joinPublicMural(mural: MuralWithMenu) {
     Swal.fire({
       title: `Unirte a "${mural.titulo}"`,
-      text: "Te unirás a este mural como lector. Se enviará una notificación al creador.",
+      text: "Te unirás a este muro como lector y podrás verlo en tu lista de muros.",
       icon: 'info',
       showCancelButton: true,
       confirmButtonText: 'Sí, unirme',

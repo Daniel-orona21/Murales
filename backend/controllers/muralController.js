@@ -330,7 +330,7 @@ const muralController = {
       );
       
       const [solicitante] = await connection.query('SELECT nombre FROM usuarios WHERE id_usuario = ?', [userId]);
-      const mensaje = `'${solicitante[0].nombre}' se ha unido a tu mural público '${muralTitle}'.`;
+      const mensaje = `'${solicitante[0].nombre}' se ha unido a tu muro público '${muralTitle}'.`;
 
       const notificacionQuery = `
         INSERT INTO notificaciones (id_receptor, id_emisor, id_mural, tipo, mensaje, leido)
@@ -377,12 +377,12 @@ const muralController = {
       }
 
       await connection.commit();
-      res.status(200).json({ message: `Te has unido exitosamente al mural "${muralTitle}".` });
+      res.status(200).json({ message: `Te has unido exitosamente al muro "${muralTitle}".` });
 
     } catch (error) {
       await connection.rollback();
-      console.error('Error al unirse a mural público:', error);
-      res.status(500).json({ message: 'Error interno del servidor al unirse al mural.' });
+      console.error('Error al unirse al muro público:', error);
+      res.status(500).json({ message: 'Error interno del servidor al unirse al muro.' });
     } finally {
       connection.release();
     }

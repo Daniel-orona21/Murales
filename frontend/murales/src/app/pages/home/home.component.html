@@ -9,7 +9,7 @@
               (click)="backToMuralesList()" 
               [class.clickable]="selectedMuralId"
               [class.slide-up]="selectedMuralId">
-            {{ publicViewActive ? 'Murales Públicos' : 'Muros' }}
+            {{ publicViewActive ? 'Muros Públicos' : 'Muros' }}
           </h1>
           <!-- Separador mural -->
           <span class="breadcrumb-separator" 
@@ -57,7 +57,7 @@
         <input
           #searchInput
           type="text"
-          [placeholder]="selectedMuralId ? 'Buscar publicaciones...' : 'Buscar murales...'"
+          [placeholder]="selectedMuralId ? 'Buscar publicaciones...' : 'Buscar muros...'"
           (input)="onSearch($event)"
           [value]="searchText"
         >
@@ -92,7 +92,7 @@
             <span class="shadow"></span>
           </div>  
         </div>
-        <div class="global-loading-text">Cargando murales...</div>
+        <div class="global-loading-text">Cargando muros...</div>
       </div>
     </ng-container>
 
@@ -211,7 +211,7 @@
                 <!-- Initial Content -->
                 <div class="add-mural-initial">
                   <span class="material-symbols-outlined">add</span>
-                  <h3>Añadir nuevo mural</h3>
+                  <h3>Añadir nuevo muro</h3>
                 </div>
                 <!-- Hover Content -->
                 <div class="add-mural-hover">
@@ -236,7 +236,7 @@
   <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()" [class.keyboard-open]="isKeyboardOpen">
     <div class="modal-content" (click)="$event.stopPropagation()" [class.keyboard-open]="isKeyboardOpen">
       <div class="modal-header">
-        <h2>{{ editingMuralId ? 'Editar mural' : 'Crear nuevo mural' }}</h2>
+        <h2>{{ editingMuralId ? 'Editar muro' : 'Crear nuevo muro' }}</h2>
         <button class="close-button" (click)="closeCreateModal()">&times;</button>
       </div>
       <form (ngSubmit)="createMural()" #muralForm="ngForm" class="create-mural-form">
@@ -248,7 +248,7 @@
             name="titulo" 
             [(ngModel)]="newMural.titulo" 
             required
-            placeholder="Ingresa el título del mural"
+            placeholder="Ingresa el título del muro"
           >
         </div>
 
@@ -259,7 +259,7 @@
             name="descripcion" 
             [(ngModel)]="newMural.descripcion" 
             required
-            placeholder="Describe el propósito de este mural"
+            placeholder="Describe el propósito de este muro"
           ></textarea>
         </div>
 
@@ -279,7 +279,7 @@
         <div class="form-actions">
           <button type="button" class="btn-secondary" (click)="closeCreateModal()">Cancelar</button>
           <button type="submit" class="btn-primary" [disabled]="!muralForm.form.valid || cargando">
-            {{ editingMuralId ? 'Guardar cambios' : 'Crear mural' }}
+            {{ editingMuralId ? 'Guardar cambios' : 'Crear muro' }}
             <span *ngIf="cargando" class="spinner-button dark"></span>
           </button>
         </div>

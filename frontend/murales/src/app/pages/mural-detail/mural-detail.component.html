@@ -31,8 +31,8 @@
     
     <!-- Mensaje cuando no hay publicaciones en absoluto -->
     <div *ngIf="!cargando && !error && publicaciones.length === 0" class="empty-state">
-      <p>No hay publicaciones en este mural.</p>
-      <p>¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
+      <p>No hay publicaciones en este muro.</p>
+      <p *ngIf="mural?.rol_usuario === 'administrador' || mural?.rol_usuario === 'editor'">¡Crea la primera publicación haciendo clic en el botón de agregar!</p>
     </div>
     
     <!-- Grid layout for publications -->
@@ -401,7 +401,7 @@
           <!-- User List Section -->
           <div class="active-sessions">
             <div class="sessions-header" (click)="toggleUsersList()">
-              <h4>Usuarios del Mural</h4>
+              <h4>Usuarios del Muro</h4>
               <i class="fas" [class.fa-chevron-down]="!showUsersList" [class.fa-chevron-up]="showUsersList"></i>
             </div>
             
@@ -460,7 +460,7 @@
 
           <button class="abandonar-mural-btn" (click)="abandonarMural()">
             <span class="material-symbols-outlined">logout</span>
-            Abandonar mural
+            Abandonar muro
           </button>
         </div>
       </div>
