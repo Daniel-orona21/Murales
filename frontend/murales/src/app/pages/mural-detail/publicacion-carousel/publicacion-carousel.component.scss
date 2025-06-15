@@ -495,7 +495,8 @@
 
     .no-comentarios {
       display: flex;
-      height: 100%;
+      flex: 1 !important;
+      background-color: red;
       flex-direction: column;
       align-items: center;
       justify-content: center;

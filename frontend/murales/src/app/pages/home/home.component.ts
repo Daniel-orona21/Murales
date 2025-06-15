@@ -16,6 +16,8 @@ interface MuralWithMenu extends Mural {
   showMenu: boolean;
 }
 
+type ViewMode = 'user' | 'public' | 'detail';
+
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
@@ -25,8 +27,10 @@ interface MuralWithMenu extends Mural {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   murals: MuralWithMenu[] = [];
+  publicMurals: MuralWithMenu[] = [];
   searchText: string = '';
   loading = true;
+  loadingPublic = false;
   cargando = false;
   showCreateModal = false;
   isSearchBarExpanded = false;
@@ -65,7 +69,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   recoveryEmail: string = '';
 
   selectedPost: any = null;
-  forceClosePost = false;
 
   @ViewChild('muralDetail') muralDetailComponent: any;
 
@@ -75,6 +78,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
   private subscriptions: Subscription[] = [];
+
+  viewMode: ViewMode = 'user';
+  previousViewMode: 'user' | 'public' = 'user';
+
+  get breadcrumbParentTitle(): string {
+    const fromPublic = sessionStorage.getItem('publicosState') === 'true';
+    if (this.viewMode === 'public' || (this.viewMode === 'detail' && fromPublic)) {
+      return 'Murales Públicos';
+    }
+    return 'Murales';
+  }
 
   constructor(
     public router: Router,
@@ -150,7 +164,21 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.setViewportHeight();
     this.checkScreenSize();
-    this.loadMurals();
+
+    const savedPreviousViewMode = sessionStorage.getItem('previousViewMode') as 'user' | 'public';
+    if (savedPreviousViewMode) {
+        this.previousViewMode = savedPreviousViewMode;
+    }
+
+    const inPublics = sessionStorage.getItem('publicosState') === 'true';
+
+    if (inPublics) {
+      this.viewMode = 'public';
+      this.loadPublicMurals();
+    } else {
+      this.loadMurals();
+    }
+
     this.loadNotifications();
     this.loadUserData();
     this.loadSessions();
@@ -175,10 +203,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.muralSubscription = this.muralService.selectedMural$.subscribe(muralId => {
       this.selectedMuralId = muralId;
       if (muralId) {
-        const mural = this.murals.find(m => m.id_mural === muralId);
-        if (mural) {
-          this.selectedMuralTitle = mural.titulo;
-        }
+        this.viewMode = 'detail';
       }
       this.cdr.detectChanges();
     });
@@ -942,104 +967,118 @@ export class HomeComponent implements OnInit, OnDestroy {
     } else {
       this.cargandoRechazar[notification.id_notificacion] = true;
     }
-    
+
     this.notificationService.processAccessRequest(notification.id_notificacion, approved).subscribe({
-      next: () => {
-        if (approved) {
-          delete this.cargandoAprobar[notification.id_notificacion];
-        } else {
-          delete this.cargandoRechazar[notification.id_notificacion];
+      next: (response) => {
+        // Actualizar la notificación localmente
+        const index = this.notifications.findIndex(n => n.id_notificacion === notification.id_notificacion);
+        if (index > -1) {
+          this.notifications[index].estado_solicitud = approved ? 'aprobada' : 'rechazada';
+          this.notifications[index].leido = true;
         }
-        this.cdr.detectChanges();
-        // Show success message without waiting for the backend
-        Swal.fire({
-          title: approved ? 'Acceso Aprobado' : 'Acceso Rechazado',
-          text: approved ? 'El usuario ahora tiene acceso al mural.' : 'Se ha rechazado la solicitud de acceso.',
-          icon: approved ? 'success' : 'info',
-          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Entendido',
-          customClass: {
-            popup: 'custom-swal-popup',
-            confirmButton: 'custom-confirm-button'
-          }
-        });
+        this.updateUnreadCount();
+
+        if (approved) {
+          this.cargandoAprobar[notification.id_notificacion] = false;
+        } else {
+          this.cargandoRechazar[notification.id_notificacion] = false;
+        }
       },
       error: (error) => {
-        console.error('Error al procesar solicitud de acceso:', error);
+        console.error('Error al procesar la solicitud:', error);
         if (approved) {
-          delete this.cargandoAprobar[notification.id_notificacion];
+          this.cargandoAprobar[notification.id_notificacion] = false;
         } else {
-          delete this.cargandoRechazar[notification.id_notificacion];
+          this.cargandoRechazar[notification.id_notificacion] = false;
         }
-        this.cdr.detectChanges();
-        Swal.fire({
-          title: 'Error',
-          text: 'No se pudo procesar la solicitud. Intenta de nuevo más tarde.',
-          icon: 'error',
-          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Aceptar',
-          customClass: {
-            popup: 'custom-swal-popup',
-            confirmButton: 'custom-confirm-button'
-          }
-        });
+        Swal.fire('Error', 'No se pudo procesar la solicitud.', 'error');
       }
     });
   }
 
-  // Método para obtener el título del mural seleccionado
   getMuralTitle(): string {
-    if (!this.selectedMuralId) return '';
-    
-    const mural = this.murals.find(m => m.id_mural === this.selectedMuralId);
-    return mural ? mural.titulo : 'Mural';
+    if (this.selectedMuralId) {
+        // Priorizar el título que ya tenemos para evitar el 'Mural' momentáneo
+        if (this.selectedMuralTitle) {
+            return this.selectedMuralTitle;
+        }
+
+        // Buscar en murales de usuario
+        const mural = this.murals.find(m => m.id_mural === this.selectedMuralId);
+        if (mural) {
+            this.selectedMuralTitle = mural.titulo;
+            return mural.titulo;
+        }
+
+        // Buscar en murales públicos
+        const publicMural = this.publicMurals.find(m => m.id_mural === this.selectedMuralId);
+        if (publicMural) {
+            this.selectedMuralTitle = publicMural.titulo;
+            return publicMural.titulo;
+        }
+        
+        // Si no se encuentra, mostramos 'Mural' mientras se carga
+        return 'Mural';
+    }
+    return '';
   }
 
-  
-
-  // Método para determinar si el título necesita ser truncado
   isTitleTruncated(): boolean {
-    if (!this.selectedMuralId) return false;
-    
+    const titleElement = document.querySelector('.mural-title');
+    if (!titleElement) return false;
     const title = this.getMuralTitle();
     // Si el título es más largo que 25 caracteres, consideramos que necesitará truncado
     return title.length > 25;
   }
 
-
-  // Método para manejar el clic en un mural
   onMuralClick(mural: MuralWithMenu, event: Event): void {
-    if (event.target instanceof Element && 
-        (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
+    // Evitar que el clic en el menú o sus elementos active la navegación
+    const target = event.target as HTMLElement;
+    if (target.closest('.mural-menu') || target.closest('.menu-item')) {
       return;
     }
-    // Limpiar el texto de búsqueda al seleccionar un mural
-    this.searchText = '';
+    this.previousViewMode = this.viewMode as 'user' | 'public';
+    sessionStorage.setItem('previousViewMode', this.previousViewMode);
     this.muralService.setSelectedMural(mural.id_mural);
     this.selectedMuralTitle = mural.titulo;
-    this.cdr.detectChanges();
   }
-  
-  // Método para volver a la lista de murales
+
   backToMuralesList(): void {
-    this.searchText = '';
-    this.muralService.setSelectedMural(null);
-    this.selectedPost = null;
-    
-    // Si hay una actualización pendiente, cargar los murales
     if (this.needsUpdate) {
-      console.log('Actualizando lista de murales después de volver...');
-      this.loadMurals();
+      if (this.viewMode === 'public' || this.previousViewMode === 'public') {
+        this.loadPublicMurals();
+      } else {
+        this.loadMurals();
+      }
       this.needsUpdate = false;
     }
-    
-    this.cdr.detectChanges();
+
+    if (this.selectedMuralId) {
+        // Si venimos de un mural detalle, volvemos a la vista anterior
+        this.viewMode = this.previousViewMode;
+    } else {
+        // Si ya estamos en una lista, volvemos a la de usuario por defecto
+        this.viewMode = 'user';
+    }
+
+    this.selectedMuralId = null;
+    this.muralService.setSelectedMural(null);
+    this.selectedPost = null;
+
+    if (this.viewMode !== 'public') {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('publicosState');
+      }
+    }
   }
 
   toggleProfileMenu(event: Event) {
     event.stopPropagation();
     this.showProfileMenu = !this.showProfileMenu;
-    this.loadSessions();
+    if (this.showProfileMenu) {
+      this.loadSessions();
+    }
+    this.searchText = '';
   }
 
   closeProfileMenu() {
@@ -1047,134 +1086,53 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   loadUserData() {
-    this.authService.getCurrentUser().subscribe({
-      next: (user) => {
-        this.user = user;
-      },
-      error: (error) => {
-        console.error('Error loading user data:', error);
-      }
+    this.authService.getCurrentUser().subscribe(user => {
+      this.user = user;
     });
   }
 
   loadSessions() {
     this.authService.loadActiveSessions().subscribe({
-      next: (response) => {
-        this.sessions = response.sesiones;
-        const currentSessionId = this.authService.getSessionId();
-        console.log('Current session ID from storage:', currentSessionId);
-        console.log('Sessions:', response.sesiones);
-        this.currentSessionId = currentSessionId;
-        console.log('Set current session ID to:', this.currentSessionId);
+      next: (data: { sesiones: any[], currentSessionId: string }) => {
+        this.sessions = data.sesiones;
+        this.currentSessionId = this.authService.getSessionId();
       },
-      error: (error) => {
-        console.error('Error loading sessions:', error);
-      }
+      error: (err: any) => console.error('Error loading sessions', err)
     });
   }
 
   closeSession(sessionId: string, event: Event) {
     event.stopPropagation();
-    event.preventDefault();
-    
     Swal.fire({
       title: '¿Cerrar sesión?',
-      text: sessionId === this.currentSessionId 
-        ? '¿Estás seguro de que deseas cerrar tu sesión actual? Serás redirigido al inicio de sesión.'
-        : '¿Estás seguro de que deseas cerrar esta sesión?',
+      text: "Se cerrará la sesión en este dispositivo.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-      cancelButtonColor: '#d33',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
       confirmButtonText: 'Sí, cerrar sesión',
-      cancelButtonText: 'Cancelar',
-      customClass: {
-        popup: 'custom-swal-popup',
-        confirmButton: 'custom-confirm-button',
-        cancelButton: 'custom-cancel-button'
-      },
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      stopKeydownPropagation: true
+      cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
         this.authService.closeSession(sessionId).subscribe({
           next: () => {
-            // Remover la sesión de la lista local
-            this.sessions = this.sessions.filter(session => session.id_sesion !== sessionId);
-            this.cdr.detectChanges(); // Forzar actualización de la vista
-            
-            // Si es la sesión actual, hacer logout y redirigir
-            if (sessionId === this.currentSessionId) {
-              this.authService.logout();
-              this.router.navigate(['/login']);
-            }
+            this.loadSessions();
+            Swal.fire('Cerrada', 'La sesión ha sido cerrada.', 'success');
           },
-          error: (error) => {
-            console.error('Error closing session:', error);
-            Swal.fire({
-              title: 'Error',
-              text: 'No se pudo cerrar la sesión. Intenta de nuevo más tarde.',
-              icon: 'error',
-              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar',
-              customClass: {
-                popup: 'custom-swal-popup',
-                confirmButton: 'custom-confirm-button'
-              }
-            });
-          }
+          error: () => Swal.fire('Error', 'No se pudo cerrar la sesión.', 'error')
         });
       }
     });
   }
 
   logout() {
-    Swal.fire({
-      title: '¿Cerrar sesión?',
-      text: '¿Estás seguro de que deseas cerrar tu sesión actual?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, cerrar sesión',
-      cancelButtonText: 'Cancelar',
-      customClass: {
-        popup: 'custom-swal-popup',
-        confirmButton: 'custom-confirm-button',
-        cancelButton: 'custom-cancel-button'
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
       },
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      stopKeydownPropagation: true
-    }).then((result) => {
-      if (result.isConfirmed && this.currentSessionId) {
-        // Cerrar la sesión actual en el servidor
-        this.authService.closeSession(this.currentSessionId).subscribe({
-          next: () => {
-            // Remover la sesión de la lista local
-            this.sessions = this.sessions.filter(session => session.id_sesion !== this.currentSessionId);
-            this.cdr.detectChanges(); // Forzar actualización de la vista
-            
-            // Hacer logout y redirigir
-            this.authService.logout();
-            this.router.navigate(['/login']);
-          },
-          error: (error) => {
-            console.error('Error closing session:', error);
-            // Aún así hacer logout y redirigir en caso de error
-            this.authService.logout();
-            this.router.navigate(['/login']);
-          },
-          complete: () => {
-            // Asegurarse de que la sesión se elimine de la lista local
-            this.sessions = this.sessions.filter(session => session.id_sesion !== this.currentSessionId);
-            this.cdr.detectChanges();
-          }
-        });
-      } else if (result.isConfirmed) {
-        // Si no hay ID de sesión, simplemente hacer logout
-        this.authService.logout();
+      error: (err) => {
+        console.error('Logout failed', err);
+        // Still navigate to login even if server logout fails
         this.router.navigate(['/login']);
       }
     });
@@ -1186,160 +1144,127 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   toggleRecoveryForm() {
     this.showRecoveryForm = !this.showRecoveryForm;
-    if (this.showRecoveryForm && this.user?.email) {
-      this.recoveryEmail = this.user.email;
+    if (this.showRecoveryForm) {
+      this.recoveryEmail = this.user?.email || '';
     }
   }
 
   requestPasswordRecovery() {
     if (!this.recoveryEmail) return;
-
     this.cargandoRecuperarPassword = true;
     this.authService.requestPasswordReset(this.recoveryEmail).subscribe({
       next: () => {
-        Swal.fire({
-          title: '¡Correo enviado!',
-          text: 'Si el correo existe en nuestra base de datos, recibirás instrucciones para recuperar tu contraseña.',
-          icon: 'success',
-          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Entendido',
-          customClass: {
-            popup: 'custom-swal-popup',
-            confirmButton: 'custom-confirm-button'
-          }
-        });
         this.cargandoRecuperarPassword = false;
-        this.recoveryEmail = '';
+        Swal.fire('Éxito', 'Si el correo existe, se ha enviado un enlace para recuperar la contraseña.', 'success');
         this.showRecoveryForm = false;
       },
-      error: (error: HttpErrorResponse) => {
-        console.error('Error al solicitar recuperación de contraseña:', error);
-        Swal.fire({
-          title: 'Error',
-          text: 'No se pudo procesar la solicitud. Intenta de nuevo más tarde.',
-          icon: 'error',
-          confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-          confirmButtonText: 'Aceptar',
-          customClass: {
-            popup: 'custom-swal-popup',
-            confirmButton: 'custom-confirm-button'
-          }
-        });
+      error: (err) => {
         this.cargandoRecuperarPassword = false;
+        Swal.fire('Error', err.error.error || 'Ocurrió un error. Inténtalo de nuevo.', 'error');
       }
     });
   }
 
   getDeviceInfo(session: any): string {
-    const deviceInfo = (session.dispositivo || '').toLowerCase();
-    let os = '';
-    let browser = '';
+    const device = session.dispositivo.toLowerCase();
+    const os = session.os.toLowerCase();
+    
+    let icon = 'fa-desktop';
+    if (device.includes('iphone') || device.includes('android')) icon = 'fa-mobile-alt';
+    else if (device.includes('ipad')) icon = 'fa-tablet-alt';
+    else if (os.includes('mac') || os.includes('windows') || os.includes('linux')) icon = 'fa-laptop';
 
-    // Detectar sistema operativo
-    if (deviceInfo.includes('mac')) {
-      os = 'Mac';
-    } else if (deviceInfo.includes('windows')) {
-      os = 'Windows';
-    } else if (deviceInfo.includes('linux')) {
-      os = 'Linux';
-    } else if (deviceInfo.includes('android')) {
-      os = 'Android';
-    } else if (deviceInfo.includes('iphone') || deviceInfo.includes('ios')) {
-      os = 'iPhone';
-    } else if (deviceInfo.includes('ipad')) {
-      os = 'iPad';
-    } else {
-      os = 'Otro';
-    }
-
-    // Detectar navegador
-    if (deviceInfo.includes('chrome')) {
-      browser = 'Chrome';
-    } else if (deviceInfo.includes('firefox')) {
-      browser = 'Firefox';
-    } else if (deviceInfo.includes('safari')) {
-      browser = 'Safari';
-    } else if (deviceInfo.includes('edge')) {
-      browser = 'Edge';
-    } else if (deviceInfo.includes('opera')) {
-      browser = 'Opera';
-    } else {
-      browser = 'Navegador';
-    }
-
-    return `${os} - ${browser}`;
+    return `${session.dispositivo} - ${session.navegador} en ${session.os}`;
   }
 
-  // Método para manejar la selección de una publicación
   onPostSelect(post: any) {
     this.selectedPost = post;
-    this.forceClosePost = false;
   }
 
-  // Método para volver al mural (deseleccionar publicación)
   backToMural() {
-    // Limpiar el texto de búsqueda al volver al mural
-    this.searchText = '';
     this.selectedPost = null;
-    this.forceClosePost = true;
-    if (this.muralDetailComponent && this.muralDetailComponent.forceCloseCarousel) {
-      this.muralDetailComponent.forceCloseCarousel();
-    }
+    // This will cause the carousel in the child component to close
+    // because its visibility is tied to selectedPost existing.
   }
 
   onPostClosed() {
     this.selectedPost = null;
-    this.forceClosePost = false;
-  }
-
-  clearSelectedPost() {
-    this.selectedPost = null;
   }
 
   onMuralUpdated(updatedMural: Mural) {
-    this.muralService.getMuralById(updatedMural.id_mural).subscribe({
-      next: (muralCompleto) => {
-        const idx = this.murals.findIndex(m => m.id_mural === muralCompleto.id_mural);
-        if (idx !== -1) {
-          this.murals[idx] = { ...this.murals[idx], ...muralCompleto };
-        }
-        if (this.selectedMuralId === updatedMural.id_mural) {
-          this.selectedMuralTitle = updatedMural.titulo;
-        }
-      }
-    });
+    this.selectedMuralTitle = updatedMural.titulo;
+    // Actualizar el mural en la lista de murales del usuario
+    const userMuralIndex = this.murals.findIndex(m => m.id_mural === updatedMural.id_mural);
+    if (userMuralIndex > -1) {
+        this.murals[userMuralIndex] = { ...this.murals[userMuralIndex], ...updatedMural };
+    }
+
+    // Actualizar el mural en la lista de murales públicos
+    const publicMuralIndex = this.publicMurals.findIndex(m => m.id_mural === updatedMural.id_mural);
+    if (publicMuralIndex > -1) {
+        this.publicMurals[publicMuralIndex] = { ...this.publicMurals[publicMuralIndex], ...updatedMural };
+    }
   }
 
-  // Getter para los murales filtrados
   get filteredMurals(): MuralWithMenu[] {
-    if (!this.searchText.trim()) {
-      return this.murals;
+    const sourceMurals = (this.viewMode === 'public') ? this.publicMurals : this.murals;
+
+    if (!this.searchText) {
+      return sourceMurals;
     }
-    
-    const searchLower = this.searchText.toLowerCase().trim();
-    return this.murals.filter(mural => 
-      mural.titulo.toLowerCase().includes(searchLower) ||
-      mural.descripcion.toLowerCase().includes(searchLower)
+    const lowerCaseSearch = this.searchText.toLowerCase();
+    return sourceMurals.filter(mural =>
+      mural.titulo.toLowerCase().includes(lowerCaseSearch) ||
+      mural.descripcion.toLowerCase().includes(lowerCaseSearch)
     );
   }
 
-  // Método para manejar la búsqueda
+  get filteredPublicMurals(): MuralWithMenu[] {
+    if (!this.searchText) {
+      return this.publicMurals;
+    }
+    return this.publicMurals.filter(mural =>
+      mural.titulo.toLowerCase().includes(this.searchText.toLowerCase())
+    );
+  }
+
   onSearch(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchText = input.value;
+    const value = (event.target as HTMLInputElement).value;
+    this.searchText = value;
   }
 
   toggleSearchBar(event: Event) {
     event.stopPropagation();
     this.isSearchBarExpanded = !this.isSearchBarExpanded;
-    if (!this.isSearchBarExpanded) {
-      this.searchText = '';
-      this.onSearch({ target: { value: '' } } as any);
-    } else {
-      // Esperar a que el input esté visible antes de enfocarlo
-      setTimeout(() => {
-        this.searchInput?.nativeElement?.focus();
-      }, 100);
+    if (this.isSearchBarExpanded) {
+      setTimeout(() => this.searchInput.nativeElement.focus(), 0);
     }
+  }
+
+  showPublicMuralesView() {
+    this.previousViewMode = 'user'; // Siempre que vamos a públicos, venimos de la vista de usuario
+    sessionStorage.setItem('previousViewMode', this.previousViewMode);
+    this.viewMode = 'public';
+    this.loadPublicMurals();
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('publicosState', 'true');
+    }
+  }
+
+  loadPublicMurals() {
+    this.loadingPublic = true;
+    this.muralService.getPublicMurales().subscribe({
+      next: (murals: any) => {
+        this.publicMurals = murals.map((mural: Mural) => ({
+          ...mural,
+          showMenu: false
+        }));
+        this.loadingPublic = false;
+      },
+      error: (error) => {
+        console.error('Error loading public murals:', error);
+        this.loadingPublic = false;
+      }
+    });
   }
 } 

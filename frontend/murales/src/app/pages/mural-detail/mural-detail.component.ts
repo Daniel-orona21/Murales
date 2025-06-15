@@ -33,8 +33,10 @@ type ContentType = 'archivo' | 'link' | 'nota';
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() muralId: number | null = null;
-  @Input() forceClosePost: boolean = false;
+  @Input() selectedPost: any | null = null;
   @Input() searchText: string = '';
+  isPublicView: boolean = false;
+  breadcrumbTitle = 'Murales';
   isAdmin: boolean = false;
   mural: Mural | null = null;
   showModal = false;
@@ -117,6 +119,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   ) {}
 
   ngOnInit(): void {
+    if (typeof sessionStorage !== 'undefined') {
+      this.isPublicView = sessionStorage.getItem('publicosState') === 'true';
+    }
+    this.breadcrumbTitle = this.isPublicView ? 'Murales Públicos' : 'Murales';
+
     if (this.muralId) {
       this.loadMural();
       this.cargarPublicaciones();
@@ -176,7 +183,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.loadMuralUsers();
       }
     }
-    if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
+    if (changes['selectedPost'] && changes['selectedPost'].currentValue === null) {
       this.closeCarousel();
     }
     if (changes['searchText']) {
@@ -199,6 +206,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.muralService.getMuralById(this.muralId).subscribe({
       next: (mural) => {
         this.mural = mural;
+        this.muralUpdated.emit(mural);
         this.selectedTheme = mural.tema || 1;
         this.customColor = mural.color_personalizado || '#808080';
         if (mural.color_personalizado) {

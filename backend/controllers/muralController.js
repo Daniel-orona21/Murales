@@ -36,29 +36,90 @@ const muralController = {
     }
   },
 
-  getMuralById: async (req, res) => {
+  getPublicMurales: async (req, res) => {
     try {
-      const { id } = req.params;
-      const userId = req.user.id;
+      const userId = req.user ? req.user.id : null;
 
       const query = `
         SELECT m.*, 
                CASE 
-                 WHEN m.id_creador = ? THEN 'administrador'
-                 ELSE COALESCE(rm.rol, 'lector') 
+                 WHEN ? IS NOT NULL AND m.id_creador = ? THEN 'administrador'
+                 WHEN ? IS NOT NULL THEN COALESCE(rm.rol, 'visitante')
+                 ELSE 'visitante'
                END as rol_usuario
         FROM murales m
         LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+        WHERE m.privacidad = 'publico'
+        GROUP BY m.id_mural
+        ORDER BY m.fecha_creacion DESC
       `;
 
-      const [mural] = await pool.query(query, [userId, userId, id, userId, userId]);
+      const [murales] = await pool.query(query, [userId, userId, userId, userId]);
+      
+      res.json(murales);
+    } catch (error) {
+      console.error('Error al obtener murales públicos:', error);
+      res.status(500).json({ error: 'Error al obtener los murales públicos' });
+    }
+  },
 
-      if (!mural || mural.length === 0) {
+  getMuralById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user ? req.user.id : null;
+
+      // Primero, obtenemos el mural y su privacidad
+      const [muralResult] = await pool.query('SELECT * FROM murales WHERE id_mural = ?', [id]);
+
+      if (!muralResult || muralResult.length === 0) {
         return res.status(404).json({ error: 'Mural no encontrado' });
       }
 
-      res.json(mural[0]);
+      const mural = muralResult[0];
+
+      // Si el mural es público, todos pueden acceder
+      if (mural.privacidad === 'publico') {
+        const query = `
+          SELECT m.*, 
+                 CASE 
+                   WHEN ? IS NOT NULL AND m.id_creador = ? THEN 'administrador'
+                   WHEN ? IS NOT NULL THEN COALESCE(rm.rol, 'visitante')
+                   ELSE 'visitante'
+                 END as rol_usuario
+          FROM murales m
+          LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+          WHERE m.id_mural = ?
+        `;
+        const [muralDetalle] = await pool.query(query, [userId, userId, userId, userId, id]);
+        return res.json(muralDetalle[0]);
+      }
+
+      // Si el mural es privado, se requiere autenticación y membresía
+      if (mural.privacidad === 'privado') {
+        if (!userId) {
+          return res.status(401).json({ error: 'Este mural es privado. Debes iniciar sesión para acceder.' });
+        }
+
+        const query = `
+          SELECT m.*, 
+                 CASE 
+                   WHEN m.id_creador = ? THEN 'administrador'
+                   ELSE COALESCE(rm.rol, 'lector') 
+                 END as rol_usuario
+          FROM murales m
+          LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+          WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+        `;
+
+        const [muralDetalle] = await pool.query(query, [userId, userId, id, userId, userId]);
+
+        if (!muralDetalle || muralDetalle.length === 0) {
+          return res.status(403).json({ error: 'No tienes permisos para ver este mural.' });
+        }
+        
+        return res.json(muralDetalle[0]);
+      }
+
     } catch (error) {
       console.error('Error al obtener mural:', error);
       res.status(500).json({ error: 'Error al obtener el mural' });
@@ -663,52 +724,70 @@ const muralController = {
   
   // Función para obtener publicaciones de un mural
   getPublicacionesByMural: async (req, res) => {
+    const { id_mural } = req.params;
+    const userId = req.user ? req.user.id : null;
+
     try {
-      const { id_mural } = req.params;
-      const id_usuario = req.user.id;
-      
-      // Verificar acceso al mural
-      const checkQuery = `
-        SELECT m.*, rm.rol 
-        FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
-      `;
-      
-      const [mural] = await pool.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
-      
-      if (!mural || mural.length === 0) {
-        return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      const [muralResult] = await pool.query('SELECT privacidad, id_creador FROM murales WHERE id_mural = ?', [id_mural]);
+
+      if (muralResult.length === 0) {
+        return res.status(404).json({ error: 'Mural no encontrado' });
       }
-      
-      // Obtener publicaciones del mural
+      const muralInfo = muralResult[0];
+
+      if (muralInfo.privacidad === 'privado') {
+        if (!userId) {
+          return res.status(403).json({ error: 'Este es un mural privado. Debes ser miembro para ver las publicaciones.' });
+        }
+        
+        const [memberResult] = await pool.query(
+          'SELECT rm.id_usuario FROM roles_mural rm WHERE rm.id_mural = ? AND rm.id_usuario = ?',
+          [id_mural, userId]
+        );
+
+        const isMember = muralInfo.id_creador === userId || memberResult.length > 0;
+
+        if (!isMember) {
+          return res.status(403).json({ error: 'No tienes permiso para ver las publicaciones de este mural' });
+        }
+      }
+
       const query = `
-        SELECT p.*, u.nombre as nombre_usuario, u.avatar_url
+        SELECT p.*, u.nombre AS nombre_usuario, u.avatar_url 
         FROM publicaciones p
         JOIN usuarios u ON p.id_usuario = u.id_usuario
-        WHERE p.id_mural = ? AND p.estado = 1
+        WHERE p.id_mural = ?
         ORDER BY p.fecha_creacion DESC
       `;
-      
       const [publicaciones] = await pool.query(query, [id_mural]);
-      
-      // Obtener el contenido para cada publicación
-      for (let i = 0; i < publicaciones.length; i++) {
-        const contenidoQuery = `
-          SELECT * FROM contenido 
-          WHERE id_publicacion = ?
-          ORDER BY fecha_subida DESC
-        `;
-        
-        const [contenido] = await pool.query(contenidoQuery, [publicaciones[i].id_publicacion]);
-        publicaciones[i].contenido = contenido;
+
+      if (publicaciones.length === 0) {
+        return res.json([]);
       }
       
-      res.json(publicaciones);
+      const publicacionesIds = publicaciones.map(p => p.id_publicacion);
+      const [contenidos] = await pool.query(
+        'SELECT * FROM contenido WHERE id_publicacion IN (?)',
+        [publicacionesIds]
+      );
+
+      const contenidosPorPublicacion = contenidos.reduce((acc, contenido) => {
+        if (!acc[contenido.id_publicacion]) {
+          acc[contenido.id_publicacion] = [];
+        }
+        acc[contenido.id_publicacion].push(contenido);
+        return acc;
+      }, {});
+
+      const publicacionesConContenido = publicaciones.map(p => ({
+        ...p,
+        contenido: contenidosPorPublicacion[p.id_publicacion] || []
+      }));
       
+      res.json(publicacionesConContenido);
     } catch (error) {
       console.error('Error al obtener publicaciones:', error);
-      res.status(500).json({ error: 'Error al obtener las publicaciones del mural' });
+      res.status(500).json({ error: 'Error interno del servidor' });
     }
   },
   
@@ -940,54 +1019,63 @@ const muralController = {
   // Función para obtener usuarios de un mural
   getUsuariosByMural: async (req, res) => {
     try {
-      const { id } = req.params;
-      const userId = req.user.id;
+      const { id } = req.params; // This is id_mural
+      const requestingUserId = req.user ? req.user.id : null;
 
-      // Verificar si el usuario tiene acceso al mural
-      const checkQuery = `
-        SELECT m.*, rm.rol 
-        FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
-      `;
+      const [muralResult] = await pool.query('SELECT privacidad, id_creador FROM murales WHERE id_mural = ?', [id]);
+      if (muralResult.length === 0) {
+        return res.status(404).json({ error: 'Mural no encontrado' });
+      }
+      const muralInfo = muralResult[0];
 
-      const [mural] = await pool.query(checkQuery, [userId, id, userId, userId]);
-
-      if (!mural || mural.length === 0) {
-        return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      let isMember = false;
+      if (requestingUserId) {
+        const [memberResult] = await pool.query(
+          'SELECT id_usuario FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+          [id, requestingUserId]
+        );
+        isMember = muralInfo.id_creador === requestingUserId || memberResult.length > 0;
+      }
+      
+      if (muralInfo.privacidad === 'privado' && !isMember) {
+        return res.status(403).json({ error: 'No tienes permiso para ver los usuarios de este mural' });
+      }
+      
+      if (muralInfo.privacidad === 'publico' && !isMember) {
+        return res.json([]);
       }
 
-      // Obtener todos los usuarios del mural
       const query = `
         SELECT 
-          u.id_usuario,
-          u.nombre,
-          u.avatar_url,
-          CASE 
-            WHEN m.id_creador = u.id_usuario THEN 'administrador'
-            ELSE COALESCE(rm.rol, 'lector')
-          END as rol
-        FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural
-        LEFT JOIN usuarios u ON (rm.id_usuario = u.id_usuario OR m.id_creador = u.id_usuario)
+          u.id_usuario, 
+          u.nombre, 
+          u.email, 
+          u.avatar_url, 
+          'creador' as rol, 
+          m.fecha_creacion as fecha_asignacion
+        FROM usuarios u
+        JOIN murales m ON u.id_usuario = m.id_creador
         WHERE m.id_mural = ?
-        GROUP BY u.id_usuario
-        ORDER BY 
-          CASE 
-            WHEN m.id_creador = u.id_usuario THEN 1
-            WHEN rm.rol = 'administrador' THEN 2
-            WHEN rm.rol = 'editor' THEN 3
-            ELSE 4
-          END,
-          u.nombre ASC
+        UNION
+        SELECT 
+          u.id_usuario, 
+          u.nombre, 
+          u.email, 
+          u.avatar_url, 
+          rm.rol, 
+          rm.fecha_asignacion
+        FROM usuarios u
+        JOIN roles_mural rm ON u.id_usuario = rm.id_usuario
+        WHERE rm.id_mural = ?
       `;
 
-      const [usuarios] = await pool.query(query, [id]);
+      const [usuarios] = await pool.query(query, [id, id]);
 
       res.json(usuarios);
+
     } catch (error) {
       console.error('Error al obtener usuarios del mural:', error);
-      res.status(500).json({ error: 'Error al obtener los usuarios del mural' });
+      res.status(500).json({ error: 'Error al obtener usuarios del mural' });
     }
   },
 

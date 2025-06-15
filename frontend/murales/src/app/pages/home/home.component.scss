@@ -204,6 +204,11 @@
       transition: all 0.3s ease;
       position: relative;
 
+      &.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+      }
+
       &.notification-btn {
         color: rgba(255, 255, 255, 0.7);
 
@@ -2064,7 +2069,7 @@
         transition: all 0.3s ease;
         
         &.expanded {
-          width: calc(100vw - 150px);
+          width: calc(100vw - 190px);
           margin-right: .5rem;
         }
       }

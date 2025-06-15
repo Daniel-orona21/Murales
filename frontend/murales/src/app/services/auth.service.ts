@@ -176,23 +176,37 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    // Limpiar el token
-    localStorage.removeItem('token');
-    // Limpiar el ID de sesión
-    localStorage.removeItem('sessionId');
-    // Limpiar el mural seleccionado
-    sessionStorage.removeItem('selectedMuralId');
-    
-    // Limpiar los subjects
+  logout(): Observable<any> {
+    const sessionId = this.getSessionId();
+    if (!sessionId) {
+      this.clearLocalData();
+      return of({ success: true, message: 'No session ID found, cleared local data.' });
+    }
+
+    return this.http.post(`${this.apiUrl}/auth/logout/${sessionId}`, {}, { headers: this.getHeaders() })
+      .pipe(
+        tap(() => this.clearLocalData()),
+        catchError(err => {
+          // Even if the server call fails, clear local data and proceed
+          this.clearLocalData();
+          return throwError(() => err);
+        })
+      );
+  }
+
+  private clearLocalData(): void {
+    const token = this.getToken();
+    const sessionId = this.getSessionId();
+
     this.authSubject.next(false);
     this.sessionsSubject.next([]);
     
-    // Limpiar cualquier otro dato de sesión que pudiera existir
-    sessionStorage.clear();
+    // Clear storage
+    sessionStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.sessionIdKey);
+    sessionStorage.removeItem('selectedMuralId');
     
-    // Redirigir al login
-    window.location.href = '/login';
+    console.log('AuthService - clearLocalData - Datos locales limpiados.', { token, sessionId });
   }
 
   getToken(): string | null {

@@ -121,6 +121,8 @@ export class MuralService {
   themeUpdate$ = this.themeUpdateSubject.asObservable();
   private muralesUpdateSubject = new Subject<void>();
   muralesUpdate$ = this.muralesUpdateSubject.asObservable();
+  private publicosState = new BehaviorSubject<boolean>(false);
+  publicosState$ = this.publicosState.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -146,6 +148,7 @@ export class MuralService {
         this.disconnectSocket();
       }
     });
+    this.publicosState.next(this.getPublicosStateFromStorage());
   }
 
   private initializeSocket() {
@@ -198,7 +201,10 @@ export class MuralService {
   }
 
   private setupSocketListeners() {
-    if (!this.socket) return;
+    if (!this.socket) {
+      console.error('Socket not initialized, cannot set up listeners');
+      return;
+    }
 
     // Remover listeners anteriores para evitar duplicados
     this.socket.removeAllListeners('mural_theme_update');
@@ -249,7 +255,7 @@ export class MuralService {
   }
 
   getSelectedMuralId(): number | null {
-    return this.selectedMuralId.value;
+    return this.selectedMuralId.getValue();
   }
 
   private getHeaders(): HttpHeaders {
@@ -259,17 +265,15 @@ export class MuralService {
   }
 
   getMuralesByUsuario(): Observable<Mural[]> {
-    const headers = this.getHeaders();
-    return this.http.get<Mural[]>(`${this.apiUrl}/usuario`, {
-      headers: headers
-    });
+    return this.http.get<Mural[]>(`${this.apiUrl}/mis-murales`, { headers: this.getHeaders() });
+  }
+
+  getPublicMurales(): Observable<Mural[]> {
+    return this.http.get<Mural[]>(`${this.apiUrl}/publicos`);
   }
 
   getMuralById(id: number): Observable<Mural> {
-    const headers = this.getHeaders();
-    return this.http.get<Mural>(`${this.apiUrl}/${id}`, {
-      headers: headers
-    });
+    return this.http.get<Mural>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
 
   createMural(muralData: CreateMuralData): Observable<any> {
@@ -405,15 +409,9 @@ export class MuralService {
   // Método para actualizar el tema del mural
   updateMuralTheme(muralId: number, themeData: UpdateThemeData): Observable<any> {
     const headers = this.getHeaders();
-    return this.http.put(`${this.apiUrl}/${muralId}/tema`, themeData, { headers }).pipe(
-      map(response => {
-        // Emitir el evento localmente también para asegurar la actualización inmediata
-        this.themeUpdateSubject.next({
-          id_mural: muralId,
-          tema: themeData.tema,
-          color_personalizado: themeData.color_personalizado
-        });
-        return response;
+    return this.http.put(`${this.apiUrl}/${muralId}/theme`, themeData, { headers }).pipe(
+      tap(() => {
+        // No emitir aquí, el evento de socket se encargará de la actualización en tiempo real
       })
     );
   }
@@ -421,11 +419,28 @@ export class MuralService {
   // Método para expulsar a un usuario del mural
   expulsarUsuario(muralId: number, userId: number): Observable<any> {
     const headers = this.getHeaders();
-    return this.http.delete(`${this.apiUrl}/${muralId}/usuarios/${userId}/expulsar`, { headers }).pipe(
+    return this.http.post(`${this.apiUrl}/${muralId}/expulsar`, { id_usuario_a_expulsar: userId }, { headers }).pipe(
       tap(() => {
-        // Emitir evento para actualizar la lista de murales
         this.muralesUpdateSubject.next();
       })
     );
+  }
+
+  private getPublicosStateFromStorage(): boolean {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('publicosState') === 'true';
+    }
+    return false;
+  }
+
+  setPublicosState(value: boolean) {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('publicosState', String(value));
+    }
+    this.publicosState.next(value);
+  }
+
+  getPublicMurals() {
+    return this.http.get(`${this.apiUrl}/publicos`);
   }
 } 

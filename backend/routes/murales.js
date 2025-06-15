@@ -1,16 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const verificarToken = require('../middleware/auth');
+const verificarTokenOpcional = require('../middleware/authOpcional');
 const muralController = require('../controllers/muralController');
 
 // Get user's murals
-router.get('/usuario', verificarToken, muralController.getMuralesByUsuario);
+router.get('/mis-murales', verificarToken, muralController.getMuralesByUsuario);
+
+// Get all public murals
+router.get('/publicos', verificarTokenOpcional, muralController.getPublicMurales);
 
 // Get mural by ID
-router.get('/:id', verificarToken, muralController.getMuralById);
+router.get('/:id', verificarTokenOpcional, muralController.getMuralById);
 
 // Get mural users
-router.get('/:id/usuarios', verificarToken, muralController.getUsuariosByMural);
+router.get('/:id/usuarios', verificarTokenOpcional, muralController.getUsuariosByMural);
 
 // Update user role in mural
 router.put('/:id_mural/usuarios/:id_usuario/rol', verificarToken, muralController.actualizarRolUsuario);
@@ -42,7 +46,7 @@ router.post('/:id/transferir', verificarToken, muralController.transferirPropied
 // NUEVAS RUTAS PARA PUBLICACIONES
 
 // Obtener todas las publicaciones de un mural
-router.get('/:id_mural/publicaciones', verificarToken, muralController.getPublicacionesByMural);
+router.get('/:id_mural/publicaciones', verificarTokenOpcional, muralController.getPublicacionesByMural);
 
 // Crear una nueva publicación en un mural
 router.post('/:id_mural/publicaciones', verificarToken, muralController.crearPublicacion);
