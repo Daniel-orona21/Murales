@@ -118,6 +118,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   ngOnInit(): void {
     if (this.muralId) {
+      this.cargando = true;
+      this.isLoadingImages = true;
       this.loadMural();
       this.cargarPublicaciones();
       this.muralService.getCurrentUserId().subscribe({
@@ -214,6 +216,8 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       error: (error) => {
         console.error('Error al cargar el mural:', error);
         this.error = 'Error al cargar el mural';
+        this.cargando = false;
+        this.isLoadingImages = false;
       }
     });
   }
@@ -221,8 +225,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   cargarPublicaciones(): void {
     if (!this.muralId) return;
     
-    this.cargando = true;
-    this.isLoadingImages = true;
     this.resetImageLoading();
     
     // Reset likes state

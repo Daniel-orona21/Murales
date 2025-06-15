@@ -81,7 +81,7 @@
   </nav>
 
   <main class="main-content">
-    <ng-container *ngIf="loading; else content">
+    <ng-container *ngIf="loading && !selectedMuralId; else content">
       <div class="loading">
         <div class="pyramid-loader">
           <div class="wrapper">
