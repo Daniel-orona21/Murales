@@ -22,7 +22,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://murales.vercel.app'] // Dominio correcto de Vercel
+      ? ['https://muros.vercel.app'] // Dominio correcto de Vercel
       : '*',
     methods: ['GET', 'POST']
   }
@@ -34,7 +34,7 @@ app.set('io', io);
 // Configurar CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://murales.vercel.app'] // Dominio correcto de Vercel
+    ? ['https://muros.vercel.app'] // Dominio correcto de Vercel
     : '*',
   credentials: true
 }));

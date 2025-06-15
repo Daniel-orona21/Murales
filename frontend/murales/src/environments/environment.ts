@@ -1,7 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://murales.onrender.com/api',
-  socketUrl: 'https://murales.onrender.com',
+    apiUrl: 'https://murales.onrender.com/api',
+    socketUrl: 'https://murales.onrender.com',
   // apiUrl: 'http://192.168.1.9:3000/api',
   // socketUrl: 'http://192.168.1.9:3000',
   // apiUrl: 'http://localhost:3000/api',
@@ -17,6 +17,6 @@ export const environment = {
   },
   github: {
     clientId: "Ov23liJXVJuQCN0HEwx8",
-    redirectUri: "https://murales.vercel.app/auth/github/callback" 
+    redirectUri: "https://muros.vercel.app/auth/github/callback" 
   }
 }; 
