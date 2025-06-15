@@ -200,6 +200,10 @@
     flex: 1;
     font-size: 16px;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   
   .publicacion-author {
