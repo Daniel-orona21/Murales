@@ -57,34 +57,68 @@ export class NotificationService {
     const token = this.authService.getToken();
     if (!token) return;
     
-    // Connect to socket server
-    this.socket = io(environment.socketUrl);
+    // Connect to socket server with improved options
+    this.socket = io(environment.socketUrl, {
+      transports: ['websocket'],
+      auth: {
+        token
+      },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      autoConnect: true
+    });
     
-    // Authenticate with the server using token
-    this.socket?.on('connect', () => {
+    // Handle connection events
+    this.socket.on('connect', () => {
       console.log('Socket connected, authenticating...');
       this.socket?.emit('authenticate', token);
     });
     
     // Handle authentication response
-    this.socket?.on('authenticated', (response) => {
+    this.socket.on('authenticated', (response) => {
       console.log('Socket authentication response:', response);
       if (response.success) {
         console.log('Socket authenticated successfully');
         this.setupSocketListeners();
       } else {
         console.error('Socket authentication failed:', response.error);
+        // Try to reconnect on failure
+        setTimeout(() => this.initializeSocket(), 5000);
       }
     });
     
     // Handle disconnection
-    this.socket?.on('disconnect', () => {
-      console.log('Socket disconnected');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // Only try to reconnect if it wasn't an intentional disconnect
+      if (reason !== 'io client disconnect') {
+        setTimeout(() => this.initializeSocket(), 5000);
+      }
     });
     
     // Handle connection errors
-    this.socket?.on('connect_error', (error) => {
+    this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+      // Try to reconnect on error
+      setTimeout(() => this.initializeSocket(), 5000);
+    });
+
+    // Handle reconnection
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      // Re-authenticate after reconnecting
+      this.socket?.emit('authenticate', token);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', error);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('Socket reconnection failed after all attempts');
     });
   }
   
@@ -143,6 +177,9 @@ export class NotificationService {
   // Disconnect socket
   private disconnectSocket() {
     if (this.socket) {
+      // Remove all listeners before disconnecting
+      this.socket.removeAllListeners();
+      // Disconnect with no reconnect option
       this.socket.disconnect();
       this.socket = null;
     }

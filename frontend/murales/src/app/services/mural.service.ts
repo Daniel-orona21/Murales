@@ -156,12 +156,18 @@ export class MuralService {
     const token = this.authService.getToken();
     if (!token) return;
     
-    // Conectar al servidor de socket
+    // Conectar al servidor de socket con opciones mejoradas
     this.socket = io(environment.socketUrl, {
       transports: ['websocket'],
       auth: {
         token
-      }
+      },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      autoConnect: true
     });
     
     // Manejar eventos de conexión
@@ -184,10 +190,12 @@ export class MuralService {
     });
     
     // Manejar desconexión
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-      // Intentar reconectar automáticamente
-      setTimeout(() => this.initializeSocket(), 5000);
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // Solo intentar reconectar si no fue una desconexión intencional
+      if (reason !== 'io client disconnect') {
+        setTimeout(() => this.initializeSocket(), 5000);
+      }
     });
     
     // Manejar errores de conexión
@@ -195,6 +203,21 @@ export class MuralService {
       console.error('Socket connection error:', error);
       // Intentar reconectar en caso de error
       setTimeout(() => this.initializeSocket(), 5000);
+    });
+
+    // Manejar reconexión
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      // Re-autenticar después de reconectar
+      this.socket?.emit('authenticate', token);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', error);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('Socket reconnection failed after all attempts');
     });
   }
 
@@ -234,7 +257,9 @@ export class MuralService {
 
   private disconnectSocket() {
     if (this.socket) {
+      // Remover todos los listeners antes de desconectar
       this.socket.removeAllListeners();
+      // Desconectar con opción de no reconectar
       this.socket.disconnect();
       this.socket = null;
     }
