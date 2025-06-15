@@ -3,41 +3,28 @@ const router = express.Router();
 const verificarToken = require('../middleware/auth');
 const muralController = require('../controllers/muralController');
 
-// Get user's murals
-router.get('/usuario', verificarToken, muralController.getMuralesByUsuario);
-
-// Get mural by ID
+// Rutas de Murales
+router.get('/mis-murales', verificarToken, muralController.getMuralesByUsuario);
+router.get('/publicos', verificarToken, muralController.getPublicMurales);
 router.get('/:id', verificarToken, muralController.getMuralById);
-
-// Get mural users
-router.get('/:id/usuarios', verificarToken, muralController.getUsuariosByMural);
-
-// Update user role in mural
-router.put('/:id_mural/usuarios/:id_usuario/rol', verificarToken, muralController.actualizarRolUsuario);
-
-// Expulsar usuario del mural
-router.delete('/:id_mural/usuarios/:id_usuario/expulsar', verificarToken, muralController.expulsarUsuario);
-
-// Update mural theme
-router.put('/:id/tema', verificarToken, muralController.updateMuralTheme);
-
-// Create new mural
 router.post('/', verificarToken, muralController.createMural);
-
-// Update mural by ID
 router.put('/:id', verificarToken, muralController.updateMural);
-
-// Delete mural by ID
 router.delete('/:id', verificarToken, muralController.deleteMural);
 
-// Join mural with access code
-router.post('/solicitar-acceso', verificarToken, muralController.joinMuralWithCode);
-
-// Abandon mural by ID
-router.delete('/:id/abandonar', verificarToken, muralController.abandonarMural);
-
-// Transfer mural ownership
+// Rutas de Acceso y Miembros
+router.post('/unirse', verificarToken, muralController.joinMuralWithCode);
+router.post('/:id/unirse-publico', verificarToken, muralController.joinPublicMural);
+router.post('/:id/abandonar', verificarToken, muralController.abandonarMural);
 router.post('/:id/transferir', verificarToken, muralController.transferirPropiedad);
+
+// Rutas de Gestión de Usuarios del Mural
+router.get('/:id/usuarios', verificarToken, muralController.getUsuariosByMural);
+router.put('/:id_mural/usuarios/:id_usuario/rol', verificarToken, muralController.actualizarRolUsuario);
+router.delete('/:id_mural/usuarios/:id_usuario/expulsar', verificarToken, muralController.expulsarUsuario);
+
+// Rutas de Personalización
+router.put('/:id/tema', verificarToken, muralController.updateMuralTheme);
+
 
 // NUEVAS RUTAS PARA PUBLICACIONES
 

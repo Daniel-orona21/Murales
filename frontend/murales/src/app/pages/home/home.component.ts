@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MuralService, Mural, CreateMuralData } from '../../services/mural.service';
 import { NotificationService, Notification } from '../../services/notification.service';
 import { HttpClientModule } from '@angular/common/http';
@@ -14,6 +14,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 interface MuralWithMenu extends Mural {
   showMenu: boolean;
+  creador_nombre?: string;
 }
 
 @Component({
@@ -28,6 +29,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   searchText: string = '';
   loading = true;
   cargando = false;
+  publicViewActive = false;
   showCreateModal = false;
   isSearchBarExpanded = false;
   isMobile: boolean = false;
@@ -38,7 +40,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     privacidad: 'publico'
   };
   editingMuralId: number | null = null;
-  selectedMuralId: number | null = null;
+  selectedMuralId: string | null = null;
   selectedMuralTitle: string = '';
   
   // Propiedades para las notificaciones
@@ -78,6 +80,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(
     public router: Router,
+    private route: ActivatedRoute,
     private muralService: MuralService,
     private notificationService: NotificationService,
     private authService: AuthService,
@@ -150,7 +153,26 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.setViewportHeight();
     this.checkScreenSize();
-    this.loadMurals();
+    
+    this.subscriptions.push(this.route.queryParamMap.subscribe(params => {
+      const view = params.get('view');
+      const muralId = params.get('mural');
+      
+      this.publicViewActive = view === 'public';
+      this.selectedMuralId = muralId;
+
+      if (this.publicViewActive) {
+        this.loadPublicMurals();
+      } else {
+        this.loadUserMurals();
+      }
+
+      if (muralId) {
+        // Forzamos la actualización para que el componente hijo `mural-detail` se cargue
+        this.cdr.detectChanges();
+      }
+    }));
+
     this.loadNotifications();
     this.loadUserData();
     this.loadSessions();
@@ -165,7 +187,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.muralAccessSubscription = this.notificationService.muralAccessApproved$.subscribe(muralId => {
       console.log('Access to mural approved, reloading murals...');
       if (!this.selectedMuralId) {
-        this.loadMurals();
+        if (this.publicViewActive) {
+          this.loadPublicMurals();
+        } else {
+          this.loadUserMurals();
+        }
       } else {
         this.needsUpdate = true;
       }
@@ -175,7 +201,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.muralSubscription = this.muralService.selectedMural$.subscribe(muralId => {
       this.selectedMuralId = muralId;
       if (muralId) {
-        const mural = this.murals.find(m => m.id_mural === muralId);
+        const mural = this.murals.find(m => m.id_mural.toString() === muralId);
         if (mural) {
           this.selectedMuralTitle = mural.titulo;
         }
@@ -189,7 +215,11 @@ export class HomeComponent implements OnInit, OnDestroy {
         console.log('Actualización de murales recibida...');
         if (!this.selectedMuralId) {
           console.log('No hay mural seleccionado, actualizando lista...');
-          this.loadMurals();
+          if (this.publicViewActive) {
+            this.loadPublicMurals();
+          } else {
+            this.loadUserMurals();
+          }
         } else {
           console.log('Hay un mural seleccionado, marcando para actualización posterior...');
           this.needsUpdate = true;
@@ -216,7 +246,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  loadMurals() {
+  loadUserMurals() {
     this.loading = true;
     this.muralService.getMuralesByUsuario().subscribe({
       next: (murals) => {
@@ -231,6 +261,39 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+  }
+
+  loadPublicMurals() {
+    this.loading = true;
+    this.muralService.getPublicMurales().subscribe({
+      next: (murals: Mural[]) => {
+        this.murals = murals.map((mural: Mural) => ({
+          ...mural,
+          showMenu: false
+        }));
+        this.loading = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading public murals:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  togglePublicView() {
+    this.publicViewActive = !this.publicViewActive;
+    this.selectedMuralId = null; // Deseleccionar mural al cambiar de vista
+    
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { 
+        view: this.publicViewActive ? 'public' : null,
+        mural: null // Limpiar el mural de la URL
+      },
+      queryParamsHandling: 'merge', // Mantiene otros queryParams si los hubiera
+    });
+
+    // La suscripción a queryParamMap en ngOnInit se encargará de llamar al método de carga correcto
   }
 
   toggleMenu(event: Event, mural: MuralWithMenu) {
@@ -319,7 +382,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.muralService.deleteMural(mural.id_mural).subscribe({
           next: () => {
             console.log('Mural eliminado:', mural.id_mural);
-            this.loadMurals();
+            this.loadUserMurals();
           },
           error: (error) => {
             console.error('Error al eliminar mural:', error);
@@ -405,7 +468,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                                 }
                               });
                               this.cargandoAbandonar[mural.id_mural] = false;
-                              this.loadMurals();
+                              this.loadUserMurals();
                             },
                             error: (error) => {
                               Swal.fire({
@@ -502,7 +565,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             }).then(() => {
               this.cargandoAbandonar[mural.id_mural] = false;
             });
-            this.loadMurals();
+            this.loadUserMurals();
           },
           error: (error) => {
             if (error.status === 403) {
@@ -566,7 +629,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                                         confirmButton: 'custom-confirm-button'
                                       }
                                     });
-                                    this.loadMurals();
+                                    this.loadUserMurals();
                                   },
                                   error: (error) => {
                                     Swal.fire({
@@ -703,7 +766,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: (response) => {
           console.log('Mural actualizado:', response);
           this.closeCreateModal();
-          this.loadMurals();
+          this.loadUserMurals();
           this.cargando = false;
         },
         error: (error) => {
@@ -716,7 +779,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         next: (response) => {
           console.log('Mural creado:', response);
           this.closeCreateModal();
-          this.loadMurals();
+          this.loadUserMurals();
           this.cargando = false;
         },
         error: (error) => {
@@ -790,7 +853,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         }
         
         return new Promise((resolve) => {
-          this.notificationService.createAccessRequest(code).subscribe({
+          this.muralService.joinMuralWithCode(code).subscribe({
             next: (response) => {
               console.log('Respuesta de acceso a mural:', response);
               resolve(response);
@@ -802,7 +865,7 @@ export class HomeComponent implements OnInit, OnDestroy {
               // pero falló la notificación. Cargaremos los murales de todos modos.
               if (error.status === 500) {
                 // Intentar cargar los murales de todos modos
-                this.loadMurals();
+                this.loadUserMurals();
                 
                 Swal.fire({
                   title: 'Acceso Posible',
@@ -839,7 +902,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         
         if (accesoDirecto) {
           // Si el mural es público, el usuario ya tiene acceso
-          this.loadMurals(); // Cargar murales para mostrar el nuevo mural
+          this.loadUserMurals(); // Cargar murales para mostrar el nuevo mural
           
           Swal.fire({
             title: '¡Te has unido!',
@@ -991,11 +1054,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   getMuralTitle(): string {
     if (!this.selectedMuralId) return '';
     
-    const mural = this.murals.find(m => m.id_mural === this.selectedMuralId);
-    return mural ? mural.titulo : 'Mural';
+    const mural = this.murals.find(m => m.id_mural.toString() === this.selectedMuralId);
+    return mural ? mural.titulo : this.selectedMuralTitle;
   }
-
-  
 
   // Método para determinar si el título necesita ser truncado
   isTitleTruncated(): boolean {
@@ -1006,34 +1067,44 @@ export class HomeComponent implements OnInit, OnDestroy {
     return title.length > 25;
   }
 
-
   // Método para manejar el clic en un mural
   onMuralClick(mural: MuralWithMenu, event: Event): void {
-    if (event.target instanceof Element && 
-        (event.target.closest('.menu-trigger') || event.target.closest('.menu-options'))) {
+    const target = event.target as HTMLElement;
+    
+    // Evitar la navegación si se hace clic en el menú o en un botón dentro del menú
+    if (target.closest('.menu-trigger') || target.closest('.menu-item')) {
       return;
     }
-    // Limpiar el texto de búsqueda al seleccionar un mural
-    this.searchText = '';
+    
+    this.selectedMuralId = mural.id_mural.toString();
     this.muralService.setSelectedMural(mural.id_mural);
     this.selectedMuralTitle = mural.titulo;
-    this.cdr.detectChanges();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { mural: mural.id_mural },
+      queryParamsHandling: 'merge',
+    });
   }
   
   // Método para volver a la lista de murales
   backToMuralesList(): void {
-    this.searchText = '';
+    this.selectedMuralId = null;
     this.muralService.setSelectedMural(null);
     this.selectedPost = null;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { mural: null },
+      queryParamsHandling: 'merge',
+    });
     
-    // Si hay una actualización pendiente, cargar los murales
     if (this.needsUpdate) {
-      console.log('Actualizando lista de murales después de volver...');
-      this.loadMurals();
+      if (this.publicViewActive) {
+        this.loadPublicMurals();
+      } else {
+        this.loadUserMurals();
+      }
       this.needsUpdate = false;
     }
-    
-    this.cdr.detectChanges();
   }
 
   toggleProfileMenu(event: Event) {
@@ -1297,29 +1368,26 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onMuralUpdated(updatedMural: Mural) {
-    this.muralService.getMuralById(updatedMural.id_mural).subscribe({
-      next: (muralCompleto) => {
-        const idx = this.murals.findIndex(m => m.id_mural === muralCompleto.id_mural);
-        if (idx !== -1) {
-          this.murals[idx] = { ...this.murals[idx], ...muralCompleto };
-        }
-        if (this.selectedMuralId === updatedMural.id_mural) {
-          this.selectedMuralTitle = updatedMural.titulo;
-        }
-      }
-    });
+    const index = this.murals.findIndex(m => m.id_mural === updatedMural.id_mural);
+    if (index !== -1) {
+      this.murals[index] = {
+        ...this.murals[index],
+        ...updatedMural
+      };
+      // Forzar la detección de cambios si es necesario, aunque ngModel debería encargarse
+      this.cdr.detectChanges();
+    }
   }
 
   // Getter para los murales filtrados
   get filteredMurals(): MuralWithMenu[] {
-    if (!this.searchText.trim()) {
+    if (!this.searchText) {
       return this.murals;
     }
-    
-    const searchLower = this.searchText.toLowerCase().trim();
-    return this.murals.filter(mural => 
-      mural.titulo.toLowerCase().includes(searchLower) ||
-      mural.descripcion.toLowerCase().includes(searchLower)
+    const lowerCaseSearch = this.searchText.toLowerCase();
+    return this.murals.filter(mural =>
+      mural.titulo.toLowerCase().includes(lowerCaseSearch) ||
+      mural.descripcion.toLowerCase().includes(lowerCaseSearch)
     );
   }
 
@@ -1341,5 +1409,49 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.searchInput?.nativeElement?.focus();
       }, 100);
     }
+  }
+
+  joinPublicMural(mural: MuralWithMenu) {
+    Swal.fire({
+      title: `Unirte a "${mural.titulo}"`,
+      text: "Te unirás a este mural como lector. Se enviará una notificación al creador.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, unirme',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'custom-swal-popup',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.muralService.joinPublicMural(mural.id_mural).subscribe({
+          next: (res: any) => {
+            Swal.fire({
+              title: '¡Te has unido!',
+              text: res.message,
+              icon: 'success',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+            this.loadPublicMurals();
+          },
+          error: (err: HttpErrorResponse) => {
+            Swal.fire({
+              title: 'Error',
+              text: err.error.message || 'No se pudo unir al mural.',
+              icon: 'error',
+              customClass: {
+                popup: 'custom-swal-popup',
+                confirmButton: 'custom-confirm-button'
+              }
+            });
+          }
+        });
+      }
+    });
   }
 } 

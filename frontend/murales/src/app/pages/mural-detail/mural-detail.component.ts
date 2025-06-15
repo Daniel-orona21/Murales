@@ -32,7 +32,7 @@ type ContentType = 'archivo' | 'link' | 'nota';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
-  @Input() muralId: number | null = null;
+  @Input() muralId: string | null = null;
   @Input() forceClosePost: boolean = false;
   @Input() searchText: string = '';
   isAdmin: boolean = false;
@@ -91,7 +91,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     descripcion: '',
     permite_comentarios: true,
     permite_likes: true,
-    privacidad: 'publico',
+    privacidad: 'publico' as 'publico' | 'privado' | 'codigo',
     codigo_acceso: ''
   };
   
@@ -120,7 +120,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.muralId) {
       this.loadMural();
       this.cargarPublicaciones();
-      this.loadMuralUsers();
       this.muralService.getCurrentUserId().subscribe({
         next: (userId) => {
           this.currentUserId = userId;
@@ -135,7 +134,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     // Suscribirse a actualizaciones de tema
     this.themeSubscription = this.muralService.themeUpdate$.subscribe(update => {
       console.log('Recibida actualización de tema:', update);
-      if (update.id_mural === this.muralId) {
+      if (update.id_mural.toString() === this.muralId) {
         console.log('Actualizando tema del mural:', update);
         this.selectedTheme = update.tema;
         if (update.color_personalizado) {
@@ -173,7 +172,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       if (this.muralId) {
         this.loadMural();
         this.cargarPublicaciones();
-        this.loadMuralUsers();
       }
     }
     if (changes['forceClosePost'] && changes['forceClosePost'].currentValue) {
@@ -205,6 +203,12 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
           document.documentElement.style.setProperty('--custom-color', this.customColor);
         }
         this.isAdmin = mural.rol_usuario === 'administrador';
+        
+        // Solo cargar usuarios si el usuario actual es miembro del mural
+        if (mural.rol_usuario) {
+          this.loadMuralUsers();
+        }
+
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -225,7 +229,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     this.likesCount = {};
     this.userLikes = {};
     
-    this.muralService.getPublicacionesByMural(this.muralId).subscribe({
+    this.muralService.getPublicacionesByMural(Number(this.muralId)).subscribe({
       next: (publicaciones) => {
         this.publicaciones = publicaciones;
         this.cargando = false;
@@ -452,25 +456,37 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
   
   guardarElemento(): void {
-    if (!this.muralId || !this.formValid) return;
-    
+    if (!this.formValid || !this.muralId) return;
+
     this.cargando = true;
     this.error = null;
 
-    // Primero creamos la publicación
     const publicacionData: CreatePublicacionData = {
       titulo: this.nuevoElemento.titulo,
-      descripcion: this.nuevoElemento.descripcion
+      descripcion: this.nuevoElemento.descripcion,
     };
-    
-    this.muralService.createPublicacion(this.muralId, publicacionData).subscribe({
+
+    this.muralService.createPublicacion(Number(this.muralId), publicacionData).subscribe({
       next: (publicacion) => {
-        console.log('Publicación creada:', publicacion);
+        let contenidoData: CreateContenidoData | null = null;
+        let fileToUpload: File | null = null;
         
-        // Luego agregamos el contenido según el tipo seleccionado
         if (this.contentType === 'archivo' && this.nuevoElemento.archivo) {
-          // Usar el nuevo método de subida de archivos
-          this.muralService.uploadFile(publicacion.id_publicacion, this.nuevoElemento.archivo).subscribe({
+          fileToUpload = this.nuevoElemento.archivo;
+        } else if (this.contentType === 'link' && this.nuevoElemento.link) {
+          contenidoData = {
+            tipo_contenido: 'enlace',
+            url_contenido: this.nuevoElemento.link
+          };
+        } else if (this.contentType === 'nota' && this.nuevoElemento.nota) {
+          contenidoData = {
+            tipo_contenido: 'texto',
+            texto: this.nuevoElemento.nota
+          };
+        }
+        
+        if (fileToUpload) {
+          this.muralService.uploadFile(publicacion.id_publicacion, fileToUpload).subscribe({
             next: (response) => {
               console.log('Archivo subido:', response);
               this.toggleModal();
@@ -483,13 +499,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
               this.cargando = false;
             }
           });
-        }
-        else if (this.contentType === 'link' && this.nuevoElemento.link) {
-          const contenidoData: CreateContenidoData = {
-            tipo_contenido: 'enlace',
-            url_contenido: this.nuevoElemento.link
-          };
-          
+        } else if (contenidoData) {
           this.muralService.addContenido(publicacion.id_publicacion, contenidoData).subscribe({
             next: (contenido) => {
               console.log('Contenido agregado:', contenido);
@@ -500,26 +510,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
             error: (error) => {
               console.error('Error al agregar contenido:', error);
               this.error = 'No se pudo agregar el contenido';
-              this.cargando = false;
-            }
-          });
-        }
-        else if (this.contentType === 'nota' && this.nuevoElemento.nota) {
-          const contenidoData: CreateContenidoData = {
-            tipo_contenido: 'texto',
-            texto: this.nuevoElemento.nota
-          };
-          
-          this.muralService.addContenido(publicacion.id_publicacion, contenidoData).subscribe({
-            next: (contenido) => {
-              console.log('Nota agregada:', contenido);
-              this.toggleModal();
-              this.cargarPublicaciones();
-              this.cargando = false;
-            },
-            error: (error) => {
-              console.error('Error al agregar nota:', error);
-              this.error = 'No se pudo agregar la nota';
               this.cargando = false;
             }
           });
@@ -1130,13 +1120,14 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
     if (this.showConfigModal && this.mural) {
       // Inicializar los datos de configuración con los valores actuales del mural
       this.configData = {
-        titulo: this.mural.titulo || '',
-        descripcion: this.mural.descripcion || '',
+        titulo: this.mural.titulo,
+        descripcion: this.mural.descripcion,
         permite_comentarios: this.mural.permite_comentarios ?? true,
         permite_likes: this.mural.permite_likes ?? true,
-        privacidad: this.mural.privacidad || 'publico',
+        privacidad: this.mural.privacidad || 'publico' as 'publico' | 'privado' | 'codigo',
         codigo_acceso: this.mural.codigo_acceso || ''
       };
+      this.originalConfigData = { ...this.configData };
       this.isEditing = false;
     }
   }
@@ -1161,39 +1152,28 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   saveConfig(): void {
-    if (!this.muralId || !this.configValid) return;
-    
-    this.cargando = true;
-    this.error = null;
-
-    const configData = {
+    if (!this.muralId) return;
+    const updateData = {
       titulo: this.configData.titulo,
       descripcion: this.configData.descripcion,
+      privacidad: this.configData.privacidad,
       permite_comentarios: this.configData.permite_comentarios,
-      permite_likes: this.configData.permite_likes,
-      privacidad: this.configData.privacidad
+      permite_likes: this.configData.permite_likes
     };
 
-    this.muralService.updateMural(this.muralId, configData).subscribe({
-      next: (mural) => {
-        // Volver a cargar el mural completo para no perder campos como rol_usuario
-        this.muralService.getMuralById(this.muralId!).subscribe({
-          next: (muralCompleto) => {
-            this.mural = muralCompleto;
-            this.isAdmin = muralCompleto.rol_usuario === 'administrador';
-            this.muralUpdated.emit(muralCompleto);
-            this.isEditing = false;
-            this.toggleConfigModal();
-            this.cargando = false;
-            this.cdr.markForCheck();
-          }
-        });
+    this.muralService.updateMural(Number(this.muralId), updateData as any).subscribe({
+      next: (response) => {
+        if (this.mural) {
+          this.mural = { ...this.mural, ...updateData };
+          this.muralUpdated.emit(this.mural as Mural); // Emitir el mural actualizado
+        }
+        Swal.fire('¡Guardado!', 'La configuración del mural ha sido actualizada.', 'success');
+        this.toggleConfigModal();
+        this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('Error al actualizar la configuración:', error);
-        this.error = 'No se pudo actualizar la configuración';
-        this.cargando = false;
-        this.cdr.markForCheck();
+        console.error('Error al guardar la configuración:', error);
+        Swal.fire('Error', 'No se pudo guardar la configuración.', 'error');
       }
     });
   }
@@ -1204,16 +1184,15 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   loadMuralUsers(): void {
     if (!this.muralId) return;
-    
     this.loadingUsers = true;
-    this.muralService.getMuralUsers(this.muralId).subscribe({
+    this.muralService.getMuralUsers(Number(this.muralId)).subscribe({
       next: (users) => {
         this.muralUsers = users;
         this.loadingUsers = false;
         this.cdr.markForCheck();
       },
       error: (error) => {
-        console.error('Error al cargar usuarios del mural:', error);
+        console.error('Error al cargar usuarios:', error);
         this.loadingUsers = false;
         this.cdr.markForCheck();
       }
@@ -1222,9 +1201,6 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   toggleUsersList(): void {
     this.showUsersList = !this.showUsersList;
-    if (this.showUsersList && this.muralUsers.length === 0) {
-      this.loadMuralUsers();
-    }
   }
 
   getRoleBadgeClass(role: string): string {
@@ -1242,76 +1218,43 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
 
   onRoleChange(user: MuralUser, newRole: string, event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
-    const originalRole = user.rol;
+    const originalRole = user.rol; // Guardar el rol original
+  
+    if (!this.muralId) return;
 
-    if (!this.muralId || !user.id_usuario || originalRole === newRole) {
-      selectElement.value = originalRole;
-      return;
-    }
+    // Actualizar rol en la UI inmediatamente para feedback visual
+    user.rol = newRole;
+    this.cdr.markForCheck();
 
-    // Mostrar confirmación
-    Swal.fire({
-      title: '¿Cambiar rol?',
-      text: `¿Estás seguro de cambiar el rol de ${user.nombre} a ${newRole}?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, cambiar',
-      cancelButtonText: 'Cancelar',
-      customClass: {
-        popup: 'custom-swal-popup',
-        confirmButton: 'custom-confirm-button',
-        cancelButton: 'custom-cancel-button'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.muralService.updateUserRole(this.muralId!, user.id_usuario, newRole).subscribe({
-          next: () => {
-            // Actualizar el rol localmente
-            user.rol = newRole;
-            this.cdr.markForCheck();
-            
-            // Mostrar mensaje de éxito
-            Swal.fire({
-              title: '¡Rol actualizado!',
-              text: `El rol de ${user.nombre} ha sido actualizado a ${newRole}`,
-              icon: 'success',
-              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar',
-              customClass: {
-                popup: 'custom-swal-popup',
-                confirmButton: 'custom-confirm-button'
-              }
-            });
-          },
-          error: (error) => {
-            console.error('Error al actualizar el rol:', error);
-            
-            // Restaurar el valor original en caso de error
-            selectElement.value = originalRole;
-            user.rol = originalRole;
-            this.cdr.markForCheck();
-            
-            // Mostrar mensaje de error
-            Swal.fire({
-              title: 'Error',
-              text: 'No se pudo actualizar el rol del usuario',
-              icon: 'error',
-              confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
-              confirmButtonText: 'Aceptar',
-              customClass: {
-                popup: 'custom-swal-popup',
-                confirmButton: 'custom-confirm-button'
-              }
-            });
-          }
+    this.muralService.updateUserRole(Number(this.muralId), user.id_usuario, newRole).subscribe({
+      next: (response) => {
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: '¡Rol actualizado!',
+          text: `El rol de ${user.nombre} ha sido actualizado a ${newRole}`,
+          showConfirmButton: false,
+          timer: 1500
         });
-      } else {
-        // Si se cancela, restaurar el valor original
+      },
+      error: (error) => {
+        console.error('Error al actualizar el rol:', error);
+        
+        // Restaurar el valor original en caso de error
         selectElement.value = originalRole;
         user.rol = originalRole;
         this.cdr.markForCheck();
+        
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo actualizar el rol del usuario',
+          icon: 'error',
+          confirmButtonText: 'Aceptar',
+          customClass: {
+            popup: 'custom-swal-popup',
+            confirmButton: 'custom-confirm-button'
+          }
+        });
       }
     });
   }
@@ -1366,35 +1309,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   private updateMuralTheme(theme: number, color?: string) {
-    const muralId = this.mural?.id_mural;
-    if (!muralId) return;
-
-    const themeData = {
-      tema: theme,
-      ...(color && { color_personalizado: color })
-    };
-
-    // Aplicar los cambios localmente antes de la respuesta del servidor
-    this.selectedTheme = theme;
-    if (color) {
-      this.customColor = color;
-      document.documentElement.style.setProperty('--custom-color', color);
-    }
-    
-    // Actualizar el mural local con los nuevos valores
-    if (this.mural) {
-      this.mural.tema = theme;
-      if (color) {
-        this.mural.color_personalizado = color;
-      }
-    }
-    
-    // Forzar la detección de cambios
-    this.cdr.detectChanges();
-
-    this.muralService.updateMuralTheme(muralId, themeData).subscribe({
-      next: (response: any) => {
-        console.log('Tema actualizado correctamente', response);
+    if (!this.muralId) return;
+    this.muralService.updateMuralTheme(Number(this.muralId), { tema: theme, color_personalizado: color }).subscribe({
+      next: (response) => {
+        // La actualización se propagará a través del socket,
+        // así que no necesitamos hacer nada aquí.
       },
       error: (error) => {
         console.error('Error al actualizar el tema:', error);
@@ -1815,30 +1734,16 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
   }
 
   private relayoutMasonry() {
-    // Usar requestAnimationFrame para asegurar que el DOM se ha actualizado
-    requestAnimationFrame(() => {
-      if (this.masonry && typeof this.masonry.layout === 'function') {
-        // Forzar un reflow antes del layout
-        this.masonryGrid?.nativeElement.offsetHeight;
-        this.masonry.layout();
-        
-        // Asegurar que las publicaciones sean visibles
-        const items = this.masonryGrid?.nativeElement.querySelectorAll('.publicacion-item');
-        if (items) {
-          items.forEach((item: HTMLElement) => {
-            item.classList.add('loaded');
-          });
-        }
-      }
-    });
+    if (this.masonry) {
+      this.masonry.layout!();
+    }
   }
 
   expulsarUsuario(user: MuralUser): void {
-    if (!this.muralId || !this.isAdmin) return;
-
+    if (!this.muralId) return;
     Swal.fire({
-      title: '¿Expulsar usuario?',
-      text: `¿Estás seguro de que deseas expulsar a ${user.nombre} del mural?`,
+      title: `¿Expulsar a ${user.nombre}?`,
+      text: "Esta acción es irreversible.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
@@ -1852,16 +1757,11 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        this.muralService.expulsarUsuario(this.muralId!, user.id_usuario).subscribe({
+        this.muralService.expulsarUsuario(Number(this.muralId), user.id_usuario).subscribe({
           next: () => {
-            // Eliminar el usuario de la lista local
-            this.muralUsers = this.muralUsers.filter(u => u.id_usuario !== user.id_usuario);
-            this.cdr.detectChanges();
-
-            // Mostrar mensaje de éxito
             Swal.fire({
-              title: '¡Usuario expulsado!',
-              text: `${user.nombre} ha sido expulsado del mural`,
+              title: '¡Expulsado!',
+              text: `${user.nombre} ha sido expulsado del mural.`,
               icon: 'success',
               confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
               confirmButtonText: 'Aceptar',
@@ -1870,12 +1770,13 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
                 confirmButton: 'custom-confirm-button'
               }
             });
+            this.loadMuralUsers(); // Recargar la lista de usuarios
           },
           error: (error) => {
             console.error('Error al expulsar usuario:', error);
             Swal.fire({
               title: 'Error',
-              text: error.error?.error || 'No se pudo expulsar al usuario',
+              text: `No se pudo expulsar a ${user.nombre}.`,
               icon: 'error',
               confirmButtonColor: 'rgba(106, 106, 106, 0.3)',
               confirmButtonText: 'Aceptar',

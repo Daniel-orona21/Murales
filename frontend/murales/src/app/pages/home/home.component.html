@@ -9,7 +9,7 @@
               (click)="backToMuralesList()" 
               [class.clickable]="selectedMuralId"
               [class.slide-up]="selectedMuralId">
-            Muros
+            {{ publicViewActive ? 'Murales Públicos' : 'Muros' }}
           </h1>
           <!-- Separador mural -->
           <span class="breadcrumb-separator" 
@@ -66,6 +66,9 @@
         <button class="icon-button" (click)="toggleSearchBar($event)">
           <i class="fas" [class.fa-search]="!isSearchBarExpanded" [class.fa-times]="isSearchBarExpanded"></i>
         </button>
+        <button class="icon-button" [class.active]="publicViewActive" (click)="togglePublicView()">
+          <i class="fas fa-globe"></i>
+        </button>
         <button class="icon-button notification-btn" (click)="toggleNotifications($event)">
           <i class="fas fa-bell"></i>
           <span class="notification-badge" *ngIf="unreadNotifications > 0">{{unreadNotifications}}</span>
@@ -115,10 +118,10 @@
             <div class="sin-murales">
               <span class="material-symbols-outlined">dashboard</span>
               <div class="sin-murales-text">
-                <h1>No tienes murales</h1>
-                <p>Crea tu primera mural para empezar a trabajar</p>
+                <h1>{{ publicViewActive ? 'No hay murales públicos' : 'No tienes murales' }}</h1>
+                <p>{{ publicViewActive ? 'Explora y únete a murales creados por otros usuarios' : 'Crea tu primer mural para empezar a trabajar' }}</p>
               </div>
-              <div class="botoneraSinMurales">
+              <div class="botoneraSinMurales" *ngIf="!publicViewActive">
                 <button class="btn-primary" (click)="openCreateModal()">Crear mural</button>
               <button class="btn-secondary" (click)="openJoinModal()">Añadir mediante código</button>
               </div>
@@ -133,36 +136,47 @@
                   (click)="onMuralClick(mural, $event)">
                 <div class="mural-header">
                   <h3>{{ mural.titulo }}</h3>
-                  <div class="mural-menu" [class.active]="mural.showMenu">
+                  <div class="mural-menu" [class.active]="mural.showMenu" *ngIf="!publicViewActive || (publicViewActive && !mural.rol_usuario && mural.privacidad === 'publico')">
                     <button class="menu-trigger" (click)="toggleMenu($event, mural)">
                       <i class="fas fa-ellipsis-v"></i>
                     </button>
                     <div class="menu-options" *ngIf="mural.showMenu">
-                      <!-- Solo para creador y administrador/editor -->
-                      <ng-container *ngIf="mural.rol_usuario !== 'lector'">
-                        <button class="menu-item" (click)="editMural(mural)">
-                          <i class="fas fa-edit"></i>
-                          Editar
-                        </button>
-                        
-                        <button class="menu-item" (click)="shareCode(mural)">
-                          <i class="fas fa-share-alt"></i>
-                          Código
-                        </button>
-                        
-                        <button class="menu-item delete" (click)="abandonarMural(mural)">
-                          <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
-                          <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
-                          Abandonar
-                        </button>
+                      <!-- Opciones para vista de "Mis Murales" -->
+                      <ng-container *ngIf="!publicViewActive">
+                        <!-- Solo para creador y administrador/editor -->
+                        <ng-container *ngIf="mural.rol_usuario !== 'lector'">
+                          <button class="menu-item" (click)="editMural(mural)">
+                            <i class="fas fa-edit"></i>
+                            Editar
+                          </button>
+                          
+                          <button class="menu-item" (click)="shareCode(mural)">
+                            <i class="fas fa-share-alt"></i>
+                            Código
+                          </button>
+                          
+                          <button class="menu-item delete" (click)="abandonarMural(mural)">
+                            <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
+                            <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
+                            Abandonar
+                          </button>
+                        </ng-container>
+
+                        <!-- Solo para lectores (no creadores) -->
+                        <ng-container *ngIf="mural.rol_usuario === 'lector'">
+                          <button class="menu-item delete" (click)="abandonarMural(mural)">
+                            <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
+                            <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
+                            Abandonar
+                          </button>
+                        </ng-container>
                       </ng-container>
 
-                      <!-- Solo para lectores (no creadores) -->
-                      <ng-container *ngIf="mural.rol_usuario === 'lector'">
-                        <button class="menu-item delete" (click)="abandonarMural(mural)">
-                          <i *ngIf="!cargandoAbandonar[mural.id_mural]" class="fas fa-sign-out-alt"></i>
-                          <span *ngIf="cargandoAbandonar[mural.id_mural]" class="spinner-button red"></span>
-                          Abandonar
+                      <!-- Opciones para vista de "Murales Públicos" -->
+                      <ng-container *ngIf="publicViewActive && !mural.rol_usuario && mural.privacidad === 'publico'">
+                        <button class="menu-item" (click)="joinPublicMural(mural)">
+                          <i class="fas fa-sign-in-alt"></i>
+                          Unirse
                         </button>
                       </ng-container>
                     </div>
@@ -170,18 +184,29 @@
                 </div>
                 <p>{{ mural.descripcion }}</p>
                 <div class="mural-meta">
-                  <div class="meta-item">
-                    <i class="far fa-calendar"></i>
-                    <span>{{ mural.fecha_creacion | date:'dd MMM, yyyy' }}</span>
-                  </div>
+                  <!-- Para murales del usuario -->
+                  <ng-container *ngIf="!publicViewActive">
+                    <div class="meta-item">
+                      <i class="far fa-calendar"></i>
+                      <span>{{ mural.fecha_creacion | date:'dd MMM, yyyy' }}</span>
+                    </div>
+                    <div class="meta-item">
+                      <i [class]="mural.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
+                      <span>{{ mural.privacidad }}</span>
+                    </div>
+                  </ng-container>
                   
-                  <div class="meta-item">
-                    <i [class]="mural.privacidad === 'privado' ? 'fas fa-lock' : 'fas fa-globe'"></i>
-                    <span>{{ mural.privacidad }}</span>
-                  </div>
+                  <!-- Para murales públicos -->
+                  <ng-container *ngIf="publicViewActive">
+                    <div class="meta-item">
+                      <i class="far fa-user"></i>
+                      <span>{{ mural.creador_nombre || 'Desconocido' }}</span>
+                    </div>
+                  </ng-container>
                 </div>
               </div>
-              <div class="mural-card add-mural-card" 
+              <div class="mural-card add-mural-card"
+                  *ngIf="!publicViewActive"
                   [style.animation-delay]="(murals.length * 0.1) + 's'">
                 <!-- Initial Content -->
                 <div class="add-mural-initial">

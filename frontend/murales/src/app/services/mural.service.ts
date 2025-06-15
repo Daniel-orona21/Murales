@@ -7,7 +7,7 @@ import { map, tap } from 'rxjs/operators';
 import { io, Socket } from 'socket.io-client';
 
 export interface Mural {
-  id_mural: number;
+  id_mural: any;
   titulo: string;
   descripcion: string;
   id_creador: number;
@@ -21,6 +21,7 @@ export interface Mural {
   rol_usuario?: string;
   permite_comentarios?: boolean;
   permite_likes?: boolean;
+  creador_nombre?: string;
 }
 
 export interface CreateMuralData {
@@ -114,7 +115,7 @@ interface ThemeUpdate {
 export class MuralService {
   private apiUrl = `${environment.apiUrl}/murales`;
   private uploadUrl = `${environment.apiUrl}/uploads`;
-  private selectedMuralId = new BehaviorSubject<number | null>(null);
+  private selectedMuralId = new BehaviorSubject<string | null>(null);
   selectedMural$ = this.selectedMuralId.asObservable();
   private socket: Socket | null = null;
   private themeUpdateSubject = new Subject<ThemeUpdate>();
@@ -132,7 +133,7 @@ export class MuralService {
     
     // Solo cargar el mural guardado si hay un token válido (sesión activa)
     if (savedMuralId && token) {
-      this.selectedMuralId.next(Number(savedMuralId));
+      this.selectedMuralId.next(savedMuralId);
     }
 
     // Inicializar socket y escuchar eventos de tema
@@ -217,11 +218,11 @@ export class MuralService {
     });
 
     // Escuchar eventos de expulsión
-    this.socket.on('user_expelled', (data: { id_mural: number, mensaje: string }) => {
+    this.socket.on('user_expelled', (data: { id_mural: any, mensaje: string }) => {
       console.log('User expelled event received:', data);
       // Si el usuario es expulsado del mural actual, redirigir al home
       const currentMuralId = this.getSelectedMuralId();
-      if (currentMuralId === data.id_mural) {
+      if (currentMuralId === data.id_mural.toString()) {
         this.setSelectedMural(null);
         // Emitir evento para que los componentes puedan reaccionar
         this.themeUpdateSubject.next({ id_mural: data.id_mural, tema: -1 });
@@ -239,17 +240,17 @@ export class MuralService {
     }
   }
 
-  setSelectedMural(muralId: number | null) {
+  setSelectedMural(muralId: any | null) {
     if (muralId) {
       sessionStorage.setItem('selectedMuralId', muralId.toString());
     } else {
       sessionStorage.removeItem('selectedMuralId');
     }
-    this.selectedMuralId.next(muralId);
+    this.selectedMuralId.next(muralId ? muralId.toString() : null);
   }
 
-  getSelectedMuralId(): number | null {
-    return this.selectedMuralId.value;
+  getSelectedMuralId(): string | null {
+    return this.selectedMuralId.getValue();
   }
 
   private getHeaders(): HttpHeaders {
@@ -259,46 +260,39 @@ export class MuralService {
   }
 
   getMuralesByUsuario(): Observable<Mural[]> {
-    const headers = this.getHeaders();
-    return this.http.get<Mural[]>(`${this.apiUrl}/usuario`, {
-      headers: headers
-    });
+    return this.http.get<Mural[]>(`${this.apiUrl}/mis-murales`, { headers: this.getHeaders() });
   }
 
-  getMuralById(id: number): Observable<Mural> {
-    const headers = this.getHeaders();
-    return this.http.get<Mural>(`${this.apiUrl}/${id}`, {
-      headers: headers
-    });
+  getPublicMurales(): Observable<Mural[]> {
+    return this.http.get<Mural[]>(`${this.apiUrl}/publicos`, { headers: this.getHeaders() });
+  }
+
+  getMuralById(id: string): Observable<Mural> {
+    return this.http.get<Mural>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
 
   createMural(muralData: CreateMuralData): Observable<any> {
-    const headers = this.getHeaders();
-    return this.http.post(`${this.apiUrl}`, muralData, {
-      headers: headers
-    });
+    return this.http.post<any>(this.apiUrl, muralData, { headers: this.getHeaders() });
   }
 
   updateMural(id: number, muralData: CreateMuralData): Observable<any> {
-    const headers = this.getHeaders();
-    return this.http.put(`${this.apiUrl}/${id}`, muralData, { headers });
+    return this.http.put<any>(`${this.apiUrl}/${id}`, muralData, { headers: this.getHeaders() });
   }
 
   deleteMural(id: number): Observable<any> {
-    const headers = this.getHeaders();
-    return this.http.delete(`${this.apiUrl}/${id}`, { headers });
+    return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
   
   joinMuralWithCode(code: string): Observable<JoinMuralResponse> {
-    const headers = this.getHeaders();
-    console.log('Código de acceso:', code);
-    // Asegurarnos de que la URL sea correcta
-    return this.http.post<JoinMuralResponse>(`${environment.apiUrl}/murales/join`, { codigo_acceso: code }, { headers });
+    return this.http.post<JoinMuralResponse>(`${this.apiUrl}/unirse`, { codigo: code }, { headers: this.getHeaders() });
   }
-  
+
+  joinPublicMural(idMural: any): Observable<{message: string}> {
+    return this.http.post<{message: string}>(`${this.apiUrl}/${idMural}/unirse-publico`, {}, { headers: this.getHeaders() });
+  }
+
   abandonarMural(id: number): Observable<any> {
-    const headers = this.getHeaders();
-    return this.http.delete(`${this.apiUrl}/${id}/abandonar`, { headers });
+    return this.http.post<any>(`${this.apiUrl}/${id}/abandonar`, {}, { headers: this.getHeaders() });
   }
   
   transferirPropiedad(id_mural: number, nuevoPropietarioId: number): Observable<any> {

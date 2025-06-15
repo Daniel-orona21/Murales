@@ -36,26 +36,64 @@ const muralController = {
     }
   },
 
+  getPublicMurales: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const query = `
+        SELECT m.*, u.nombre AS creador_nombre,
+               CASE 
+                 WHEN m.id_creador = ? THEN 'administrador'
+                 ELSE rm.rol 
+               END as rol_usuario
+        FROM murales m
+        JOIN usuarios u ON m.id_creador = u.id_usuario
+        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
+        WHERE m.privacidad = 'publico' AND m.estado = 1
+        ORDER BY m.fecha_creacion DESC
+      `;
+      const [murales] = await pool.query(query, [userId, userId]);
+      res.json(murales);
+    } catch (error) {
+      console.error('Error al obtener murales públicos:', error);
+      res.status(500).json({ error: 'Error al obtener los murales públicos' });
+    }
+  },
+
   getMuralById: async (req, res) => {
     try {
       const { id } = req.params;
       const userId = req.user.id;
 
+      // Primero, obtener el mural y verificar su privacidad
+      const [muralInfo] = await pool.query('SELECT * FROM murales WHERE id_mural = ?', [id]);
+
+      if (!muralInfo || muralInfo.length === 0) {
+        return res.status(404).json({ error: 'Mural no encontrado' });
+      }
+
+      const esPublico = muralInfo[0].privacidad === 'publico';
+
+      // Modificar la consulta para obtener el rol del usuario
       const query = `
         SELECT m.*, 
+               u.nombre AS creador_nombre,
                CASE 
                  WHEN m.id_creador = ? THEN 'administrador'
-                 ELSE COALESCE(rm.rol, 'lector') 
+                 ELSE rm.rol 
                END as rol_usuario
         FROM murales m
+        JOIN usuarios u ON m.id_creador = u.id_usuario
         LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
+        WHERE m.id_mural = ?
       `;
 
-      const [mural] = await pool.query(query, [userId, userId, id, userId, userId]);
+      const [mural] = await pool.query(query, [userId, userId, id]);
 
-      if (!mural || mural.length === 0) {
-        return res.status(404).json({ error: 'Mural no encontrado' });
+      // Verificar si el usuario tiene acceso
+      const esMiembro = mural[0].rol_usuario !== null;
+
+      if (!esPublico && !esMiembro) {
+        return res.status(403).json({ error: 'No tienes permisos para ver este mural' });
       }
 
       res.json(mural[0]);
@@ -248,7 +286,105 @@ const muralController = {
       }
     } catch (error) {
       console.error('Error al eliminar mural:', error);
-      res.status(500).json({ error: 'Error al eliminar el mural: ' + error.message });
+      res.status(500).json({ error: 'Error al eliminar el mural' });
+    }
+  },
+
+  joinPublicMural: async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      const { id } = req.params; // id del mural
+      const userId = req.user.id;
+
+      await connection.beginTransaction();
+
+      const [mural] = await connection.query('SELECT * FROM murales WHERE id_mural = ?', [id]);
+      if (!mural.length) {
+        await connection.rollback();
+        return res.status(404).json({ message: 'Mural no encontrado.' });
+      }
+      if (mural[0].privacidad !== 'publico') {
+        await connection.rollback();
+        return res.status(403).json({ message: 'Este mural no es público.' });
+      }
+      const creadorId = mural[0].id_creador;
+      const muralTitle = mural[0].titulo;
+      const muralId = mural[0].id_mural;
+
+      if (userId === creadorId) {
+        await connection.rollback();
+        return res.status(400).json({ message: 'Ya eres el creador de este mural.' });
+      }
+      const [miembro] = await connection.query(
+        'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id, userId]
+      );
+      if (miembro.length) {
+        await connection.rollback();
+        return res.status(400).json({ message: 'Ya eres miembro de este mural.' });
+      }
+
+      await connection.query(
+        'INSERT INTO roles_mural (id_usuario, id_mural, rol, fecha_asignacion) VALUES (?, ?, "lector", NOW())',
+        [userId, muralId]
+      );
+      
+      const [solicitante] = await connection.query('SELECT nombre FROM usuarios WHERE id_usuario = ?', [userId]);
+      const mensaje = `'${solicitante[0].nombre}' se ha unido a tu mural público '${muralTitle}'.`;
+
+      const notificacionQuery = `
+        INSERT INTO notificaciones (id_receptor, id_emisor, id_mural, tipo, mensaje, leido)
+        VALUES (?, ?, ?, 'otro', ?, false) -- 'otro' es el tipo correcto para notificaciones informativas genéricas
+      `;
+      const [result] = await connection.query(notificacionQuery, [creadorId, userId, muralId, mensaje]);
+      const newNotificationId = result.insertId;
+
+      const [newNotificationRows] = await connection.query(
+        `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+         FROM notificaciones n
+         LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+         LEFT JOIN murales m ON n.id_mural = m.id_mural
+         WHERE n.id_notificacion = ?`,
+        [newNotificationId]
+      );
+      
+      const io = req.app.get('io');
+      if (newNotificationRows.length > 0) {
+        io.to(`user:${creadorId}`).emit('notification', newNotificationRows[0]);
+      }
+      
+      const [admins] = await connection.query(
+        `SELECT id_usuario FROM roles_mural WHERE id_mural = ? AND rol = 'administrador' AND id_usuario != ?`,
+        [muralId, creadorId]
+      );
+      
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          const [adminResult] = await connection.query(notificacionQuery, [admin.id_usuario, userId, muralId, mensaje]);
+          const adminNotificationId = adminResult.insertId;
+          const [adminNotificationRows] = await connection.query(
+            `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
+             FROM notificaciones n
+             LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
+             LEFT JOIN murales m ON n.id_mural = m.id_mural
+             WHERE n.id_notificacion = ?`,
+            [adminNotificationId]
+          );
+          if (adminNotificationRows.length > 0) {
+            io.to(`user:${admin.id_usuario}`).emit('notification', adminNotificationRows[0]);
+          }
+        }
+      }
+
+      await connection.commit();
+      res.status(200).json({ message: `Te has unido exitosamente al mural "${muralTitle}".` });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error al unirse a mural público:', error);
+      res.status(500).json({ message: 'Error interno del servidor al unirse al mural.' });
+    } finally {
+      connection.release();
     }
   },
 
@@ -328,7 +464,7 @@ const muralController = {
         );
         
         // Obtener la notificación completa para emitir por WebSocket
-        const [creatorNotification] = await pool.query(
+        const [creatorNotificationRows] = await pool.query(
           `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
            FROM notificaciones n
            LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -337,12 +473,12 @@ const muralController = {
           [creatorResult.insertId]
         );
         
-        if (creatorNotification.length > 0) {
+        if (creatorNotificationRows.length > 0) {
           // Obtener el objeto io de Express
           const io = req.app.get('io');
           
           // Emitir la notificación al creador
-          io.to(`user:${creatorId}`).emit('notification', creatorNotification[0]);
+          io.to(`user:${creatorId}`).emit('notification', creatorNotificationRows[0]);
         }
         
         // Notificar a todos los administradores (excepto el creador)
@@ -367,7 +503,7 @@ const muralController = {
             );
             
             // Obtener la notificación completa para emitir por WebSocket
-            const [adminNotification] = await pool.query(
+            const [adminNotificationRows] = await pool.query(
               `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
                FROM notificaciones n
                LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -376,12 +512,12 @@ const muralController = {
               [adminResult.insertId]
             );
             
-            if (adminNotification.length > 0) {
+            if (adminNotificationRows.length > 0) {
               // Obtener el objeto io de Express
               const io = req.app.get('io');
               
               // Emitir la notificación al administrador
-              io.to(`user:${admin.id_usuario}`).emit('notification', adminNotification[0]);
+              io.to(`user:${admin.id_usuario}`).emit('notification', adminNotificationRows[0]);
             }
           }
         }
@@ -428,7 +564,7 @@ const muralController = {
       );
       
       // Obtener la notificación completa para emitir por WebSocket
-      const [creatorNotification] = await pool.query(
+      const [creatorNotificationRows] = await pool.query(
         `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
          FROM notificaciones n
          LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -437,12 +573,12 @@ const muralController = {
         [creatorResult.insertId]
       );
       
-      if (creatorNotification.length > 0) {
+      if (creatorNotificationRows.length > 0) {
         // Obtener el objeto io de Express
         const io = req.app.get('io');
         
         // Emitir la notificación al creador
-        io.to(`user:${creatorId}`).emit('notification', creatorNotification[0]);
+        io.to(`user:${creatorId}`).emit('notification', creatorNotificationRows[0]);
       }
 
       // Get all admins for the mural (except the creator)
@@ -470,7 +606,7 @@ const muralController = {
           );
           
           // Obtener la notificación completa para emitir por WebSocket
-          const [adminNotification] = await pool.query(
+          const [adminNotificationRows] = await pool.query(
             `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
              FROM notificaciones n
              LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -479,12 +615,12 @@ const muralController = {
             [adminResult.insertId]
           );
           
-          if (adminNotification.length > 0) {
+          if (adminNotificationRows.length > 0) {
             // Obtener el objeto io de Express
             const io = req.app.get('io');
             
             // Emitir la notificación al administrador
-            io.to(`user:${admin.id_usuario}`).emit('notification', adminNotification[0]);
+            io.to(`user:${admin.id_usuario}`).emit('notification', adminNotificationRows[0]);
           }
         }
       }
@@ -667,17 +803,23 @@ const muralController = {
       const { id_mural } = req.params;
       const id_usuario = req.user.id;
       
-      // Verificar acceso al mural
-      const checkQuery = `
-        SELECT m.*, rm.rol 
-        FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
-      `;
-      
-      const [mural] = await pool.query(checkQuery, [id_usuario, id_mural, id_usuario, id_usuario]);
-      
-      if (!mural || mural.length === 0) {
+      // Verificar acceso al mural (simplificado para la nueva lógica)
+      const [muralInfo] = await pool.query('SELECT * FROM murales WHERE id_mural = ?', [id_mural]);
+      if (!muralInfo.length) {
+        return res.status(404).json({ error: 'Mural no encontrado' });
+      }
+
+      const mural = muralInfo[0];
+      const esPublico = mural.privacidad === 'publico';
+
+      // Verificar si el usuario es miembro
+      const [miembro] = await pool.query(
+        'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id_mural, id_usuario]
+      );
+      const esMiembro = miembro.length > 0 || mural.id_creador === id_usuario;
+
+      if (!esPublico && !esMiembro) {
         return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
       }
       
@@ -943,18 +1085,30 @@ const muralController = {
       const { id } = req.params;
       const userId = req.user.id;
 
-      // Verificar si el usuario tiene acceso al mural
-      const checkQuery = `
-        SELECT m.*, rm.rol 
-        FROM murales m
-        LEFT JOIN roles_mural rm ON m.id_mural = rm.id_mural AND rm.id_usuario = ?
-        WHERE m.id_mural = ? AND (m.id_creador = ? OR rm.id_usuario = ?)
-      `;
+      // Primero, obtener el mural y verificar su privacidad
+      const [muralInfo] = await pool.query('SELECT * FROM murales WHERE id_mural = ?', [id]);
 
-      const [mural] = await pool.query(checkQuery, [userId, id, userId, userId]);
+      if (!muralInfo.length) {
+        return res.status(404).json({ error: 'Mural no encontrado' });
+      }
+      
+      const esPublico = muralInfo[0].privacidad === 'publico';
 
-      if (!mural || mural.length === 0) {
+      // Verificar si el usuario actual es miembro
+      const [miembro] = await pool.query(
+        'SELECT * FROM roles_mural WHERE id_mural = ? AND id_usuario = ?',
+        [id, userId]
+      );
+      const esMiembro = miembro.length > 0 || muralInfo[0].id_creador === userId;
+
+      // Si el mural NO es público Y el usuario NO es miembro, denegar acceso.
+      if (!esPublico && !esMiembro) {
         return res.status(403).json({ error: 'No tienes permisos para acceder a este mural' });
+      }
+
+      // Si el mural es público pero el usuario no es miembro, no devolvemos la lista de usuarios.
+      if (esPublico && !esMiembro) {
+        return res.json([]);
       }
 
       // Obtener todos los usuarios del mural
@@ -1063,7 +1217,7 @@ const muralController = {
         );
 
         // Obtener la notificación completa para emitir por WebSocket
-        const [notification] = await pool.query(
+        const [notificationRows] = await pool.query(
           `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
            FROM notificaciones n
            LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -1072,12 +1226,12 @@ const muralController = {
           [notificationResult.insertId]
         );
 
-        if (notification.length > 0) {
+        if (notificationRows.length > 0) {
           // Obtener el objeto io de Express
           const io = req.app.get('io');
           
           // Emitir la notificación al usuario
-          io.to(`user:${id_usuario}`).emit('notification', notification[0]);
+          io.to(`user:${id_usuario}`).emit('notification', notificationRows[0]);
         }
       }
 
@@ -1234,7 +1388,7 @@ const muralController = {
         );
 
         // Obtener la notificación completa para emitir por WebSocket
-        const [notification] = await pool.query(
+        const [notificationRows] = await pool.query(
           `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
            FROM notificaciones n
            LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -1243,12 +1397,12 @@ const muralController = {
           [notificationResult.insertId]
         );
 
-        if (notification.length > 0) {
+        if (notificationRows.length > 0) {
           // Obtener el objeto io de Express
           const io = req.app.get('io');
           
           // Emitir la notificación al nuevo propietario
-          io.to(`user:${id_nuevo_propietario}`).emit('notification', notification[0]);
+          io.to(`user:${id_nuevo_propietario}`).emit('notification', notificationRows[0]);
         }
 
         await pool.query('COMMIT');
@@ -1318,7 +1472,7 @@ const muralController = {
       );
 
       // Obtener la notificación completa para emitir por WebSocket
-      const [notification] = await pool.query(
+      const [notificationRows] = await pool.query(
         `SELECT n.*, u.nombre as nombre_emisor, m.titulo as titulo_mural
          FROM notificaciones n
          LEFT JOIN usuarios u ON n.id_emisor = u.id_usuario
@@ -1327,12 +1481,12 @@ const muralController = {
         [notificationResult.insertId]
       );
 
-      if (notification.length > 0) {
+      if (notificationRows.length > 0) {
         // Obtener el objeto io de Express
         const io = req.app.get('io');
         
         // Emitir la notificación al usuario expulsado
-        io.to(`user:${id_usuario}`).emit('notification', notification[0]);
+        io.to(`user:${id_usuario}`).emit('notification', notificationRows[0]);
         
         // Emitir evento de expulsión
         io.to(`user:${id_usuario}`).emit('user_expelled', {
