@@ -3,6 +3,10 @@
     <div class="brand-section">
       <h1>Muros</h1>
       <p class="subtitle">Colabora y crea</p>
+      <div class="contenedorD">
+        <span class="material-symbols-outlined">rocket_launch</span>
+        <p>Made by dannielorona</p>
+      </div>
     </div>
     
     <div class="card-container">
@@ -33,7 +37,7 @@
               <input [type]="showPassword ? 'text' : 'password'" 
                      formControlName="password" 
                      placeholder="Password" 
-                     class="form-control"
+                     class="form-control passwordInput"
                      data-lpignore="true"
                      autocomplete="new-password">
               <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" (click)="togglePassword()"></i>
@@ -112,7 +116,7 @@
               <input [type]="showRegisterPassword ? 'text' : 'password'" 
                      formControlName="password" 
                      placeholder="Password" 
-                     class="form-control"
+                     class="form-control passwordInput"
                      data-lpignore="true"
                      autocomplete="new-password">
               <i class="fas" [class.fa-eye]="!showRegisterPassword" [class.fa-eye-slash]="showRegisterPassword" (click)="toggleRegisterPassword()"></i>
@@ -128,7 +132,7 @@
               <input [type]="showRegisterConfirmPassword ? 'text' : 'password'" 
                      formControlName="confirmPassword" 
                      placeholder="Confirmar password" 
-                     class="form-control"
+                     class="form-control passwordInput"
                      data-lpignore="true"
                      autocomplete="new-password">
               <i class="fas" [class.fa-eye]="!showRegisterConfirmPassword" [class.fa-eye-slash]="showRegisterConfirmPassword" (click)="toggleRegisterConfirmPassword()"></i>
@@ -154,7 +158,7 @@
             </div>
           </div>
 
-          <button [disabled]="cargando" type="submit" class="login-button">
+          <button [disabled]="cargando" type="submit" class="login-button boton-registro">
             <span>Registrarse</span>
             <i *ngIf="!cargando" class="fas fa-arrow-right"></i>
             <span *ngIf="cargando" class="spinner-button"></span>

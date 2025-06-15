@@ -17,6 +17,25 @@
   gap: 10px;
 }
 
+.contenedorD {
+  display: flex;
+  gap: 5px;
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+
+  background-image: linear-gradient(90deg, rgb(11, 11, 11) 0%, rgb(255, 255, 255) 100%);  
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background-image 0.3s ease;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .login-content {
   display: flex;
   flex-direction: row;
@@ -62,6 +81,7 @@ h1 {
   font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.7);
   max-width: 600px;
+  margin-left: 5px;
 }
 
 .card-container {
@@ -186,6 +206,12 @@ h1 {
     outline: none;
   }
 }
+
+.passwordInput {
+  padding-right: 2.5rem !important;
+}
+
+
 
 .login-button {
   border: 1px solid rgba(78, 78, 78, 0.536);
@@ -471,8 +497,30 @@ h1 {
 }
 
 @media (max-width: 500px) {
+
+  .card-container {
+    // align-items: flex-start;
+    height: 500px !important;
+    margin-bottom: 3rem;
+  }
+
+  
+
   .login-content {
     padding: 1rem;
+  }
+
+  .boton-registro {
+   padding: .5rem;
+   font-size: .9rem;
+   margin: 0;
+  }
+  .contenedorD {
+    bottom: .5rem;
+  }
+
+  .subtitle {
+    margin-left: 0;
   }
 
   .brand-section  h1{
@@ -499,13 +547,27 @@ h1 {
     }
     .form-group {
       margin-bottom: 10px; 
+      
+      i {
+        font-size: .9rem;
+      }
     }
     .additional-options {
       margin: 0.5rem 0;
     }
-  
+    
     .login-button {
       margin: 0;
+    }
+    
+    .form-control {
+      border-radius: 0px !important;
+      padding: .5rem .5rem .5rem 3rem;
+      font-size: .9rem;
+    }
+
+    .input-wrapper {
+      border-radius: 8px !important;
     }
   }
 }
