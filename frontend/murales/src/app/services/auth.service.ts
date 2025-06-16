@@ -72,6 +72,8 @@ export class AuthService {
           if (expirationDate > new Date()) {
             console.log('Token válido y no expirado');
             this.authSubject.next(true);
+            // Cargar las sesiones activas al iniciar
+            this.loadActiveSessions().subscribe();
           } else {
             console.log('Token expirado');
             this.logout();
@@ -110,8 +112,8 @@ export class AuthService {
       tap((response: any) => {
         console.log('AuthService - login - Respuesta recibida:', !!response?.token);
         if (response?.token) {
-          sessionStorage.setItem(this.tokenKey, response.token);
-          sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+          localStorage.setItem(this.tokenKey, response.token);
+          localStorage.setItem(this.sessionIdKey, response.idSesion);
           this.authSubject.next(true);
           this.sessionsSubject.next(response.sesionesActivas);
           console.log('AuthService - login - Login exitoso');
@@ -135,8 +137,8 @@ export class AuthService {
       .pipe(
         tap((response: any) => {
           if (response?.token) {
-            sessionStorage.setItem(this.tokenKey, response.token);
-            sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+            localStorage.setItem(this.tokenKey, response.token);
+            localStorage.setItem(this.sessionIdKey, response.idSesion);
             this.authSubject.next(true);
             this.sessionsSubject.next(response.sesionesActivas);
           }
@@ -178,9 +180,9 @@ export class AuthService {
 
   logout(): void {
     // Limpiar el token
-    localStorage.removeItem('token');
+    localStorage.removeItem(this.tokenKey);
     // Limpiar el ID de sesión
-    localStorage.removeItem('sessionId');
+    localStorage.removeItem(this.sessionIdKey);
     // Limpiar el mural seleccionado
     sessionStorage.removeItem('selectedMuralId');
     
@@ -196,11 +198,11 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return sessionStorage.getItem(this.tokenKey);
+    return localStorage.getItem(this.tokenKey);
   }
 
   getSessionId(): string | null {
-    return sessionStorage.getItem(this.sessionIdKey);
+    return localStorage.getItem(this.sessionIdKey);
   }
 
   isLoggedIn(): boolean {
@@ -243,19 +245,16 @@ export class AuthService {
     const token = this.getToken();
     if (!token) {
       console.log('AuthService - closeSession - No hay token, redirigiendo a logout');
-      this.logout();
       return throwError(() => 'No hay token disponible');
     }
 
-    // Siempre enviar la petición al servidor para cerrar la sesión
     return this.http.post(`${this.apiUrl}/auth/logout/${sessionId}`, {}, { 
-      headers: new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      headers: this.getHeaders() 
     }).pipe(
       tap(() => {
-        // Si es la sesión actual, limpiar el estado local
         if (sessionId === this.getSessionId()) {
-          sessionStorage.removeItem(this.tokenKey);
-          sessionStorage.removeItem(this.sessionIdKey);
+          localStorage.removeItem(this.tokenKey);
+          localStorage.removeItem(this.sessionIdKey);
           this.authSubject.next(false);
           this.sessionsSubject.next([]);
         } else {
@@ -386,8 +385,8 @@ export class AuthService {
       }
 
       console.log('Respuesta del backend:', response);
-      sessionStorage.setItem(this.tokenKey, response.token);
-      sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+      localStorage.setItem(this.tokenKey, response.token);
+      localStorage.setItem(this.sessionIdKey, response.idSesion);
       this.authSubject.next(true);
       this.sessionsSubject.next(response.sesionesActivas);
       console.log('Token guardado:', response.token);
@@ -461,8 +460,8 @@ export class AuthService {
       }
 
       console.log('Respuesta del backend:', response);
-      sessionStorage.setItem(this.tokenKey, response.token);
-      sessionStorage.setItem(this.sessionIdKey, response.idSesion);
+      localStorage.setItem(this.tokenKey, response.token);
+      localStorage.setItem(this.sessionIdKey, response.idSesion);
       this.authSubject.next(true);
       this.sessionsSubject.next(response.sesionesActivas);
 
