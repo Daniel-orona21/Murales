@@ -34,6 +34,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   isSearchBarExpanded = false;
   isMobile: boolean = false;
   private needsUpdate = false;
+  private isLoadingMurals = false;
+  private loadMuralsTimeout: any;
   newMural: CreateMuralData = {
     titulo: '',
     descripcion: '',
@@ -242,42 +244,75 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.muralSubscription.unsubscribe();
     }
 
+    // Limpiar timeout si existe
+    if (this.loadMuralsTimeout) {
+      clearTimeout(this.loadMuralsTimeout);
+    }
+
     // Desuscribirse de todos los observables
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   loadUserMurals() {
+    if (this.isLoadingMurals) return;
+    
+    this.isLoadingMurals = true;
     this.loading = true;
-    this.muralService.getMuralesByUsuario().subscribe({
-      next: (murals) => {
-        this.murals = murals.map(mural => ({
-          ...mural,
-          showMenu: false
-        }));
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading murals:', error);
-        this.loading = false;
-      }
-    });
+
+    // Limpiar timeout anterior si existe
+    if (this.loadMuralsTimeout) {
+      clearTimeout(this.loadMuralsTimeout);
+    }
+
+    // Agregar un pequeño delay para evitar parpadeos
+    this.loadMuralsTimeout = setTimeout(() => {
+      this.muralService.getMuralesByUsuario().subscribe({
+        next: (murals) => {
+          this.murals = murals.map(mural => ({
+            ...mural,
+            showMenu: false
+          }));
+          this.loading = false;
+          this.isLoadingMurals = false;
+        },
+        error: (error) => {
+          console.error('Error loading murals:', error);
+          this.loading = false;
+          this.isLoadingMurals = false;
+        }
+      });
+    }, 100);
   }
 
   loadPublicMurals() {
+    if (this.isLoadingMurals) return;
+    
+    this.isLoadingMurals = true;
     this.loading = true;
-    this.muralService.getPublicMurales().subscribe({
-      next: (murals: Mural[]) => {
-        this.murals = murals.map((mural: Mural) => ({
-          ...mural,
-          showMenu: false
-        }));
-        this.loading = false;
-      },
-      error: (error: any) => {
-        console.error('Error loading public murals:', error);
-        this.loading = false;
-      }
-    });
+
+    // Limpiar timeout anterior si existe
+    if (this.loadMuralsTimeout) {
+      clearTimeout(this.loadMuralsTimeout);
+    }
+
+    // Agregar un pequeño delay para evitar parpadeos
+    this.loadMuralsTimeout = setTimeout(() => {
+      this.muralService.getPublicMurales().subscribe({
+        next: (murals: Mural[]) => {
+          this.murals = murals.map((mural: Mural) => ({
+            ...mural,
+            showMenu: false
+          }));
+          this.loading = false;
+          this.isLoadingMurals = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading public murals:', error);
+          this.loading = false;
+          this.isLoadingMurals = false;
+        }
+      });
+    }, 100);
   }
 
   togglePublicView() {
