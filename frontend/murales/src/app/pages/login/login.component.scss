@@ -11,6 +11,28 @@
   position: relative;
 }
 
+.contenedorLogo {
+  width: 100dvw;
+  height: 100dvh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  display: flex;
+  overflow: hidden;
+  pointer-events: none;
+
+  .logo {
+    position: absolute;
+    object-fit: contain;
+    opacity: .1;
+    height: 100dvh;
+    // width: 60dvw;
+    // top: 50%;
+    // left: 50%;
+    // transform: translate(-50%, -50%);
+  }
+}
 .contenedor {
   display: flex;
   flex-direction: column;
@@ -504,7 +526,14 @@ h1 {
     margin-bottom: 3rem;
   }
 
-  
+  .logo {
+    opacity: 0.1 !important;
+    width: 90dvw !important;
+    height: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
 
   .login-content {
     padding: 1rem;
