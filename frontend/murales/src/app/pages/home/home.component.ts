@@ -79,6 +79,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
   private subscriptions: Subscription[] = [];
+  private muralLoadInProgress = false;
+  private lastLoadTime = 0;
+  private readonly LOAD_COOLDOWN = 500; // 500ms cooldown between loads
 
   constructor(
     public router: Router,
@@ -156,115 +159,100 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.setViewportHeight();
     this.checkScreenSize();
     
-    this.subscriptions.push(this.route.queryParamMap.subscribe(params => {
-      const view = params.get('view');
-      const muralId = params.get('mural');
-      
-      this.publicViewActive = view === 'public';
-      this.selectedMuralId = muralId;
+    // Combinar las suscripciones de queryParams en una sola
+    this.subscriptions.push(
+      this.route.queryParamMap.subscribe(params => {
+        const view = params.get('view');
+        const muralId = params.get('mural');
+        
+        this.publicViewActive = view === 'public';
+        this.selectedMuralId = muralId;
 
-      if (this.publicViewActive) {
-        this.loadPublicMurals();
-      } else {
-        this.loadUserMurals();
-      }
-
-      if (muralId) {
-        // Forzamos la actualización para que el componente hijo `mural-detail` se cargue
-        this.cdr.detectChanges();
-      }
-    }));
-
-    this.loadNotifications();
-    this.loadUserData();
-    this.loadSessions();
-    
-    // Subscribe to real-time notifications
-    this.notificationsSubscription = this.notificationService.notifications$.subscribe(notifications => {
-      this.notifications = notifications;
-      this.updateUnreadCount();
-    });
-    
-    // Suscribirse a eventos de aprobación de acceso a murales
-    this.muralAccessSubscription = this.notificationService.muralAccessApproved$.subscribe(muralId => {
-      console.log('Access to mural approved, reloading murals...');
-      if (!this.selectedMuralId) {
         if (this.publicViewActive) {
           this.loadPublicMurals();
         } else {
           this.loadUserMurals();
         }
-      } else {
-        this.needsUpdate = true;
-      }
-    });
 
-    // Suscribirse al mural seleccionado
-    this.muralSubscription = this.muralService.selectedMural$.subscribe(muralId => {
-      this.selectedMuralId = muralId;
-      if (muralId) {
-        const mural = this.murals.find(m => m.id_mural.toString() === muralId);
-        if (mural) {
-          this.selectedMuralTitle = mural.titulo;
+        if (muralId) {
+          this.cdr.detectChanges();
         }
-      }
-      this.cdr.detectChanges();
-    });
+      })
+    );
 
-    // Suscribirse a eventos de actualización de murales
+    this.loadNotifications();
+    this.loadUserData();
+    this.loadSessions();
+    
+    // Suscripción a notificaciones
+    this.subscriptions.push(
+      this.notificationService.notifications$.subscribe(notifications => {
+        this.notifications = notifications;
+        this.updateUnreadCount();
+      })
+    );
+    
+    // Suscripción a eventos de aprobación de acceso
+    this.subscriptions.push(
+      this.notificationService.muralAccessApproved$.subscribe(muralId => {
+        if (!this.selectedMuralId) {
+          this.scheduleMuralLoad();
+        } else {
+          this.needsUpdate = true;
+        }
+      })
+    );
+
+    // Suscripción al mural seleccionado
+    this.subscriptions.push(
+      this.muralService.selectedMural$.subscribe(muralId => {
+        this.selectedMuralId = muralId;
+        if (muralId) {
+          const mural = this.murals.find(m => m.id_mural.toString() === muralId);
+          if (mural) {
+            this.selectedMuralTitle = mural.titulo;
+          }
+        }
+        this.cdr.detectChanges();
+      })
+    );
+
+    // Suscripción a eventos de actualización de murales
     this.subscriptions.push(
       this.muralService.muralesUpdate$.subscribe(() => {
-        console.log('Actualización de murales recibida...');
         if (!this.selectedMuralId) {
-          console.log('No hay mural seleccionado, actualizando lista...');
-          if (this.publicViewActive) {
-            this.loadPublicMurals();
-          } else {
-            this.loadUserMurals();
-          }
+          this.scheduleMuralLoad();
         } else {
-          console.log('Hay un mural seleccionado, marcando para actualización posterior...');
           this.needsUpdate = true;
         }
       })
     );
   }
 
-  ngOnDestroy() {
-    // Limpiar suscripciones
-    if (this.notificationsSubscription) {
-      this.notificationsSubscription.unsubscribe();
+  private scheduleMuralLoad() {
+    const now = Date.now();
+    if (now - this.lastLoadTime < this.LOAD_COOLDOWN) {
+      return;
     }
+    this.lastLoadTime = now;
     
-    if (this.muralAccessSubscription) {
-      this.muralAccessSubscription.unsubscribe();
+    if (this.publicViewActive) {
+      this.loadPublicMurals();
+    } else {
+      this.loadUserMurals();
     }
-
-    if (this.muralSubscription) {
-      this.muralSubscription.unsubscribe();
-    }
-
-    // Limpiar timeout si existe
-    if (this.loadMuralsTimeout) {
-      clearTimeout(this.loadMuralsTimeout);
-    }
-
-    // Desuscribirse de todos los observables
-    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   loadUserMurals() {
-    if (this.isLoadingMurals) return;
+    if (this.muralLoadInProgress) return;
     
-    this.isLoadingMurals = true;
+    this.muralLoadInProgress = true;
     this.loading = true;
 
-    // Limpiar timeout anterior si existe
     if (this.loadMuralsTimeout) {
       clearTimeout(this.loadMuralsTimeout);
     }
 
-    // Agregar un pequeño delay para evitar parpadeos
     this.loadMuralsTimeout = setTimeout(() => {
       this.muralService.getMuralesByUsuario().subscribe({
         next: (murals) => {
@@ -273,29 +261,27 @@ export class HomeComponent implements OnInit, OnDestroy {
             showMenu: false
           }));
           this.loading = false;
-          this.isLoadingMurals = false;
+          this.muralLoadInProgress = false;
         },
         error: (error) => {
           console.error('Error loading murals:', error);
           this.loading = false;
-          this.isLoadingMurals = false;
+          this.muralLoadInProgress = false;
         }
       });
     }, 100);
   }
 
   loadPublicMurals() {
-    if (this.isLoadingMurals) return;
+    if (this.muralLoadInProgress) return;
     
-    this.isLoadingMurals = true;
+    this.muralLoadInProgress = true;
     this.loading = true;
 
-    // Limpiar timeout anterior si existe
     if (this.loadMuralsTimeout) {
       clearTimeout(this.loadMuralsTimeout);
     }
 
-    // Agregar un pequeño delay para evitar parpadeos
     this.loadMuralsTimeout = setTimeout(() => {
       this.muralService.getPublicMurales().subscribe({
         next: (murals: Mural[]) => {
@@ -304,12 +290,12 @@ export class HomeComponent implements OnInit, OnDestroy {
             showMenu: false
           }));
           this.loading = false;
-          this.isLoadingMurals = false;
+          this.muralLoadInProgress = false;
         },
         error: (error: any) => {
           console.error('Error loading public murals:', error);
           this.loading = false;
-          this.isLoadingMurals = false;
+          this.muralLoadInProgress = false;
         }
       });
     }, 100);
@@ -1139,11 +1125,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
     
     if (this.needsUpdate) {
-      if (this.publicViewActive) {
-        this.loadPublicMurals();
-      } else {
-        this.loadUserMurals();
-      }
+      this.scheduleMuralLoad();
       this.needsUpdate = false;
     }
   }
@@ -1494,5 +1476,15 @@ export class HomeComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  ngOnDestroy() {
+    // Limpiar timeout si existe
+    if (this.loadMuralsTimeout) {
+      clearTimeout(this.loadMuralsTimeout);
+    }
+
+    // Desuscribirse de todos los observables
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 } 
