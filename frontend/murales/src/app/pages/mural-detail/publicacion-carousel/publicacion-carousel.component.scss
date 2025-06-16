@@ -1007,19 +1007,17 @@
   }
 
   .comentarios-section {
-    min-height: 300px !important;
-    background-color: green;
+    min-height: 250px !important;
   }
 
   .comentarios-lista {
     max-height: none !important;
-    min-height: 300px !important;
+    min-height: 250px !important;
     flex: 1 !important;
 
     .no-comentarios {
-      min-height: 300px !important;
+      min-height: 250px !important;
       flex: 1 !important;
-      background-color: red;
     }
   }
 
