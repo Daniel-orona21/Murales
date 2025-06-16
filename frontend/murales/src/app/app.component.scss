@@ -70,19 +70,19 @@
 
   .side1 {
     transform: rotateZ(-30deg) rotateY(90deg);
-    background: linear-gradient(to bottom right, #fff, #ddd);
+    background: linear-gradient(to bottom right, #ffffff, #ffffff);
   }
   .side2 {
     transform: rotateZ(30deg) rotateY(90deg);
-    background: linear-gradient(to bottom left, #fff, #ddd);
+    background: linear-gradient(to bottom left, #ffffff, #ffffff);
   }
   .side3 {
     transform: rotateX(30deg);
-    background: linear-gradient(to bottom, #fff, #eee);
+    background: linear-gradient(to bottom, #ffffff, #ffffff);
   }
   .side4 {
     transform: rotateX(-30deg);
-    background: linear-gradient(to top, #fff, #eee);
+    background: linear-gradient(to top, #ffffff, #ffffff);
   }
 
   .shadow {
