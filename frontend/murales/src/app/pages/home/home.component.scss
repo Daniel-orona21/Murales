@@ -2082,6 +2082,10 @@
       align-items: center;
       justify-content: center;
 
+      &:hover {
+       all: unset !important;
+      }
+
       i {
         font-size: .8rem;
       }
