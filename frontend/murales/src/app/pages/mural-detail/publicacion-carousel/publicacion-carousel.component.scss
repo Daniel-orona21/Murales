@@ -1006,8 +1006,21 @@
     position: relative !important;
   }
 
+  .comentarios-section {
+    min-height: 300px !important;
+    background-color: green;
+  }
+
   .comentarios-lista {
     max-height: none !important;
+    min-height: 300px !important;
+    flex: 1 !important;
+
+    .no-comentarios {
+      min-height: 300px !important;
+      flex: 1 !important;
+      background-color: red;
+    }
   }
 
  
