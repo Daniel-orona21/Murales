@@ -225,9 +225,11 @@
         }
       }
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
+      @media (hover: hover) {
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
       }
 
       &.active {
@@ -2083,7 +2085,7 @@
       justify-content: center;
 
       &:hover {
-       all: unset !important;
+
       }
 
       i {

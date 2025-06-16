@@ -23,6 +23,7 @@
     "@angular/router": "^17.3.0",
     "@auth/firebase-adapter": "^2.9.1",
     "@types/masonry-layout": "^4.2.8",
+    "@vercel/analytics": "^1.5.0",
     "firebase": "^10.7.1",
     "firebase-admin": "^12.7.0",
     "masonry-layout": "^4.2.2",
