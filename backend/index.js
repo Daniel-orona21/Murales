@@ -45,6 +45,11 @@ app.use(cookieParser());
 // Servir archivos estáticos desde la carpeta uploads
 app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Endpoint de status (antes del limitador de tasa para que no afecte las verificaciones)
+app.get('/api/status', (req, res) => {
+  res.status(200).json({ status: 'awake' });
+});
+
 // Aplicar limitador de tasa a todas las solicitudes de la API
 app.use('/api', apiLimiter);
 
