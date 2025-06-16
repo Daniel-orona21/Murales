@@ -48,6 +48,11 @@ app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 // Aplicar limitador de tasa a todas las solicitudes de la API
 app.use('/api', apiLimiter);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // Rutas
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/murales', require('./routes/murales'));

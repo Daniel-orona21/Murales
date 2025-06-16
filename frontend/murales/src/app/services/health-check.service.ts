@@ -11,7 +11,7 @@ export type BackendStatus = 'pending' | 'waking' | 'online' | 'offline';
 export class HealthCheckService {
   backendStatus = signal<BackendStatus>('pending');
   
-  private readonly prodApiUrl = 'https://murales.onrender.com/api';
+  private readonly prodApiUrl = 'https://murales.onrender.com/api/health';
 
   constructor(private http: HttpClient) {}
 
