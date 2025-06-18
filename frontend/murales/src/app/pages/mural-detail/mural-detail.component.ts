@@ -391,7 +391,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.nuevoElemento.archivo = file;
       } else {
         // Verificar otros tipos de archivo permitidos
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
         if (allowedTypes.includes(file.type)) {
           this.nuevoElemento.archivo = file;
         } else {
@@ -412,7 +412,7 @@ export class MuralDetailComponent implements OnInit, OnChanges, AfterViewInit, O
         this.nuevoElemento.archivo = file;
       } else {
         // Verificar otros tipos de archivo permitidos
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
         if (allowedTypes.includes(file.type)) {
           this.nuevoElemento.archivo = file;
         } else {

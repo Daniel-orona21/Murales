@@ -353,7 +353,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
     if (event.dataTransfer?.files.length) {
       const file = event.dataTransfer.files[0];
       if (file.type === 'application/pdf' || 
-          ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'].includes(file.type)) {
+          ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'].includes(file.type)) {
         this.editedContent.archivo = file;
       } else {
         this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
@@ -366,7 +366,7 @@ export class PublicacionCarouselComponent implements OnInit, OnChanges {
     if (input.files?.length) {
       const file = input.files[0];
       if (file.type === 'application/pdf' || 
-          ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'].includes(file.type)) {
+          ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'].includes(file.type)) {
         this.editedContent.archivo = file;
       } else {
         this.error = 'Tipo de archivo no permitido. Solo se permiten imágenes, videos y PDFs.';
